@@ -130,6 +130,8 @@
   .fill-green{background:#4CAF50;}
   .fill-purple{background:#8E44AD;}
   .battery-pct{flex:0 0 60px;text-align:right;font-size:13px;font-weight:700;}
+  .rate-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px;vertical-align:middle;}
+  #batterySubFilter{font-family:inherit;font-size:12.5px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);}
 
   .loading{padding:60px;text-align:center;color:var(--muted);}
   footer{text-align:center;font-size:11.5px;color:var(--muted);padding:20px;}
@@ -182,6 +184,7 @@ const fmtVND = fmtMoney;
 const fmtCompact = fmtMoney;
 
 function pillClass(pct){ if(pct<10) return 'bad'; if(pct<20) return 'warn'; return 'good'; }
+const RATE_COLOR = { 'fill-red':'#F44336', 'fill-yellow':'#FFC107', 'fill-green':'#4CAF50', 'fill-purple':'#8E44AD' };
 
 // Ngưỡng màu cho battery (Deep dive tỷ lệ truy thu theo lý do)
 function batteryClass(pct){
@@ -223,6 +226,7 @@ let ALL_ROWS = [];
 let currentTab = 'all';
 let currentMonth = 'all';
 let currentGranularity = 'month';
+let currentSubClient = 'all';
 let charts = {};
 
 fetch(CSV_URL)
@@ -244,7 +248,7 @@ function buildShell(){
     <div class="kpis" id="kpis"></div>
     <div class="grid2">
       <section>
-        <h2>Đền bù theo nhóm khách hàng</h2>
+        <h2>Đền bù theo nhóm hàng</h2>
         <div class="underline"></div>
         <p class="desc">Giá trị đền bù vs. đã truy thu theo từng client (đã gộp client trùng nhóm)</p>
         <canvas id="chartClient"></canvas>
@@ -280,9 +284,14 @@ function buildShell(){
         <div class="underline"></div>
         <p class="desc">Top lý do gây đền bù nhiều nhất</p>
         <canvas id="chartLyDo"></canvas>
-        <h2 style="margin-top:22px;">Deep dive: Tỷ lệ truy thu theo lý do</h2>
+        <h2 style="margin-top:22px;">Tỷ lệ truy thu theo lý do</h2>
         <div class="underline"></div>
-        <p class="desc">Đỏ &lt;20% · Vàng &lt;30% · Xanh lá &lt;50% · Tím ≥50%</p>
+        <div id="batterySubFilterWrap" style="display:none;margin-bottom:10px;">
+          <label style="font-size:12.5px;color:var(--muted);font-weight:700;margin-right:8px;">Xem theo:</label>
+          <select id="batterySubFilter">
+            <option value="all">Tất cả Shopee</option>
+          </select>
+        </div>
         <div id="batteryList"></div>
       </section>
       <section>
@@ -314,6 +323,22 @@ function buildShell(){
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     e.target.classList.add('active');
     currentTab = e.target.dataset.tab;
+    currentSubClient = 'all';
+    const wrap = document.getElementById('batterySubFilterWrap');
+    const subSel = document.getElementById('batterySubFilter');
+    if(currentTab === 'Shopee'){
+      wrap.style.display = 'block';
+      subSel.innerHTML = '<option value="all">Tất cả Shopee</option>' +
+        TAB_GROUPS.Shopee.map(id=>`<option value="${id}">${clientLabel(id)}</option>`).join('');
+      subSel.value = 'all';
+    } else {
+      wrap.style.display = 'none';
+    }
+    render();
+  });
+
+  document.getElementById('batterySubFilter').addEventListener('change', e=>{
+    currentSubClient = e.target.value;
     render();
   });
 
@@ -390,13 +415,13 @@ function render(){
     <div class="kpi"><div class="label">Tổng đơn đền bù</div><div class="value">${fmtNum(rows.length)}</div></div>
     <div class="kpi accent"><div class="label">Tổng giá trị đền bù</div><div class="value">${fmtVND(totalDenBu)}</div></div>
     <div class="kpi"><div class="label">Đã truy thu</div><div class="value">${fmtVND(totalTruyThu)}</div></div>
-    <div class="kpi"><div class="label">Tỷ lệ thu hồi</div><div class="value">${fmtPct(tyLeThuHoi)}</div><div class="sub">${fmtNum(soDonTruyThu)} đơn đã truy thu</div></div>
+    <div class="kpi"><div class="label">Tỷ lệ thu hồi</div><div class="value">${fmtPct(tyLeThuHoi)}<span class="rate-dot" style="background:${RATE_COLOR[batteryClass(tyLeThuHoi)]}"></span></div><div class="sub">${fmtNum(soDonTruyThu)} đơn đã truy thu</div></div>
   `;
 
   const orange = '#FE5F00', navy = '#0E4174', orangeLight = '#FF9E64', navyLight = '#7FA6C9';
   const dl = { color:'#383838', font:{family:"Cambria, 'Times New Roman', Georgia, serif", size:10, weight:'bold'} };
 
-  // --- theo nhóm khách hàng (đã gộp theo label, vd Tiki 2 ID gộp 1) ---
+  // --- theo nhóm hàng (đã gộp theo label, vd Tiki 2 ID gộp 1) ---
   const byClient = groupByFn(rows, r => clientLabel(r.nhom_kh));
   const clientKeys = Object.keys(byClient).sort((a,b)=>byClient[b].den_bu - byClient[a].den_bu);
   destroyChart('client');
@@ -450,17 +475,53 @@ function render(){
   const byLyDo = groupByFn(rows, r=>r.loai_yeu_cau);
   const lyDoKeys = Object.keys(byLyDo).sort((a,b)=>byLyDo[b].den_bu - byLyDo[a].den_bu).slice(0,8);
   destroyChart('lydo');
-  charts.lydo = new Chart(document.getElementById('chartLyDo'), {
-    type:'bar',
-    data:{ labels: lyDoKeys, datasets:[{label:'Đền bù', data: lyDoKeys.map(k=>byLyDo[k].den_bu), backgroundColor:orange}]},
-    options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false},
-      datalabels:{...dl, anchor:'end', align:'right', formatter:v=>fmtCompact(v)}},
-      scales:{x:{ticks:{callback:v=>fmtCompact(v)}}}}
-  });
+
+  const CLIENT_PALETTE = [navy, orange, orangeLight, navyLight, '#E04F00', '#0A2F54', '#8E44AD', '#B9CBE0'];
+
+  if(currentTab === 'all'){
+    // Tab Tổng quan: stacked theo nhóm hàng để xem trong mỗi lý do, nhóm hàng nào chiếm nhiều nhất
+    const clientLabelsAll = [...new Set(rows.map(r=>clientLabel(r.nhom_kh)))];
+    const byLyDoClient = {};
+    rows.forEach(r=>{
+      const lyDo = r.loai_yeu_cau || '(Không rõ)';
+      const cl = clientLabel(r.nhom_kh);
+      if(!byLyDoClient[lyDo]) byLyDoClient[lyDo] = {};
+      byLyDoClient[lyDo][cl] = (byLyDoClient[lyDo][cl]||0) + (+r.gia_tri_den_bu||0);
+    });
+    const datasets = clientLabelsAll.map((cl,i)=>({
+      label: cl,
+      data: lyDoKeys.map(k => (byLyDoClient[k] && byLyDoClient[k][cl]) || 0),
+      backgroundColor: CLIENT_PALETTE[i % CLIENT_PALETTE.length],
+    }));
+    charts.lydo = new Chart(document.getElementById('chartLyDo'), {
+      type:'bar',
+      data:{ labels: lyDoKeys, datasets },
+      options:{indexAxis:'y', responsive:true,
+        plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:10.5}}},
+          datalabels:{display:false}},
+        scales:{x:{stacked:true, ticks:{callback:v=>fmtCompact(v)}}, y:{stacked:true}}}
+    });
+  } else {
+    charts.lydo = new Chart(document.getElementById('chartLyDo'), {
+      type:'bar',
+      data:{ labels: lyDoKeys, datasets:[{label:'Đền bù', data: lyDoKeys.map(k=>byLyDo[k].den_bu), backgroundColor:orange}]},
+      options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false},
+        datalabels:{...dl, anchor:'end', align:'right', formatter:v=>fmtCompact(v)}},
+        scales:{x:{ticks:{callback:v=>fmtCompact(v)}}}}
+    });
+  }
+
+  // --- battery: tỷ lệ truy thu theo lý do (áp thêm filter sub-client nếu đang ở tab Shopee) ---
+  let batteryRows = rows;
+  if(currentTab === 'Shopee' && currentSubClient !== 'all'){
+    batteryRows = rows.filter(r => String(r.nhom_kh) === currentSubClient);
+  }
+  const byLyDoBattery = groupByFn(batteryRows, r=>r.loai_yeu_cau);
+  const lyDoBatteryKeys = Object.keys(byLyDoBattery).sort((a,b)=>byLyDoBattery[b].den_bu - byLyDoBattery[a].den_bu).slice(0,8);
 
   // --- deep dive: battery tỷ lệ truy thu theo lý do ---
-  document.getElementById('batteryList').innerHTML = lyDoKeys.map(k=>{
-    const v = byLyDo[k];
+  document.getElementById('batteryList').innerHTML = lyDoBatteryKeys.map(k=>{
+    const v = byLyDoBattery[k];
     const pct = v.den_bu ? (v.truy_thu/v.den_bu*100) : 0;
     const widthPct = Math.min(pct,100);
     return `<div class="battery-row">
