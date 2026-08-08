@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Báo cáo đền bù - truy thu [KA - CRC]</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --navy:#0E4174;
+    --navy-deep:#0A2F54;
+    --orange:#FE5F00;
+    --orange-soft:#FFE4D4;
+    --bg:#F6F7FA;
+    --card:#FFFFFF;
+    --ink:#16233A;
+    --muted:#647089;
+    --border:#E4E8F0;
+    --good:#1E8E5A;
+    --warn:#E08A00;
+    --bad:#D8443C;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:var(--bg);
+    color:var(--ink);
+  }
+  header{
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);
+    color:#fff;
+    padding:28px 32px 22px;
+  }
+  header h1{
+    margin:0 0 4px;
+    font-size:22px;
+    letter-spacing:.3px;
+  }
+  header p{
+    margin:0;
+    color:#C9D8EA;
+    font-size:13px;
+  }
+  .status{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin-top:10px;
+    font-size:12px;
+    color:#9FE3B8;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:#3ECF7C;animation:pulse 1.6s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  main{max-width:1180px;margin:0 auto;padding:24px 20px 60px;}
+  .kpis{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:14px;
+    margin-bottom:26px;
+  }
+  .kpi{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:16px 18px;
+  }
+  .kpi .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .kpi .value{font-size:22px;font-weight:700;margin-top:6px;color:var(--navy);}
+  .kpi .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .kpi.accent .value{color:var(--orange);}
+  section{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:20px;
+    margin-bottom:20px;
+  }
+  section h2{
+    font-size:15px;
+    margin:0 0 4px;
+    color:var(--navy);
+  }
+  section .desc{font-size:12px;color:var(--muted);margin:0 0 14px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media(max-width:800px){.grid2{grid-template-columns:1fr;}}
+  canvas{max-height:340px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;}
+  th:first-child,td:first-child{text-align:left;}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;}
+  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+  .pill.good{background:#E4F6EC;color:var(--good);}
+  .pill.warn{background:#FFF2DE;color:var(--warn);}
+  .pill.bad{background:#FCE7E5;color:var(--bad);}
+  .loading{padding:60px;text-align:center;color:var(--muted);}
+  footer{text-align:center;font-size:11px;color:var(--muted);padding:20px;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Báo cáo đền bù - truy thu [KA - CRC]</h1>
+  <p>Dữ liệu lấy trực tiếp từ Google Sheet, tự động cập nhật mỗi lần tải trang</p>
+  <div class="status"><span class="dot"></span><span id="statusText">Đang tải dữ liệu...</span></div>
+</header>
+
+<main id="app">
+  <div class="loading">Đang tải dữ liệu từ Google Sheet...</div>
+</main>
+
+<footer>© 2026 Báo cáo đền bù - truy thu [KA - CRC] · Nguồn: Google Sheet (published CSV)</footer>
+
+<script>
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTB7616KVIBlXdYcuTNS9cMeGvKNC2nTvymsGyjIyKL1z8GBd_b3Y5D5hsWVqkdBmfE_lJPKErsoRPd/pub?gid=0&single=true&output=csv";
+
+const fmtVND = n => n.toLocaleString('vi-VN', {maximumFractionDigits:0}) + 'đ';
+const fmtNum = n => n.toLocaleString('vi-VN');
+const fmtPct = n => n.toFixed(2) + '%';
+
+function pillClass(pct){
+  if(pct < 10) return 'bad';
+  if(pct < 20) return 'warn';
+  return 'good';
+}
+
+const CLIENT_NAMES = {
+  '18692': 'SPE Express',
+  '3892833': 'SPE Bulky',
+  '224845': 'SPE Reverse',
+  '2781603': 'SPX Express',
+  '9794': 'Lazada',
+  '2590595': 'Tiki',
+  '1367': 'Tiki',
+};
+
+function clientLabel(id){ return CLIENT_NAMES[id] || ('KH ' + id); }
+
+fetch(CSV_URL)
+  .then(r => r.text())
+  .then(csvText => {
+    const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true, dynamicTyping:true});
+    render(parsed.data);
+    document.getElementById('statusText').textContent =
+      'Cập nhật lúc ' + new Date().toLocaleString('vi-VN');
+  })
+  .catch(err => {
+    document.getElementById('app').innerHTML =
+      '<div class="loading">Không tải được dữ liệu. Kiểm tra lại link publish CSV.<br><small>'+err+'</small></div>';
+  });
+
+function render(rows){
+  rows = rows.filter(r => r.ma_dh);
+
+  const totalDenBu = rows.reduce((s,r)=>s+(+r.gia_tri_den_bu||0),0);
+  const totalTruyThu = rows.reduce((s,r)=>s+(+r.so_tien_da_truy_thu||0),0);
+  const soDonTruyThu = rows.filter(r => (+r.so_tien_da_truy_thu||0) > 0).length;
+  const tyLeThuHoi = totalDenBu ? (totalTruyThu/totalDenBu*100) : 0;
+
+  // group helper
+  function groupBy(key){
+    const m = {};
+    rows.forEach(r=>{
+      const k = r[key] || '(Không rõ)';
+      if(!m[k]) m[k] = {den_bu:0, truy_thu:0, so_don:0};
+      m[k].den_bu += (+r.gia_tri_den_bu||0);
+      m[k].truy_thu += (+r.so_tien_da_truy_thu||0);
+      m[k].so_don += 1;
+    });
+    return m;
+  }
+
+  const byClient = groupBy('nhom_kh');
+  const byTuyen = groupBy('tuyen');
+  const byLyDo = groupBy('loai_yeu_cau');
+
+  // by month
+  const byMonth = {};
+  rows.forEach(r=>{
+    const d = r.ngay_duyet_eform;
+    if(!d) return;
+    const ym = String(d).slice(0,7); // yyyy-mm
+    if(!byMonth[ym]) byMonth[ym] = {den_bu:0, truy_thu:0};
+    byMonth[ym].den_bu += (+r.gia_tri_den_bu||0);
+    byMonth[ym].truy_thu += (+r.so_tien_da_truy_thu||0);
+  });
+  const months = Object.keys(byMonth).sort();
+
+  // by hub (kho_chiu_trach_nhiem), top 10
+  const byHub = groupBy('kho_chiu_trach_nhiem');
+  delete byHub['(Không rõ)'];
+  const topHubs = Object.entries(byHub)
+    .sort((a,b)=>b[1].den_bu - a[1].den_bu)
+    .slice(0,10);
+
+  document.getElementById('app').innerHTML = `
+    <div class="kpis">
+      <div class="kpi"><div class="label">Tổng đơn đền bù</div><div class="value">${fmtNum(rows.length)}</div></div>
+      <div class="kpi accent"><div class="label">Tổng giá trị đền bù</div><div class="value">${fmtVND(totalDenBu)}</div></div>
+      <div class="kpi"><div class="label">Đã truy thu</div><div class="value">${fmtVND(totalTruyThu)}</div></div>
+      <div class="kpi"><div class="label">Tỷ lệ thu hồi</div><div class="value">${fmtPct(tyLeThuHoi)}</div><div class="sub">${fmtNum(soDonTruyThu)} đơn đã truy thu</div></div>
+    </div>
+
+    <div class="grid2">
+      <section>
+        <h2>Đền bù theo nhóm khách hàng</h2>
+        <p class="desc">Giá trị đền bù vs. đã truy thu theo từng client</p>
+        <canvas id="chartClient"></canvas>
+      </section>
+      <section>
+        <h2>Đền bù theo tuyến</h2>
+        <p class="desc">Phân bổ giá trị đền bù theo loại tuyến vận chuyển</p>
+        <canvas id="chartTuyen"></canvas>
+      </section>
+    </div>
+
+    <section>
+      <h2>Xu hướng theo tháng</h2>
+      <p class="desc">Giá trị đền bù và truy thu theo tháng duyệt eform</p>
+      <canvas id="chartMonth"></canvas>
+    </section>
+
+    <div class="grid2">
+      <section>
+        <h2>Theo lý do đền bù</h2>
+        <p class="desc">Top lý do gây đền bù nhiều nhất</p>
+        <canvas id="chartLyDo"></canvas>
+      </section>
+      <section>
+        <h2>Top 10 kho chịu trách nhiệm</h2>
+        <p class="desc">Xếp theo tổng giá trị đền bù</p>
+        <table>
+          <thead><tr><th>Kho</th><th>Số đơn</th><th>Đền bù</th><th>Tỷ lệ thu hồi</th></tr></thead>
+          <tbody>
+            ${topHubs.map(([name,v])=>{
+              const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
+              return `<tr>
+                <td>${name}</td>
+                <td>${fmtNum(v.so_don)}</td>
+                <td>${fmtVND(v.den_bu)}</td>
+                <td><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </section>
+    </div>
+  `;
+
+  const orange = '#FE5F00';
+  const navy = '#0E4174';
+  const navyLight = '#7FA6C9';
+
+  // client chart
+  const clientKeys = Object.keys(byClient).sort((a,b)=>byClient[b].den_bu - byClient[a].den_bu);
+  new Chart(document.getElementById('chartClient'), {
+    type:'bar',
+    data:{
+      labels: clientKeys.map(clientLabel),
+      datasets:[
+        {label:'Đền bù', data: clientKeys.map(k=>byClient[k].den_bu), backgroundColor:navy},
+        {label:'Đã truy thu', data: clientKeys.map(k=>byClient[k].truy_thu), backgroundColor:orange},
+      ]
+    },
+    options:{responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{ticks:{callback:v=>(v/1e6).toFixed(0)+'tr'}}}}
+  });
+
+  // tuyen chart (donut)
+  const tuyenKeys = Object.keys(byTuyen).sort((a,b)=>byTuyen[b].den_bu - byTuyen[a].den_bu);
+  new Chart(document.getElementById('chartTuyen'), {
+    type:'doughnut',
+    data:{
+      labels: tuyenKeys,
+      datasets:[{data: tuyenKeys.map(k=>byTuyen[k].den_bu),
+        backgroundColor:[navy,orange,navyLight,'#FFB07A','#3A6D9E','#FFD9BF','#0A2F54']}]
+    },
+    options:{responsive:true, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}}}}
+  });
+
+  // month trend
+  new Chart(document.getElementById('chartMonth'), {
+    type:'line',
+    data:{
+      labels: months,
+      datasets:[
+        {label:'Đền bù', data: months.map(m=>byMonth[m].den_bu), borderColor:navy, backgroundColor:navy, tension:.3},
+        {label:'Truy thu', data: months.map(m=>byMonth[m].truy_thu), borderColor:orange, backgroundColor:orange, tension:.3},
+      ]
+    },
+    options:{responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{ticks:{callback:v=>(v/1e6).toFixed(0)+'tr'}}}}
+  });
+
+  // ly do chart
+  const lyDoKeys = Object.keys(byLyDo).sort((a,b)=>byLyDo[b].den_bu - byLyDo[a].den_bu).slice(0,8);
+  new Chart(document.getElementById('chartLyDo'), {
+    type:'bar',
+    data:{
+      labels: lyDoKeys,
+      datasets:[{label:'Đền bù', data: lyDoKeys.map(k=>byLyDo[k].den_bu), backgroundColor:orange}]
+    },
+    options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{callback:v=>(v/1e6).toFixed(0)+'tr'}}}}
+  });
+}
+</script>
+</body>
+</html>
