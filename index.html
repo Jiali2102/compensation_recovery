@@ -41,16 +41,13 @@
   header{
     background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);
     color:#fff;
-    padding:26px clamp(20px,4vw,48px) 20px;
+    padding:22px clamp(20px,4vw,48px) 18px;
   }
-  header h1{margin:0 0 4px;font-size:27px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 3px rgba(0,0,0,0.15);}
+  header h1{margin:0;font-size:27px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 3px rgba(0,0,0,0.15);}
   header p{margin:0;color:#FFE4D2;font-size:16px;}
-  .status{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:15px;color:#FFF3E9;}
-  .dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:pulse 1.6s infinite;}
-  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
 
   .tabbar{
-    display:flex;gap:6px;flex-wrap:wrap;
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;
     background:var(--navy-deep);
     padding:0 clamp(20px,4vw,48px);
   }
@@ -62,6 +59,7 @@
   }
   .tabbar button.active{color:#fff;border-bottom-color:var(--orange);}
   .tabbar button:hover{color:#fff;}
+  .status{margin-left:auto;font-size:13px;color:#8FA6C2;font-style:italic;white-space:nowrap;padding-right:4px;}
 
   .filterbar{
     display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -132,6 +130,13 @@
   .fill-purple{background:#8E44AD;}
   .battery-pct{flex:0 0 60px;text-align:right;font-size:16px;font-weight:700;}
   .rate-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px;vertical-align:middle;}
+  .warning-item{
+    background:#FDECEA;border-left:4px solid #C62828;padding:10px 14px;border-radius:6px;
+    margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:15px;
+  }
+  .warning-item .wname{font-weight:700;}
+  .warning-item .wval{white-space:nowrap;color:#C62828;font-weight:700;}
+  .warning-empty{color:var(--muted);font-size:14px;padding:8px 0;}
   #batterySubFilter{font-family:inherit;font-size:15.5px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);}
 
   .loading{padding:60px;text-align:center;color:var(--muted);}
@@ -140,11 +145,11 @@
   @media(max-width:640px){
     header{padding:16px 16px 12px;}
     header h1{font-size:18px;letter-spacing:.1px;}
-    .status{font-size:12px;margin-top:6px;}
 
     .tabbar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding:0 10px;}
     .tabbar::-webkit-scrollbar{display:none;}
     .tabbar button{padding:11px 14px;font-size:14px;white-space:nowrap;flex:0 0 auto;}
+    .status{display:none;}
 
     .filterbar{flex-direction:column;align-items:flex-start;gap:8px;padding:12px 16px;}
     .filterbar label{margin-left:0 !important;font-size:13px;}
@@ -181,7 +186,6 @@
 
 <header>
   <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
-  <div class="status"><span class="dot"></span><span id="statusText">Đang tải dữ liệu...</span></div>
 </header>
 
 <div class="tabbar" id="tabbar">
@@ -189,6 +193,7 @@
   <button class="tab-btn" data-tab="Shopee">Shopee</button>
   <button class="tab-btn" data-tab="Lazada">Lazada</button>
   <button class="tab-btn" data-tab="Tiki">Tiki</button>
+  <div class="status" id="statusText">Cập nhật vào 10h sáng mỗi ngày</div>
 </div>
 
 <div class="filterbar">
@@ -277,7 +282,6 @@ fetch(CSV_URL)
     const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true, dynamicTyping:true});
     ALL_ROWS = parsed.data.filter(r => r.ma_dh);
     buildShell();
-    document.getElementById('statusText').textContent = 'Cập nhật lúc ' + fmtDateTime(new Date());
   })
   .catch(err => {
     document.getElementById('app').innerHTML =
@@ -350,11 +354,26 @@ function buildShell(){
     </div>
 
     <section>
-      <h2>Phân tích ticket truy thu</h2>
+      <h2>Loại lý do đền bù theo vùng</h2>
       <div class="underline"></div>
-      <p class="desc">Đơn được xem là "có ticket truy thu" khi có giá trị ở cột kho chịu trách nhiệm; ngược lại (rỗng/null) là "không có ticket"</p>
-      <div class="kpis" id="ticketKpis" style="margin-bottom:20px;"></div>
-      <canvas id="chartTicketDist"></canvas>
+      <p class="desc">Phân bổ giá trị đền bù theo từng lý do, chia theo vùng chịu trách nhiệm</p>
+      <canvas id="chartLyDoVung"></canvas>
+    </section>
+
+    <section>
+      <h2>⚠️ Cảnh báo: đền bù cao nhưng thu hồi thấp (&lt;10%)</h2>
+      <div class="underline"></div>
+      <p class="desc">Vùng/kho có tổng giá trị đền bù lớn nhưng tỷ lệ truy thu dưới 10% — ưu tiên xử lý</p>
+      <div class="grid2">
+        <div>
+          <h3 style="font-size:15.5px;margin:0 0 10px;color:var(--navy);">Theo vùng chịu trách nhiệm</h3>
+          <div id="warnVungList"></div>
+        </div>
+        <div>
+          <h3 style="font-size:15.5px;margin:0 0 10px;color:var(--navy);">Theo kho chịu trách nhiệm</h3>
+          <div id="warnHubList"></div>
+        </div>
+      </div>
     </section>
   `;
 
@@ -470,11 +489,20 @@ function render(){
   const soDonTruyThu = rows.filter(r => (+r.so_tien_da_truy_thu||0) > 0).length;
   const tyLeThuHoi = totalDenBu ? (totalTruyThu/totalDenBu*100) : 0;
 
+  function hasTicket(r){
+    const v = r.kho_chiu_trach_nhiem;
+    return !(v === null || v === undefined || String(v).trim() === '');
+  }
+  const withTicket = rows.filter(hasTicket);
+  const withoutTicket = rows.filter(r => !hasTicket(r));
+
   document.getElementById('kpis').innerHTML = `
     <div class="kpi"><div class="label">Tổng đơn đền bù</div><div class="value">${fmtNum(rows.length)}</div></div>
     <div class="kpi accent"><div class="label">Tổng giá trị đền bù</div><div class="value">${fmtVND(totalDenBu)}</div></div>
     <div class="kpi"><div class="label">Đã truy thu</div><div class="value">${fmtVND(totalTruyThu)}</div></div>
     <div class="kpi"><div class="label">Tỷ lệ thu hồi</div><div class="value">${fmtPct(tyLeThuHoi)}<span class="rate-dot" style="background:${RATE_COLOR[batteryClass(tyLeThuHoi)]}"></span></div><div class="sub">${fmtNum(soDonTruyThu)} đơn đã truy thu</div></div>
+    <div class="kpi"><div class="label">Đơn có ticket truy thu</div><div class="value">${fmtNum(withTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
+    <div class="kpi accent"><div class="label">Đơn chưa có ticket truy thu</div><div class="value">${fmtNum(withoutTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withoutTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
   `;
 
   const orange = '#FE5F00', navy = '#0E4174', orangeLight = '#FF9E64', navyLight = '#7FA6C9';
@@ -615,51 +643,50 @@ function render(){
     </tr>`;
   }).join('');
 
-  // --- phân tích ticket truy thu ---
-  function hasTicket(r){
-    const v = r.kho_chiu_trach_nhiem;
-    return !(v === null || v === undefined || String(v).trim() === '');
-  }
-  const withTicket = rows.filter(hasTicket);
-  const withoutTicket = rows.filter(r => !hasTicket(r));
-
-  document.getElementById('ticketKpis').innerHTML = `
-    <div class="kpi"><div class="label">Đơn có ticket truy thu</div><div class="value">${fmtNum(withTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
-    <div class="kpi accent"><div class="label">Đơn không có ticket</div><div class="value">${fmtNum(withoutTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withoutTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
-  `;
-
-  function ratioBucket(r){
-    const den = +r.gia_tri_den_bu || 0;
-    const thu = +r.so_tien_da_truy_thu || 0;
-    if(den <= 0) return null;
-    const ratio = thu/den;
-    if(ratio >= 1) return '≥100%';
-    const pct = ratio*100;
-    const lower = Math.min(95, Math.floor(pct/5)*5);
-    return `${lower}-${lower+5}%`;
-  }
-  const bucketOrder = [];
-  for(let i=0;i<100;i+=5) bucketOrder.push(`${i}-${i+5}%`);
-  bucketOrder.push('≥100%');
-
-  function bucketCounts(list){
-    const c = {}; bucketOrder.forEach(b=>c[b]=0);
-    list.forEach(r=>{ const b = ratioBucket(r); if(b) c[b]++; });
-    return c;
-  }
-  const ticketBuckets = bucketCounts(withTicket);
-  const noTicketBuckets = bucketCounts(withoutTicket);
-
-  destroyChart('ticketDist');
-  charts.ticketDist = new Chart(document.getElementById('chartTicketDist'), {
-    type:'bar',
-    data:{ labels: bucketOrder, datasets:[
-      {label:'Có ticket truy thu', data: bucketOrder.map(b=>ticketBuckets[b]), backgroundColor:navy},
-      {label:'Không có ticket', data: bucketOrder.map(b=>noTicketBuckets[b]), backgroundColor:orange},
-    ]},
-    options:{responsive:true, plugins:{legend:{position:'bottom'}, datalabels:{display:false}},
-      scales:{x:{ticks:{autoSkip:false, maxRotation:60, minRotation:45}}, y:{title:{display:true,text:'Số đơn'}}}}
+  // --- theo lý do đền bù theo vùng (không phụ thuộc filter vùng, để so sánh giữa các vùng) ---
+  const byLyDoAllForVung = groupByFn(rows, r=>r.loai_yeu_cau);
+  const lyDoKeysForVung = Object.keys(byLyDoAllForVung).sort((a,b)=>byLyDoAllForVung[b].den_bu - byLyDoAllForVung[a].den_bu).slice(0,8);
+  const vungListAll = [...new Set(rows.map(r=>r.vung_chiu_trach_nhiem || '(Không rõ)'))];
+  const byLyDoVung = {};
+  rows.forEach(r=>{
+    const lyDo = r.loai_yeu_cau || '(Không rõ)';
+    const vg = r.vung_chiu_trach_nhiem || '(Không rõ)';
+    if(!byLyDoVung[lyDo]) byLyDoVung[lyDo] = {};
+    byLyDoVung[lyDo][vg] = (byLyDoVung[lyDo][vg]||0) + (+r.gia_tri_den_bu||0);
   });
+  const vungDatasets = vungListAll.map((vg,i)=>({
+    label: vg,
+    data: lyDoKeysForVung.map(k => (byLyDoVung[k] && byLyDoVung[k][vg]) || 0),
+    backgroundColor: CLIENT_PALETTE[i % CLIENT_PALETTE.length],
+  }));
+  destroyChart('lydoVung');
+  charts.lydoVung = new Chart(document.getElementById('chartLyDoVung'), {
+    type:'bar',
+    data:{ labels: lyDoKeysForVung, datasets: vungDatasets },
+    options:{indexAxis:'y', responsive:true,
+      plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:10.5}}}, datalabels:{display:false}},
+      scales:{x:{stacked:true, ticks:{callback:v=>fmtCompact(v)}}, y:{stacked:true}}}
+  });
+
+  // --- cảnh báo: đền bù cao nhưng thu hồi thấp (<10%) ---
+  function renderWarnList(elId, byMap){
+    const list = Object.entries(byMap)
+      .filter(([name]) => name && name !== '(Không rõ)')
+      .map(([name,v]) => ({ name, den_bu:v.den_bu, pct: v.den_bu ? v.truy_thu/v.den_bu*100 : 0 }))
+      .filter(x => x.pct < 10 && x.den_bu > 0)
+      .sort((a,b) => b.den_bu - a.den_bu)
+      .slice(0,5);
+    document.getElementById(elId).innerHTML = list.length ? list.map(x => `
+      <div class="warning-item">
+        <span>⚠️ <span class="wname">${x.name}</span></span>
+        <span class="wval">${fmtMoney(x.den_bu)} · ${fmtPct(x.pct)}</span>
+      </div>
+    `).join('') : '<div class="warning-empty">Không có mục nào vượt ngưỡng cảnh báo</div>';
+  }
+  const byVungFull = groupByFn(rows, r=>r.vung_chiu_trach_nhiem);
+  const byHubFull = groupByFn(rows, r=>r.kho_chiu_trach_nhiem);
+  renderWarnList('warnVungList', byVungFull);
+  renderWarnList('warnHubList', byHubFull);
 }
 </script>
 </body>
