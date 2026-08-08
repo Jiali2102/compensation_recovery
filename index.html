@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Báo cáo đền bù - truy thu [KA - CRC]</title>
+<title>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</title>
+<link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <style>
   :root{
     --orange:#FE5F00;
@@ -24,6 +26,7 @@
     --bad:#F44336;
   }
   *{box-sizing:border-box;}
+  html,body{width:100%;}
   body{
     margin:0;
     font-family:"Cambria","Times New Roman",Georgia,serif;
@@ -31,83 +34,78 @@
     color:var(--ink);
     line-height:1.6;
   }
-  /* GHN signature: top thin orange line */
   .top-line{height:3px;background:var(--orange);width:100%;}
+  .bottom-bar{height:6px;background:var(--orange);width:100%;}
 
   header{
     background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);
     color:#fff;
-    padding:28px 32px 22px;
+    padding:26px clamp(20px,4vw,48px) 20px;
   }
-  header h1{
-    margin:0 0 4px;
-    font-size:24px;
-    font-weight:700;
-    letter-spacing:.2px;
-  }
-  header p{
-    margin:0;
-    color:#FFE4D2;
-    font-size:13px;
-    line-height:1.5;
-  }
-  .status{
-    display:inline-flex;
-    align-items:center;
-    gap:6px;
-    margin-top:10px;
-    font-size:12px;
-    color:#FFF3E9;
-  }
+  header h1{margin:0 0 4px;font-size:24px;font-weight:700;letter-spacing:.2px;}
+  header p{margin:0;color:#FFE4D2;font-size:13px;}
+  .status{display:inline-flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;color:#FFF3E9;}
   .dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:pulse 1.6s infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
 
-  main{max-width:1180px;margin:0 auto;padding:24px 20px 60px;}
-  .kpis{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-    gap:14px;
-    margin-bottom:26px;
+  .tabbar{
+    display:flex;gap:6px;flex-wrap:wrap;
+    background:var(--navy-deep);
+    padding:0 clamp(20px,4vw,48px);
   }
+  .tabbar button{
+    font-family:inherit;
+    background:transparent;border:none;color:#B9CBE0;
+    padding:13px 20px;font-size:14px;font-weight:700;cursor:pointer;
+    border-bottom:3px solid transparent;
+  }
+  .tabbar button.active{color:#fff;border-bottom-color:var(--orange);}
+  .tabbar button:hover{color:#fff;}
+
+  .filterbar{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:14px clamp(20px,4vw,48px);
+    background:#fff;border-bottom:1px solid var(--border);
+  }
+  .filterbar label{font-size:13px;color:var(--muted);font-weight:700;}
+  .filterbar select{
+    font-family:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--border);
+    border-radius:6px;background:#fff;color:var(--ink);
+  }
+  .granularity{display:flex;gap:4px;margin-left:auto;}
+  .granularity button{
+    font-family:inherit;font-size:12.5px;padding:6px 14px;border:1px solid var(--border);
+    background:#fff;color:var(--muted);border-radius:6px;cursor:pointer;font-weight:700;
+  }
+  .granularity button.active{background:var(--orange);border-color:var(--orange);color:#fff;}
+
+  main{width:100%;max-width:1800px;margin:0 auto;padding:24px clamp(20px,4vw,48px) 60px;}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:26px;}
   .kpi{
-    background:var(--card);
-    border:1px solid var(--border);
-    border-left:4px solid var(--navy);
-    border-radius:8px;
-    padding:20px 18px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.06);
+    background:var(--card);border:1px solid var(--border);border-left:4px solid var(--navy);
+    border-radius:8px;padding:20px 18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);
   }
   .kpi.accent{border-left-color:var(--orange);}
   .kpi .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
   .kpi .value{font-size:23px;font-weight:700;margin-top:6px;color:var(--navy);}
   .kpi.accent .value{color:var(--orange);}
-  .kpi .sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;}
+  .kpi .sub{font-size:12px;color:var(--muted);margin-top:4px;}
 
   section{
-    background:var(--card);
-    border:1px solid var(--border);
-    border-radius:8px;
-    padding:24px;
-    margin-bottom:20px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.05);
+    background:var(--card);border:1px solid var(--border);border-radius:8px;
+    padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.05);
   }
-  section h2{
-    font-size:16px;
-    font-weight:700;
-    margin:0 0 4px;
-    color:var(--orange);
-  }
-  section .underline{
-    width:60px;height:2px;background:var(--orange);margin:6px 0 12px;
-  }
-  section .desc{font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5;}
+  section h2{font-size:16px;font-weight:700;margin:0 0 4px;color:var(--orange);}
+  section .underline{width:60px;height:2px;background:var(--orange);margin:6px 0 12px;}
+  section .desc{font-size:12.5px;color:var(--muted);margin:0 0 14px;}
 
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  @media(max-width:800px){.grid2{grid-template-columns:1fr;}}
-  canvas{max-height:340px;}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr;}}
+  canvas{max-height:360px;}
 
+  .table-wrap{overflow-x:auto;}
   table{width:100%;border-collapse:collapse;font-size:13.5px;}
-  th,td{padding:10px;border-bottom:1px solid var(--border);text-align:right;word-wrap:break-word;}
+  th,td{padding:10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;}
   th:first-child,td:first-child{text-align:left;}
   th{color:var(--muted);font-weight:700;font-size:11px;text-transform:uppercase;}
 
@@ -117,12 +115,7 @@
   .pill.bad{background:#FDECEA;color:#C62828;}
 
   .loading{padding:60px;text-align:center;color:var(--muted);}
-
-  footer{
-    text-align:center;font-size:11.5px;color:var(--muted);padding:20px;line-height:1.6;
-  }
-  /* GHN signature: bottom thick orange bar */
-  .bottom-bar{height:6px;background:var(--orange);width:100%;}
+  footer{text-align:center;font-size:11.5px;color:var(--muted);padding:20px;}
 </style>
 </head>
 <body>
@@ -130,16 +123,28 @@
 <div class="top-line"></div>
 
 <header>
-  <h1>Báo cáo đền bù - truy thu [KA - CRC]</h1>
-  <p>Dữ liệu lấy trực tiếp từ Google Sheet, tự động cập nhật mỗi lần tải trang</p>
+  <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
+  <p>Dữ liệu lấy trực tiếp từ nguồn, tự động cập nhật mỗi lần tải trang</p>
   <div class="status"><span class="dot"></span><span id="statusText">Đang tải dữ liệu...</span></div>
 </header>
 
+<div class="tabbar" id="tabbar">
+  <button class="tab-btn active" data-tab="all">Tổng quan</button>
+  <button class="tab-btn" data-tab="Shopee">Shopee</button>
+  <button class="tab-btn" data-tab="Lazada">Lazada</button>
+  <button class="tab-btn" data-tab="Tiki">Tiki</button>
+</div>
+
+<div class="filterbar">
+  <label>Kỳ xem:</label>
+  <select id="monthSelect"><option value="all">Tất cả</option></select>
+</div>
+
 <main id="app">
-  <div class="loading">Đang tải dữ liệu từ Google Sheet...</div>
+  <div class="loading">Đang tải dữ liệu từ nguồn (có thể mất vài giây)...</div>
 </main>
 
-<footer>© 2026 Báo cáo đền bù - truy thu [KA - CRC] · Nguồn: Google Sheet</footer>
+<footer>© 2026 [KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</footer>
 <div class="bottom-bar"></div>
 
 <script>
@@ -148,13 +153,16 @@ const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTB7616KVIBlXdY
 const fmtVND = n => n.toLocaleString('vi-VN', {maximumFractionDigits:0}) + 'đ';
 const fmtNum = n => n.toLocaleString('vi-VN');
 const fmtPct = n => n.toFixed(2) + '%';
+const fmtCompact = n => (n/1e6).toLocaleString('vi-VN',{maximumFractionDigits:1}) + 'tr';
 
-function pillClass(pct){
-  if(pct < 10) return 'bad';
-  if(pct < 20) return 'warn';
-  return 'good';
+function pillClass(pct){ if(pct<10) return 'bad'; if(pct<20) return 'warn'; return 'good'; }
+
+function fmtDateTime(d){
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
+// Mapping ID -> tên hiển thị (Tiki có 2 ID được gộp chung nhãn "Tiki")
 const CLIENT_NAMES = {
   '18692': 'SPE Express',
   '3892833': 'SPE Bulky',
@@ -164,16 +172,32 @@ const CLIENT_NAMES = {
   '2590595': 'Tiki',
   '1367': 'Tiki',
 };
+function clientLabel(id){ return CLIENT_NAMES[String(id)] || ('KH ' + id); }
 
-function clientLabel(id){ return CLIENT_NAMES[id] || ('KH ' + id); }
+// Nhóm tab: gộp toàn bộ ID Shopee (SPE+SPX) / Lazada / Tiki
+const TAB_GROUPS = {
+  Shopee: ['18692','3892833','224845','2781603'],
+  Lazada: ['9794'],
+  Tiki: ['2590595','1367'],
+};
+
+Chart.defaults.font.family = "Cambria, 'Times New Roman', Georgia, serif";
+Chart.defaults.color = '#383838';
+if(typeof ChartDataLabels !== 'undefined'){ Chart.register(ChartDataLabels); }
+
+let ALL_ROWS = [];
+let currentTab = 'all';
+let currentMonth = 'all';
+let currentGranularity = 'month';
+let charts = {};
 
 fetch(CSV_URL)
   .then(r => r.text())
   .then(csvText => {
     const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true, dynamicTyping:true});
-    render(parsed.data);
-    document.getElementById('statusText').textContent =
-      'Cập nhật lúc ' + new Date().toLocaleString('vi-VN');
+    ALL_ROWS = parsed.data.filter(r => r.ma_dh);
+    buildShell();
+    document.getElementById('statusText').textContent = 'Cập nhật lúc ' + fmtDateTime(new Date());
   })
   .catch(err => {
     document.getElementById('app').innerHTML =
@@ -181,60 +205,14 @@ fetch(CSV_URL)
     console.error(err);
   });
 
-function render(rows){
-  rows = rows.filter(r => r.ma_dh);
-
-  const totalDenBu = rows.reduce((s,r)=>s+(+r.gia_tri_den_bu||0),0);
-  const totalTruyThu = rows.reduce((s,r)=>s+(+r.so_tien_da_truy_thu||0),0);
-  const soDonTruyThu = rows.filter(r => (+r.so_tien_da_truy_thu||0) > 0).length;
-  const tyLeThuHoi = totalDenBu ? (totalTruyThu/totalDenBu*100) : 0;
-
-  function groupBy(key){
-    const m = {};
-    rows.forEach(r=>{
-      const k = r[key] || '(Không rõ)';
-      if(!m[k]) m[k] = {den_bu:0, truy_thu:0, so_don:0};
-      m[k].den_bu += (+r.gia_tri_den_bu||0);
-      m[k].truy_thu += (+r.so_tien_da_truy_thu||0);
-      m[k].so_don += 1;
-    });
-    return m;
-  }
-
-  const byClient = groupBy('nhom_kh');
-  const byTuyen = groupBy('tuyen');
-  const byLyDo = groupBy('loai_yeu_cau');
-
-  const byMonth = {};
-  rows.forEach(r=>{
-    const d = r.ngay_duyet_eform;
-    if(!d) return;
-    const ym = String(d).slice(0,7);
-    if(!byMonth[ym]) byMonth[ym] = {den_bu:0, truy_thu:0};
-    byMonth[ym].den_bu += (+r.gia_tri_den_bu||0);
-    byMonth[ym].truy_thu += (+r.so_tien_da_truy_thu||0);
-  });
-  const months = Object.keys(byMonth).sort();
-
-  const byHub = groupBy('kho_chiu_trach_nhiem');
-  delete byHub['(Không rõ)'];
-  const topHubs = Object.entries(byHub)
-    .sort((a,b)=>b[1].den_bu - a[1].den_bu)
-    .slice(0,10);
-
+function buildShell(){
   document.getElementById('app').innerHTML = `
-    <div class="kpis">
-      <div class="kpi"><div class="label">Tổng đơn đền bù</div><div class="value">${fmtNum(rows.length)}</div></div>
-      <div class="kpi accent"><div class="label">Tổng giá trị đền bù</div><div class="value">${fmtVND(totalDenBu)}</div></div>
-      <div class="kpi"><div class="label">Đã truy thu</div><div class="value">${fmtVND(totalTruyThu)}</div></div>
-      <div class="kpi"><div class="label">Tỷ lệ thu hồi</div><div class="value">${fmtPct(tyLeThuHoi)}</div><div class="sub">${fmtNum(soDonTruyThu)} đơn đã truy thu</div></div>
-    </div>
-
+    <div class="kpis" id="kpis"></div>
     <div class="grid2">
       <section>
         <h2>Đền bù theo nhóm khách hàng</h2>
         <div class="underline"></div>
-        <p class="desc">Giá trị đền bù vs. đã truy thu theo từng client</p>
+        <p class="desc">Giá trị đền bù vs. đã truy thu theo từng client (đã gộp client trùng nhóm)</p>
         <canvas id="chartClient"></canvas>
       </section>
       <section>
@@ -246,10 +224,20 @@ function render(rows){
     </div>
 
     <section>
-      <h2>Xu hướng theo tháng</h2>
-      <div class="underline"></div>
-      <p class="desc">Giá trị đền bù và truy thu theo tháng duyệt eform</p>
-      <canvas id="chartMonth"></canvas>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2>Xu hướng theo kỳ</h2>
+          <div class="underline"></div>
+          <p class="desc" style="margin-bottom:0;">Giá trị đền bù và truy thu theo kỳ đã chọn</p>
+        </div>
+        <div class="granularity" id="granularity">
+          <button data-g="week">Tuần</button>
+          <button data-g="month" class="active">Tháng</button>
+          <button data-g="quarter">Quý</button>
+          <button data-g="year">Năm</button>
+        </div>
+      </div>
+      <canvas id="chartMonth" style="margin-top:14px;"></canvas>
     </section>
 
     <div class="grid2">
@@ -263,74 +251,188 @@ function render(rows){
         <h2>Top 10 kho chịu trách nhiệm</h2>
         <div class="underline"></div>
         <p class="desc">Xếp theo tổng giá trị đền bù</p>
-        <table>
-          <thead><tr><th>Kho</th><th>Số đơn</th><th>Đền bù</th><th>Tỷ lệ thu hồi</th></tr></thead>
-          <tbody>
-            ${topHubs.map(([name,v])=>{
-              const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
-              return `<tr>
-                <td>${name}</td>
-                <td>${fmtNum(v.so_don)}</td>
-                <td>${fmtVND(v.den_bu)}</td>
-                <td><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Kho</th><th>Số đơn</th><th>Đền bù</th><th>Tỷ lệ thu hồi</th></tr></thead>
+            <tbody id="hubTableBody"></tbody>
+          </table>
+        </div>
       </section>
     </div>
   `;
 
-  const orange = '#FE5F00';
-  const navy = '#0E4174';
-  const orangeLight = '#FF9E64';
-  const navyLight = '#7FA6C9';
+  // populate month dropdown (dựa trên toàn bộ data)
+  const months = [...new Set(ALL_ROWS.map(r=>String(r.ngay_duyet_eform||'').slice(0,7)).filter(Boolean))].sort();
+  const sel = document.getElementById('monthSelect');
+  months.forEach(m=>{
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = m;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', e=>{ currentMonth = e.target.value; render(); });
 
+  document.getElementById('tabbar').addEventListener('click', e=>{
+    if(e.target.tagName !== 'BUTTON') return;
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentTab = e.target.dataset.tab;
+    render();
+  });
+
+  document.getElementById('granularity').addEventListener('click', e=>{
+    if(e.target.tagName !== 'BUTTON') return;
+    document.querySelectorAll('#granularity button').forEach(b=>b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentGranularity = e.target.dataset.g;
+    render();
+  });
+
+  render();
+}
+
+function getFilteredRows(){
+  let rows = ALL_ROWS;
+  if(currentTab !== 'all'){
+    const ids = TAB_GROUPS[currentTab] || [];
+    rows = rows.filter(r => ids.includes(String(r.nhom_kh)));
+  }
+  if(currentMonth !== 'all'){
+    rows = rows.filter(r => String(r.ngay_duyet_eform||'').slice(0,7) === currentMonth);
+  }
+  return rows;
+}
+
+function groupByFn(rows, keyFn){
+  const m = {};
+  rows.forEach(r=>{
+    const k = keyFn(r) || '(Không rõ)';
+    if(!m[k]) m[k] = {den_bu:0, truy_thu:0, so_don:0};
+    m[k].den_bu += (+r.gia_tri_den_bu||0);
+    m[k].truy_thu += (+r.so_tien_da_truy_thu||0);
+    m[k].so_don += 1;
+  });
+  return m;
+}
+
+function getISOWeekLabel(dateStr){
+  const d = new Date(dateStr);
+  if(isNaN(d)) return null;
+  const target = new Date(d.valueOf());
+  const dayNr = (d.getUTCDay() + 6) % 7;
+  target.setUTCDate(target.getUTCDate() - dayNr + 3);
+  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(),0,4));
+  const week = 1 + Math.round(((target - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay()+6)%7)) / 7);
+  return target.getUTCFullYear() + '-W' + String(week).padStart(2,'0');
+}
+
+function periodKey(dateStr, granularity){
+  if(!dateStr) return null;
+  const s = String(dateStr);
+  if(granularity === 'month') return s.slice(0,7);
+  if(granularity === 'year') return s.slice(0,4);
+  if(granularity === 'quarter'){
+    const y = s.slice(0,4), m = +s.slice(5,7);
+    return y + '-Q' + (Math.floor((m-1)/3)+1);
+  }
+  if(granularity === 'week') return getISOWeekLabel(s);
+  return s.slice(0,7);
+}
+
+function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
+
+function render(){
+  const rows = getFilteredRows();
+
+  const totalDenBu = rows.reduce((s,r)=>s+(+r.gia_tri_den_bu||0),0);
+  const totalTruyThu = rows.reduce((s,r)=>s+(+r.so_tien_da_truy_thu||0),0);
+  const soDonTruyThu = rows.filter(r => (+r.so_tien_da_truy_thu||0) > 0).length;
+  const tyLeThuHoi = totalDenBu ? (totalTruyThu/totalDenBu*100) : 0;
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="label">Tổng đơn đền bù</div><div class="value">${fmtNum(rows.length)}</div></div>
+    <div class="kpi accent"><div class="label">Tổng giá trị đền bù</div><div class="value">${fmtVND(totalDenBu)}</div></div>
+    <div class="kpi"><div class="label">Đã truy thu</div><div class="value">${fmtVND(totalTruyThu)}</div></div>
+    <div class="kpi"><div class="label">Tỷ lệ thu hồi</div><div class="value">${fmtPct(tyLeThuHoi)}</div><div class="sub">${fmtNum(soDonTruyThu)} đơn đã truy thu</div></div>
+  `;
+
+  const orange = '#FE5F00', navy = '#0E4174', orangeLight = '#FF9E64', navyLight = '#7FA6C9';
+  const dl = { color:'#383838', font:{family:"Cambria, 'Times New Roman', Georgia, serif", size:10, weight:'bold'} };
+
+  // --- theo nhóm khách hàng (đã gộp theo label, vd Tiki 2 ID gộp 1) ---
+  const byClient = groupByFn(rows, r => clientLabel(r.nhom_kh));
   const clientKeys = Object.keys(byClient).sort((a,b)=>byClient[b].den_bu - byClient[a].den_bu);
-  new Chart(document.getElementById('chartClient'), {
+  destroyChart('client');
+  charts.client = new Chart(document.getElementById('chartClient'), {
     type:'bar',
-    data:{
-      labels: clientKeys.map(clientLabel),
-      datasets:[
-        {label:'Đền bù', data: clientKeys.map(k=>byClient[k].den_bu), backgroundColor:navy},
-        {label:'Đã truy thu', data: clientKeys.map(k=>byClient[k].truy_thu), backgroundColor:orange},
-      ]
-    },
-    options:{responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{ticks:{callback:v=>(v/1e6).toFixed(0)+'tr'}}}}
+    data:{ labels: clientKeys, datasets:[
+      {label:'Đền bù', data: clientKeys.map(k=>byClient[k].den_bu), backgroundColor:navy},
+      {label:'Đã truy thu', data: clientKeys.map(k=>byClient[k].truy_thu), backgroundColor:orange},
+    ]},
+    options:{responsive:true, plugins:{legend:{position:'bottom'},
+      datalabels:{...dl, anchor:'end', align:'top', formatter:v=>fmtCompact(v)}},
+      scales:{y:{ticks:{callback:v=>fmtCompact(v)}}}}
   });
 
+  // --- theo tuyến ---
+  const byTuyen = groupByFn(rows, r=>r.tuyen);
   const tuyenKeys = Object.keys(byTuyen).sort((a,b)=>byTuyen[b].den_bu - byTuyen[a].den_bu);
-  new Chart(document.getElementById('chartTuyen'), {
+  const tuyenTotal = tuyenKeys.reduce((s,k)=>s+byTuyen[k].den_bu,0);
+  destroyChart('tuyen');
+  charts.tuyen = new Chart(document.getElementById('chartTuyen'), {
     type:'doughnut',
-    data:{
-      labels: tuyenKeys,
-      datasets:[{data: tuyenKeys.map(k=>byTuyen[k].den_bu),
-        backgroundColor:[orange,navy,orangeLight,navyLight,'#E04F00','#0A2F54','#FFE4D2']}]
-    },
-    options:{responsive:true, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}}}}
+    data:{ labels: tuyenKeys, datasets:[{data: tuyenKeys.map(k=>byTuyen[k].den_bu),
+      backgroundColor:[orange,navy,orangeLight,navyLight,'#E04F00','#0A2F54','#FFE4D2']}]},
+    options:{responsive:true, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}},
+      datalabels:{...dl, color:'#fff', formatter:v=> tuyenTotal ? (v/tuyenTotal*100).toFixed(1)+'%' : ''}}}
   });
 
-  new Chart(document.getElementById('chartMonth'), {
+  // --- xu hướng theo kỳ (tuần/tháng/quý/năm) ---
+  const byPeriod = {};
+  rows.forEach(r=>{
+    const k = periodKey(r.ngay_duyet_eform, currentGranularity);
+    if(!k) return;
+    if(!byPeriod[k]) byPeriod[k] = {den_bu:0, truy_thu:0};
+    byPeriod[k].den_bu += (+r.gia_tri_den_bu||0);
+    byPeriod[k].truy_thu += (+r.so_tien_da_truy_thu||0);
+  });
+  const periods = Object.keys(byPeriod).sort();
+  destroyChart('month');
+  charts.month = new Chart(document.getElementById('chartMonth'), {
     type:'line',
-    data:{
-      labels: months,
-      datasets:[
-        {label:'Đền bù', data: months.map(m=>byMonth[m].den_bu), borderColor:navy, backgroundColor:navy, tension:.3},
-        {label:'Truy thu', data: months.map(m=>byMonth[m].truy_thu), borderColor:orange, backgroundColor:orange, tension:.3},
-      ]
-    },
-    options:{responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{ticks:{callback:v=>(v/1e6).toFixed(0)+'tr'}}}}
+    data:{ labels: periods, datasets:[
+      {label:'Đền bù', data: periods.map(m=>byPeriod[m].den_bu), borderColor:navy, backgroundColor:navy, tension:.3},
+      {label:'Truy thu', data: periods.map(m=>byPeriod[m].truy_thu), borderColor:orange, backgroundColor:orange, tension:.3},
+    ]},
+    options:{responsive:true, plugins:{legend:{position:'bottom'},
+      datalabels:{...dl, align:'top', formatter:v=>fmtCompact(v)}},
+      scales:{y:{ticks:{callback:v=>fmtCompact(v)}}}}
   });
 
+  // --- theo lý do ---
+  const byLyDo = groupByFn(rows, r=>r.loai_yeu_cau);
   const lyDoKeys = Object.keys(byLyDo).sort((a,b)=>byLyDo[b].den_bu - byLyDo[a].den_bu).slice(0,8);
-  new Chart(document.getElementById('chartLyDo'), {
+  destroyChart('lydo');
+  charts.lydo = new Chart(document.getElementById('chartLyDo'), {
     type:'bar',
-    data:{
-      labels: lyDoKeys,
-      datasets:[{label:'Đền bù', data: lyDoKeys.map(k=>byLyDo[k].den_bu), backgroundColor:orange}]
-    },
-    options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false}}, scales:{x:{ticks:{callback:v=>(v/1e6).toFixed(0)+'tr'}}}}
+    data:{ labels: lyDoKeys, datasets:[{label:'Đền bù', data: lyDoKeys.map(k=>byLyDo[k].den_bu), backgroundColor:orange}]},
+    options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false},
+      datalabels:{...dl, anchor:'end', align:'right', formatter:v=>fmtCompact(v)}},
+      scales:{x:{ticks:{callback:v=>fmtCompact(v)}}}}
   });
+
+  // --- top 10 kho ---
+  const byHub = groupByFn(rows, r=>r.kho_chiu_trach_nhiem);
+  delete byHub['(Không rõ)'];
+  const topHubs = Object.entries(byHub).sort((a,b)=>b[1].den_bu - a[1].den_bu).slice(0,10);
+  document.getElementById('hubTableBody').innerHTML = topHubs.map(([name,v])=>{
+    const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
+    return `<tr>
+      <td>${name}</td>
+      <td>${fmtNum(v.so_don)}</td>
+      <td>${fmtVND(v.den_bu)}</td>
+      <td><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>
+    </tr>`;
+  }).join('');
 }
 </script>
 </body>
