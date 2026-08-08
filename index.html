@@ -36,6 +36,7 @@
   }
   .top-line{height:3px;background:var(--orange);width:100%;}
   .bottom-bar{height:6px;background:var(--orange);width:100%;}
+  #stickyTop{position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,0.08);}
 
   header{
     background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);
@@ -135,15 +136,51 @@
 
   .loading{padding:60px;text-align:center;color:var(--muted);}
   footer{text-align:center;font-size:14.5px;color:var(--muted);padding:20px;}
+
+  @media(max-width:640px){
+    header{padding:16px 16px 12px;}
+    header h1{font-size:18px;letter-spacing:.1px;}
+    .status{font-size:12px;margin-top:6px;}
+
+    .tabbar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding:0 10px;}
+    .tabbar::-webkit-scrollbar{display:none;}
+    .tabbar button{padding:11px 14px;font-size:14px;white-space:nowrap;flex:0 0 auto;}
+
+    .filterbar{flex-direction:column;align-items:flex-start;gap:8px;padding:12px 16px;}
+    .filterbar label{margin-left:0 !important;font-size:13px;}
+    .filterbar select{width:100%;font-size:14px;}
+    .filterbar > span{display:none;}
+
+    main{padding:16px 12px 40px;}
+    .kpis{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .kpi{padding:14px 12px;}
+    .kpi .value{font-size:clamp(18px,9.5cqw,26px);}
+
+    section{padding:16px;}
+    section h2{font-size:14.5px;}
+    section .desc{font-size:12.5px;}
+
+    .granularity{margin-left:0;width:100%;flex-wrap:wrap;}
+    .granularity button{font-size:12.5px;padding:5px 10px;}
+
+    .battery-row{gap:8px;}
+    .battery-label{flex-basis:100px;font-size:12.5px;}
+    .battery-pct{flex-basis:44px;font-size:12.5px;}
+
+    table{font-size:13px;}
+    th,td{padding:7px 6px;}
+
+    canvas{max-height:260px;}
+  }
 </style>
 </head>
 <body>
 
+<div id="stickyTop">
 <div class="top-line"></div>
 
 <header>
   <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
-  <p>Dữ liệu lấy trực tiếp từ nguồn, tự động cập nhật mỗi lần tải trang</p>
   <div class="status"><span class="dot"></span><span id="statusText">Đang tải dữ liệu...</span></div>
 </header>
 
@@ -160,6 +197,7 @@
   <label style="margin-left:16px;">Vùng chịu trách nhiệm:</label>
   <select id="regionSelect"><option value="all">Tất cả vùng</option></select>
   <span style="font-size:12px;color:var(--muted);margin-left:6px;">(áp dụng cho 3 chart: Loại lý do đền bù theo nhóm hàng, Top 15 kho, Tỷ lệ đã truy thu theo lý do)</span>
+</div>
 </div>
 
 <main id="app">
