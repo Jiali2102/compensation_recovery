@@ -4,44 +4,52 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Báo cáo đền bù - truy thu [KA - CRC]</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
   :root{
+    --orange:#FE5F00;
+    --orange-dark:#E04F00;
+    --orange-light:#FF9E64;
+    --orange-tint:#FFE4D2;
     --navy:#0E4174;
     --navy-deep:#0A2F54;
-    --orange:#FE5F00;
-    --orange-soft:#FFE4D4;
     --bg:#F6F7FA;
     --card:#FFFFFF;
-    --ink:#16233A;
-    --muted:#647089;
+    --ink:#383838;
+    --muted:#6B6B6B;
     --border:#E4E8F0;
-    --good:#1E8E5A;
-    --warn:#E08A00;
-    --bad:#D8443C;
+    --good:#4CAF50;
+    --warn:#FFC107;
+    --bad:#F44336;
   }
   *{box-sizing:border-box;}
   body{
     margin:0;
-    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    font-family:"Cambria","Times New Roman",Georgia,serif;
     background:var(--bg);
     color:var(--ink);
+    line-height:1.6;
   }
+  /* GHN signature: top thin orange line */
+  .top-line{height:3px;background:var(--orange);width:100%;}
+
   header{
-    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);
+    background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);
     color:#fff;
     padding:28px 32px 22px;
   }
   header h1{
     margin:0 0 4px;
-    font-size:22px;
-    letter-spacing:.3px;
+    font-size:24px;
+    font-weight:700;
+    letter-spacing:.2px;
   }
   header p{
     margin:0;
-    color:#C9D8EA;
+    color:#FFE4D2;
     font-size:13px;
+    line-height:1.5;
   }
   .status{
     display:inline-flex;
@@ -49,10 +57,11 @@
     gap:6px;
     margin-top:10px;
     font-size:12px;
-    color:#9FE3B8;
+    color:#FFF3E9;
   }
-  .dot{width:7px;height:7px;border-radius:50%;background:#3ECF7C;animation:pulse 1.6s infinite;}
+  .dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:pulse 1.6s infinite;}
   @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
   main{max-width:1180px;margin:0 auto;padding:24px 20px 60px;}
   .kpis{
     display:grid;
@@ -63,42 +72,62 @@
   .kpi{
     background:var(--card);
     border:1px solid var(--border);
-    border-radius:12px;
-    padding:16px 18px;
+    border-left:4px solid var(--navy);
+    border-radius:8px;
+    padding:20px 18px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.06);
   }
+  .kpi.accent{border-left-color:var(--orange);}
   .kpi .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
-  .kpi .value{font-size:22px;font-weight:700;margin-top:6px;color:var(--navy);}
-  .kpi .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .kpi .value{font-size:23px;font-weight:700;margin-top:6px;color:var(--navy);}
   .kpi.accent .value{color:var(--orange);}
+  .kpi .sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.5;}
+
   section{
     background:var(--card);
     border:1px solid var(--border);
-    border-radius:12px;
-    padding:20px;
+    border-radius:8px;
+    padding:24px;
     margin-bottom:20px;
+    box-shadow:0 2px 8px rgba(0,0,0,0.05);
   }
   section h2{
-    font-size:15px;
+    font-size:16px;
+    font-weight:700;
     margin:0 0 4px;
-    color:var(--navy);
+    color:var(--orange);
   }
-  section .desc{font-size:12px;color:var(--muted);margin:0 0 14px;}
+  section .underline{
+    width:60px;height:2px;background:var(--orange);margin:6px 0 12px;
+  }
+  section .desc{font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5;}
+
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
   @media(max-width:800px){.grid2{grid-template-columns:1fr;}}
   canvas{max-height:340px;}
-  table{width:100%;border-collapse:collapse;font-size:13px;}
-  th,td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{padding:10px;border-bottom:1px solid var(--border);text-align:right;word-wrap:break-word;}
   th:first-child,td:first-child{text-align:left;}
-  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;}
-  .pill{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
-  .pill.good{background:#E4F6EC;color:var(--good);}
-  .pill.warn{background:#FFF2DE;color:var(--warn);}
-  .pill.bad{background:#FCE7E5;color:var(--bad);}
+  th{color:var(--muted);font-weight:700;font-size:11px;text-transform:uppercase;}
+
+  .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+  .pill.good{background:#E8F5E9;color:#2E7D32;}
+  .pill.warn{background:#FFF8E1;color:#B98900;}
+  .pill.bad{background:#FDECEA;color:#C62828;}
+
   .loading{padding:60px;text-align:center;color:var(--muted);}
-  footer{text-align:center;font-size:11px;color:var(--muted);padding:20px;}
+
+  footer{
+    text-align:center;font-size:11.5px;color:var(--muted);padding:20px;line-height:1.6;
+  }
+  /* GHN signature: bottom thick orange bar */
+  .bottom-bar{height:6px;background:var(--orange);width:100%;}
 </style>
 </head>
 <body>
+
+<div class="top-line"></div>
 
 <header>
   <h1>Báo cáo đền bù - truy thu [KA - CRC]</h1>
@@ -110,7 +139,8 @@
   <div class="loading">Đang tải dữ liệu từ Google Sheet...</div>
 </main>
 
-<footer>© 2026 Báo cáo đền bù - truy thu [KA - CRC] · Nguồn: Google Sheet (published CSV)</footer>
+<footer>© 2026 Báo cáo đền bù - truy thu [KA - CRC] · Nguồn: Google Sheet</footer>
+<div class="bottom-bar"></div>
 
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTB7616KVIBlXdYcuTNS9cMeGvKNC2nTvymsGyjIyKL1z8GBd_b3Y5D5hsWVqkdBmfE_lJPKErsoRPd/pub?gid=0&single=true&output=csv";
@@ -148,6 +178,7 @@ fetch(CSV_URL)
   .catch(err => {
     document.getElementById('app').innerHTML =
       '<div class="loading">Không tải được dữ liệu. Kiểm tra lại link publish CSV.<br><small>'+err+'</small></div>';
+    console.error(err);
   });
 
 function render(rows){
@@ -158,7 +189,6 @@ function render(rows){
   const soDonTruyThu = rows.filter(r => (+r.so_tien_da_truy_thu||0) > 0).length;
   const tyLeThuHoi = totalDenBu ? (totalTruyThu/totalDenBu*100) : 0;
 
-  // group helper
   function groupBy(key){
     const m = {};
     rows.forEach(r=>{
@@ -175,19 +205,17 @@ function render(rows){
   const byTuyen = groupBy('tuyen');
   const byLyDo = groupBy('loai_yeu_cau');
 
-  // by month
   const byMonth = {};
   rows.forEach(r=>{
     const d = r.ngay_duyet_eform;
     if(!d) return;
-    const ym = String(d).slice(0,7); // yyyy-mm
+    const ym = String(d).slice(0,7);
     if(!byMonth[ym]) byMonth[ym] = {den_bu:0, truy_thu:0};
     byMonth[ym].den_bu += (+r.gia_tri_den_bu||0);
     byMonth[ym].truy_thu += (+r.so_tien_da_truy_thu||0);
   });
   const months = Object.keys(byMonth).sort();
 
-  // by hub (kho_chiu_trach_nhiem), top 10
   const byHub = groupBy('kho_chiu_trach_nhiem');
   delete byHub['(Không rõ)'];
   const topHubs = Object.entries(byHub)
@@ -205,11 +233,13 @@ function render(rows){
     <div class="grid2">
       <section>
         <h2>Đền bù theo nhóm khách hàng</h2>
+        <div class="underline"></div>
         <p class="desc">Giá trị đền bù vs. đã truy thu theo từng client</p>
         <canvas id="chartClient"></canvas>
       </section>
       <section>
         <h2>Đền bù theo tuyến</h2>
+        <div class="underline"></div>
         <p class="desc">Phân bổ giá trị đền bù theo loại tuyến vận chuyển</p>
         <canvas id="chartTuyen"></canvas>
       </section>
@@ -217,6 +247,7 @@ function render(rows){
 
     <section>
       <h2>Xu hướng theo tháng</h2>
+      <div class="underline"></div>
       <p class="desc">Giá trị đền bù và truy thu theo tháng duyệt eform</p>
       <canvas id="chartMonth"></canvas>
     </section>
@@ -224,11 +255,13 @@ function render(rows){
     <div class="grid2">
       <section>
         <h2>Theo lý do đền bù</h2>
+        <div class="underline"></div>
         <p class="desc">Top lý do gây đền bù nhiều nhất</p>
         <canvas id="chartLyDo"></canvas>
       </section>
       <section>
         <h2>Top 10 kho chịu trách nhiệm</h2>
+        <div class="underline"></div>
         <p class="desc">Xếp theo tổng giá trị đền bù</p>
         <table>
           <thead><tr><th>Kho</th><th>Số đơn</th><th>Đền bù</th><th>Tỷ lệ thu hồi</th></tr></thead>
@@ -250,9 +283,9 @@ function render(rows){
 
   const orange = '#FE5F00';
   const navy = '#0E4174';
+  const orangeLight = '#FF9E64';
   const navyLight = '#7FA6C9';
 
-  // client chart
   const clientKeys = Object.keys(byClient).sort((a,b)=>byClient[b].den_bu - byClient[a].den_bu);
   new Chart(document.getElementById('chartClient'), {
     type:'bar',
@@ -266,19 +299,17 @@ function render(rows){
     options:{responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{ticks:{callback:v=>(v/1e6).toFixed(0)+'tr'}}}}
   });
 
-  // tuyen chart (donut)
   const tuyenKeys = Object.keys(byTuyen).sort((a,b)=>byTuyen[b].den_bu - byTuyen[a].den_bu);
   new Chart(document.getElementById('chartTuyen'), {
     type:'doughnut',
     data:{
       labels: tuyenKeys,
       datasets:[{data: tuyenKeys.map(k=>byTuyen[k].den_bu),
-        backgroundColor:[navy,orange,navyLight,'#FFB07A','#3A6D9E','#FFD9BF','#0A2F54']}]
+        backgroundColor:[orange,navy,orangeLight,navyLight,'#E04F00','#0A2F54','#FFE4D2']}]
     },
     options:{responsive:true, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}}}}
   });
 
-  // month trend
   new Chart(document.getElementById('chartMonth'), {
     type:'line',
     data:{
@@ -291,7 +322,6 @@ function render(rows){
     options:{responsive:true, plugins:{legend:{position:'bottom'}}, scales:{y:{ticks:{callback:v=>(v/1e6).toFixed(0)+'tr'}}}}
   });
 
-  // ly do chart
   const lyDoKeys = Object.keys(byLyDo).sort((a,b)=>byLyDo[b].den_bu - byLyDo[a].den_bu).slice(0,8);
   new Chart(document.getElementById('chartLyDo'), {
     type:'bar',
