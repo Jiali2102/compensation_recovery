@@ -100,8 +100,10 @@
   section .desc{font-size:15.5px;color:var(--muted);margin:0 0 14px;}
 
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .grid2 > section, .grid2 > div{min-width:0;}
   @media(max-width:900px){.grid2{grid-template-columns:1fr;}}
-  canvas{max-height:360px;}
+  canvas{max-height:360px;max-width:100%;}
+  .chart-box{position:relative;height:340px;width:100%;}
 
   .table-wrap{overflow-x:auto;}
   table{width:100%;border-collapse:collapse;font-size:16.5px;}
@@ -303,7 +305,7 @@ function buildShell(){
         <h2>Đền bù theo tuyến</h2>
         <div class="underline"></div>
         <p class="desc">Phân bổ giá trị đền bù theo loại tuyến vận chuyển<br><em>Ghi chú: Từ 2026-05-01 theo tuyến sáp nhập</em></p>
-        <canvas id="chartTuyen"></canvas>
+        <div class="chart-box"><canvas id="chartTuyen"></canvas></div>
       </section>
     </div>
 
@@ -532,7 +534,7 @@ function render(){
     type:'doughnut',
     data:{ labels: tuyenKeys, datasets:[{data: tuyenKeys.map(k=>byTuyen[k].den_bu),
       backgroundColor:[orange,navy,orangeLight,navyLight,'#E04F00','#0A2F54','#FFE4D2']}]},
-    options:{responsive:true, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}},
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}},
       datalabels:{...dl, color:'#fff', formatter:v=> tuyenTotal ? (v/tuyenTotal*100).toFixed(1)+'%' : ''}}}
   });
 
