@@ -303,6 +303,9 @@ const outsideLabelsPlugin = {
     ctx.fillStyle = '#383838';
     ctx.lineWidth = 1;
     ctx.strokeStyle = '#B0B0B0';
+
+    // Bước 1: tính vị trí gốc của từng nhãn (chưa vẽ)
+    const items = [];
     meta.data.forEach((arc, i)=>{
       const value = dataset.data[i];
       if(!value) return;
@@ -316,17 +319,33 @@ const outsideLabelsPlugin = {
       const y2 = cy + Math.sin(angle) * (outerR + 14);
       const isRight = Math.cos(angle) >= 0;
       const x3 = x2 + (isRight ? 16 : -16);
-      const y3 = y2;
+      items.push({ x1, y1, x2, y2, x3, y3: y2, isRight, text: pct.toFixed(1) + '%' });
+    });
 
+    // Bước 2: chống đè nhãn — đẩy nhãn quá gần nhau ra xa theo chiều dọc, tách riêng bên trái/phải
+    const minGap = 16;
+    ['left', 'right'].forEach(side=>{
+      const group = items
+        .filter(it => side === 'right' ? it.isRight : !it.isRight)
+        .sort((a,b) => a.y3 - b.y3);
+      for(let i=1; i<group.length; i++){
+        if(group[i].y3 - group[i-1].y3 < minGap){
+          group[i].y3 = group[i-1].y3 + minGap;
+        }
+      }
+    });
+
+    // Bước 3: vẽ đường dây chỉ + nhãn theo vị trí đã tránh đè
+    items.forEach(it=>{
       ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.lineTo(x3, y3);
+      ctx.moveTo(it.x1, it.y1);
+      ctx.lineTo(it.x2, it.y2);
+      ctx.lineTo(it.x3, it.y3);
       ctx.stroke();
 
-      ctx.textAlign = isRight ? 'left' : 'right';
+      ctx.textAlign = it.isRight ? 'left' : 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText(pct.toFixed(1) + '%', x3 + (isRight ? 4 : -4), y3);
+      ctx.fillText(it.text, it.x3 + (it.isRight ? 4 : -4), it.y3);
     });
     ctx.restore();
   }
@@ -605,8 +624,8 @@ function render(){
     data:{ labels: tuyenKeys, datasets:[{data: tuyenKeys.map(k=>byTuyen[k].den_bu),
       backgroundColor:[orange,navy,orangeLight,navyLight,'#E04F00','#0A2F54','#FFE4D2'], cutout:'55%'}]},
     options:{responsive:true, maintainAspectRatio:false,
-      layout:{padding:{top:30,bottom:30,left:60,right:60}},
-      plugins:{legend:{position: isNarrowScreen ? 'bottom' : 'left', align:'center', labels:{boxWidth:12,font:{size:12},padding:14}},
+      layout:{padding:{top:30,bottom:30,left: isNarrowScreen ? 30 : 60, right: isNarrowScreen ? 30 : 60}},
+      plugins:{legend:{position:'left', align:'center', labels:{boxWidth: isNarrowScreen ? 9 : 12, font:{size: isNarrowScreen ? 10.5 : 12}, padding: isNarrowScreen ? 8 : 14}},
       datalabels:{display:false}}}
   });
 
