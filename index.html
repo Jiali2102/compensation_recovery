@@ -242,7 +242,6 @@ const CSV_URL = "/api/data";
 const fmtNum = n => n.toLocaleString('vi-VN');
 const fmtPct = n => n.toFixed(2) + '%';
 
-// Định dạng tiền theo bậc: >=1 tỷ -> "x.xx tỷ", >=1tr -> "x.xx triệu", >=1k -> "x.xx nghìn", còn lại -> số đầy đủ + đ
 function fmtMoney(n){
   const abs = Math.abs(n);
   if(abs >= 1e9) return (n/1e9).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' tỷ';
@@ -256,7 +255,6 @@ const fmtCompact = fmtMoney;
 function pillClass(pct){ if(pct<10) return 'bad'; if(pct<20) return 'warn'; return 'good'; }
 const RATE_COLOR = { 'fill-red':'#F44336', 'fill-yellow':'#FFC107', 'fill-green':'#4CAF50', 'fill-purple':'#8E44AD' };
 
-// Ngưỡng màu cho battery (Deep dive tỷ lệ truy thu theo lý do)
 function batteryClass(pct){
   if(pct < 20) return 'fill-red';
   if(pct < 30) return 'fill-yellow';
@@ -269,7 +267,6 @@ function fmtDateTime(d){
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
-// Mapping ID -> tên hiển thị (Tiki có 2 ID được gộp chung nhãn "Tiki")
 const CLIENT_NAMES = {
   '18692': 'SPE Express',
   '3892833': 'SPE Bulky',
@@ -281,7 +278,6 @@ const CLIENT_NAMES = {
 };
 function clientLabel(id){ return CLIENT_NAMES[String(id)] || ('KH ' + id); }
 
-// Nhóm tab: gộp toàn bộ ID Shopee (SPE+SPX) / Lazada / Tiki
 const TAB_GROUPS = {
   Shopee: ['18692','3892833','224845','2781603'],
   Lazada: ['9794'],
@@ -292,7 +288,6 @@ Chart.defaults.font.family = "Cambria, 'Times New Roman', Georgia, serif";
 Chart.defaults.color = '#383838';
 if(typeof ChartDataLabels !== 'undefined'){ Chart.register(ChartDataLabels); }
 
-// Plugin tùy chỉnh: vẽ nhãn % bên ngoài lát cắt doughnut/pie kèm đường dây chỉ, tránh đè chữ lên nhau
 const outsideLabelsPlugin = {
   id: 'outsideLabels',
   afterDraw(chart){
@@ -447,7 +442,6 @@ function buildShell(){
     </section>
   `;
 
-  // populate month dropdown (dựa trên toàn bộ data)
   const months = [...new Set(ALL_ROWS.map(r=>String(r.ngay_duyet_eform||'').slice(0,7)).filter(Boolean))].sort().reverse();
   const sel = document.getElementById('monthSelect');
   months.forEach(m=>{
@@ -587,7 +581,6 @@ function render(){
   const orange = '#FE5F00', navy = '#0E4174', orangeLight = '#FF9E64', navyLight = '#7FA6C9';
   const dl = { color:'#383838', font:{family:"Cambria, 'Times New Roman', Georgia, serif", size:10, weight:'bold'}, display:'auto' };
 
-  // --- theo nhóm hàng (đã gộp theo label, vd Tiki 2 ID gộp 1) ---
   const byClient = groupByFn(rows, r => clientLabel(r.nhom_kh));
   const clientKeys = Object.keys(byClient).sort((a,b)=>byClient[b].den_bu - byClient[a].den_bu);
   destroyChart('client');
@@ -602,7 +595,6 @@ function render(){
       scales:{y:{ticks:{callback:v=>fmtCompact(v)}}}}
   });
 
-  // --- theo tuyến ---
   const byTuyen = groupByFn(rows, r=>r.tuyen);
   const tuyenKeys = Object.keys(byTuyen).sort((a,b)=>byTuyen[b].den_bu - byTuyen[a].den_bu);
   const tuyenTotal = tuyenKeys.reduce((s,k)=>s+byTuyen[k].den_bu,0);
@@ -618,7 +610,6 @@ function render(){
       datalabels:{display:false}}}
   });
 
-  // --- xu hướng theo kỳ (tuần/tháng/quý/năm) ---
   const byPeriod = {};
   rows.forEach(r=>{
     const k = periodKey(r.ngay_duyet_eform, currentGranularity);
@@ -640,14 +631,12 @@ function render(){
       scales:{y:{ticks:{callback:v=>fmtCompact(v)}}}}
   });
 
-  // --- theo lý do (áp dụng filter vùng chịu trách nhiệm) ---
   const rowsRegion = currentRegion === 'all' ? rows : rows.filter(r => String(r.vung_chiu_trach_nhiem) === String(currentRegion));
   const byLyDo = groupByFn(rowsRegion, r=>r.loai_yeu_cau);
   const lyDoKeys = Object.keys(byLyDo).sort((a,b)=>byLyDo[b].den_bu - byLyDo[a].den_bu).slice(0,8);
   destroyChart('lydo');
 
   const CLIENT_PALETTE = [navy, orange, orangeLight, navyLight, '#0A2F54', '#E04F00', '#B9CBE0', '#FFE4D2'];
-  // Màu cố định theo từng nhóm hàng — tránh Lazada/Tiki trùng tông với SPE Bulky/SPE Express
   const CLIENT_COLOR_MAP = {
     'SPE Express': navy,
     'SPE Bulky': orange,
@@ -659,7 +648,6 @@ function render(){
   function getClientColor(label, i){ return CLIENT_COLOR_MAP[label] || CLIENT_PALETTE[i % CLIENT_PALETTE.length]; }
 
   if(currentTab === 'all'){
-    // Tab Tổng quan: stacked theo nhóm hàng để xem trong mỗi lý do, nhóm hàng nào chiếm nhiều nhất
     const clientLabelsAll = [...new Set(rowsRegion.map(r=>clientLabel(r.nhom_kh)))];
     const byLyDoClient = {};
     rowsRegion.forEach(r=>{
@@ -691,7 +679,6 @@ function render(){
     });
   }
 
-  // --- battery: tỷ lệ truy thu theo lý do (áp filter vùng + sub-client nếu đang ở tab Shopee) ---
   let batteryRows = rowsRegion;
   if(currentTab === 'Shopee' && currentSubClient !== 'all'){
     batteryRows = batteryRows.filter(r => String(r.nhom_kh) === currentSubClient);
@@ -699,7 +686,6 @@ function render(){
   const byLyDoBattery = groupByFn(batteryRows, r=>r.loai_yeu_cau);
   const lyDoBatteryKeys = Object.keys(byLyDoBattery).sort((a,b)=>byLyDoBattery[b].den_bu - byLyDoBattery[a].den_bu).slice(0,8);
 
-  // --- deep dive: battery tỷ lệ truy thu theo lý do ---
   document.getElementById('batteryList').innerHTML = lyDoBatteryKeys.map(k=>{
     const v = byLyDoBattery[k];
     const pct = v.den_bu ? (v.truy_thu/v.den_bu*100) : 0;
@@ -711,7 +697,6 @@ function render(){
     </div>`;
   }).join('');
 
-  // --- top 10 kho ---
   const byHub = groupByFn(rowsRegion, r=>r.kho_chiu_trach_nhiem);
   delete byHub['(Không rõ)'];
   const topHubs = Object.entries(byHub).sort((a,b)=>b[1].den_bu - a[1].den_bu).slice(0,15);
@@ -725,7 +710,6 @@ function render(){
     </tr>`;
   }).join('');
 
-  // --- theo lý do đền bù theo vùng (không phụ thuộc filter vùng, để so sánh giữa các vùng) ---
   const byLyDoAllForVung = groupByFn(rows, r=>r.loai_yeu_cau);
   const lyDoKeysForVung = Object.keys(byLyDoAllForVung).sort((a,b)=>byLyDoAllForVung[b].den_bu - byLyDoAllForVung[a].den_bu).slice(0,8);
   const vungListAll = [...new Set(rows.map(r=>r.vung_chiu_trach_nhiem || '(Không rõ)'))];
@@ -750,14 +734,12 @@ function render(){
       scales:{x:{stacked:true, ticks:{callback:v=>fmtCompact(v)}}, y:{stacked:true}}}
   });
 
-  // --- cảnh báo: đền bù cao nhưng thu hồi thấp (<20%), nhóm vùng (cha) - kho (con) ---
   function warnColorClass(pct){
     if(pct < 10) return 'bad';
     if(pct < 20) return 'warn';
     return null;
   }
 
-  // ánh xạ kho -> vùng phổ biến nhất của kho đó (dựa trên dữ liệu thực tế)
   const khoVungCount = {};
   rows.forEach(r=>{
     const kho = r.kho_chiu_trach_nhiem, vg = r.vung_chiu_trach_nhiem;
