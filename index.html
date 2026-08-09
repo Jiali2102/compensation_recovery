@@ -217,7 +217,7 @@
   <button class="tab-btn" data-tab="Shopee">Shopee</button>
   <button class="tab-btn" data-tab="Lazada">Lazada</button>
   <button class="tab-btn" data-tab="Tiki">Tiki</button>
-  <div class="status" id="statusText">Cập nhật vào 10h sáng mỗi ngày</div>
+  <div class="status" id="statusText">Đang tải dữ liệu...</div>
 </div>
 
 <div class="filterbar">
@@ -347,7 +347,16 @@ let currentRegion = 'all';
 let charts = {};
 
 fetch(CSV_URL)
-  .then(r => r.text())
+  .then(r => {
+    const lastModifiedHeader = r.headers.get('X-Data-Last-Modified');
+    if(lastModifiedHeader){
+      const d = new Date(lastModifiedHeader);
+      if(!isNaN(d)){
+        document.getElementById('statusText').textContent = 'Dữ liệu cập nhật lúc ' + fmtDateTime(d);
+      }
+    }
+    return r.text();
+  })
   .then(csvText => {
     const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true, dynamicTyping:true});
     ALL_ROWS = parsed.data.filter(r => r.ma_dh);
