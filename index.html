@@ -153,6 +153,13 @@
   .warning-child.bad{background:#FDECEA;border-left:3px solid #F44336;}
   .warning-child.warn{background:#FFF8E1;border-left:3px solid #FFC107;}
   .warning-child-empty{margin-left:24px;color:var(--muted);font-size:13px;padding:4px 0;}
+  .warn-toggle{
+    background:transparent;border:1.5px solid currentColor;color:inherit;
+    width:24px;height:24px;border-radius:50%;font-size:15px;font-weight:800;
+    cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;
+    flex:0 0 auto;font-family:inherit;
+  }
+  .warn-toggle:hover{opacity:0.65;}
   #batterySubFilter{font-family:inherit;font-size:15.5px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);}
 
   .loading{padding:60px;text-align:center;color:var(--muted);}
@@ -435,6 +442,15 @@ function buildShell(){
     render();
   });
 
+  document.getElementById('warnGroupList').addEventListener('click', e=>{
+    if(!e.target.classList.contains('warn-toggle')) return;
+    const targetEl = document.getElementById(e.target.dataset.target);
+    if(!targetEl) return;
+    const isOpen = targetEl.style.display !== 'none';
+    targetEl.style.display = isOpen ? 'none' : 'block';
+    e.target.textContent = isOpen ? '+' : '−';
+  });
+
   render();
 }
 
@@ -710,27 +726,32 @@ function render(){
     .filter(([name]) => name && name !== '(Không rõ)')
     .map(([name,v]) => ({ name, den_bu:v.den_bu, pct: v.den_bu ? v.truy_thu/v.den_bu*100 : 0 }))
     .filter(x => x.den_bu > 0 && warnColorClass(x.pct))
-    .sort((a,b) => b.den_bu - a.den_bu);
+    .sort((a,b) => a.name.localeCompare(b.name, 'vi'));
 
-  const warnHtml = flaggedVung.map(vg => {
+  const warnHtml = flaggedVung.map((vg, idx) => {
     const parentCls = warnColorClass(vg.pct);
     const children = (hubsByVung[vg.name] || [])
       .map(h => ({ name:h.name, den_bu:h.den_bu, pct: h.den_bu ? h.truy_thu/h.den_bu*100 : 0 }))
       .filter(h => h.den_bu > 0 && warnColorClass(h.pct))
-      .sort((a,b) => b.den_bu - a.den_bu)
-      .slice(0,5);
+      .sort((a,b) => a.name.localeCompare(b.name, 'vi'));
     const childHtml = children.length
       ? children.map(h => `<div class="warning-child ${warnColorClass(h.pct)}">
           <span>${h.name}</span>
           <span>${fmtMoney(h.den_bu)} · ${fmtPct(h.pct)}</span>
         </div>`).join('')
       : '<div class="warning-child-empty">Không có kho cụ thể nào dưới ngưỡng trong vùng này</div>';
+    const childId = `warnChildren-${idx}`;
     return `<div class="warning-group">
       <div class="warning-parent ${parentCls}">
         <span>⚠️ ${vg.name}</span>
-        <span>${fmtMoney(vg.den_bu)} · ${fmtPct(vg.pct)}</span>
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span>${fmtMoney(vg.den_bu)} · ${fmtPct(vg.pct)}</span>
+          <button class="warn-toggle" type="button" data-target="${childId}">+</button>
+        </span>
       </div>
-      ${childHtml}
+      <div class="warning-children" id="${childId}" style="display:none;">
+        ${childHtml}
+      </div>
     </div>`;
   }).join('');
 
