@@ -574,8 +574,8 @@ function render(){
     <div class="kpi accent"><div class="label">Tổng giá trị đền bù</div><div class="value">${fmtVND(totalDenBu)}</div></div>
     <div class="kpi"><div class="label">Đã truy thu</div><div class="value">${fmtVND(totalTruyThu)}</div></div>
     <div class="kpi"><div class="label">Tỷ lệ thu hồi</div><div class="value">${fmtPct(tyLeThuHoi)}<span class="rate-dot" style="background:${RATE_COLOR[batteryClass(tyLeThuHoi)]}"></span></div><div class="sub">${fmtNum(soDonTruyThu)} đơn đã truy thu</div></div>
-    <div class="kpi"><div class="label">Đơn có ticket truy thu</div><div class="value">${fmtNum(withTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
-    <div class="kpi accent"><div class="label">Đơn chưa có ticket truy thu</div><div class="value">${fmtNum(withoutTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withoutTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
+    <div class="kpi"><div class="label">Có ticket truy thu</div><div class="value">${fmtNum(withTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
+    <div class="kpi accent"><div class="label">Chưa ticket truy thu</div><div class="value">${fmtNum(withoutTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withoutTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
   `;
 
   const orange = '#FE5F00', navy = '#0E4174', orangeLight = '#FF9E64', navyLight = '#7FA6C9';
