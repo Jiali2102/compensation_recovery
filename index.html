@@ -291,6 +291,52 @@ Chart.defaults.font.family = "Cambria, 'Times New Roman', Georgia, serif";
 Chart.defaults.color = '#383838';
 if(typeof ChartDataLabels !== 'undefined'){ Chart.register(ChartDataLabels); }
 
+// Plugin tùy chỉnh: vẽ nhãn % bên ngoài lát cắt doughnut/pie kèm đường dây chỉ, tránh đè chữ lên nhau
+const outsideLabelsPlugin = {
+  id: 'outsideLabels',
+  afterDraw(chart){
+    if(chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
+    const meta = chart.getDatasetMeta(0);
+    if(!meta || !meta.data || !meta.data.length) return;
+    const dataset = chart.data.datasets[0];
+    const total = dataset.data.reduce((a,b)=>a+b,0);
+    if(!total) return;
+    const {ctx} = chart;
+    ctx.save();
+    ctx.font = "700 12px Cambria, 'Times New Roman', Georgia, serif";
+    ctx.fillStyle = '#383838';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#B0B0B0';
+    meta.data.forEach((arc, i)=>{
+      const value = dataset.data[i];
+      if(!value) return;
+      const pct = value/total*100;
+      const angle = (arc.startAngle + arc.endAngle) / 2;
+      const outerR = arc.outerRadius;
+      const cx = arc.x, cy = arc.y;
+      const x1 = cx + Math.cos(angle) * outerR;
+      const y1 = cy + Math.sin(angle) * outerR;
+      const x2 = cx + Math.cos(angle) * (outerR + 14);
+      const y2 = cy + Math.sin(angle) * (outerR + 14);
+      const isRight = Math.cos(angle) >= 0;
+      const x3 = x2 + (isRight ? 16 : -16);
+      const y3 = y2;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.lineTo(x3, y3);
+      ctx.stroke();
+
+      ctx.textAlign = isRight ? 'left' : 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pct.toFixed(1) + '%', x3 + (isRight ? 4 : -4), y3);
+    });
+    ctx.restore();
+  }
+};
+Chart.register(outsideLabelsPlugin);
+
 let ALL_ROWS = [];
 let currentTab = 'all';
 let currentMonth = 'all';
@@ -529,7 +575,7 @@ function render(){
   `;
 
   const orange = '#FE5F00', navy = '#0E4174', orangeLight = '#FF9E64', navyLight = '#7FA6C9';
-  const dl = { color:'#383838', font:{family:"Cambria, 'Times New Roman', Georgia, serif", size:10, weight:'bold'} };
+  const dl = { color:'#383838', font:{family:"Cambria, 'Times New Roman', Georgia, serif", size:10, weight:'bold'}, display:'auto' };
 
   // --- theo nhóm hàng (đã gộp theo label, vd Tiki 2 ID gộp 1) ---
   const byClient = groupByFn(rows, r => clientLabel(r.nhom_kh));
@@ -555,8 +601,10 @@ function render(){
     type:'doughnut',
     data:{ labels: tuyenKeys, datasets:[{data: tuyenKeys.map(k=>byTuyen[k].den_bu),
       backgroundColor:[orange,navy,orangeLight,navyLight,'#E04F00','#0A2F54','#FFE4D2']}]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}},
-      datalabels:{...dl, color:'#fff', formatter:v=> tuyenTotal ? (v/tuyenTotal*100).toFixed(1)+'%' : ''}}}
+    options:{responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:20,bottom:20,left:50,right:50}},
+      plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:11}}},
+      datalabels:{display:false}}}
   });
 
   // --- xu hướng theo kỳ (tuần/tháng/quý/năm) ---
@@ -726,14 +774,14 @@ function render(){
     .filter(([name]) => name && name !== '(Không rõ)')
     .map(([name,v]) => ({ name, den_bu:v.den_bu, pct: v.den_bu ? v.truy_thu/v.den_bu*100 : 0 }))
     .filter(x => x.den_bu > 0 && warnColorClass(x.pct))
-    .sort((a,b) => a.name.localeCompare(b.name, 'vi'));
+    .sort((a,b) => a.pct - b.pct);
 
   const warnHtml = flaggedVung.map((vg, idx) => {
     const parentCls = warnColorClass(vg.pct);
     const children = (hubsByVung[vg.name] || [])
       .map(h => ({ name:h.name, den_bu:h.den_bu, pct: h.den_bu ? h.truy_thu/h.den_bu*100 : 0 }))
       .filter(h => h.den_bu > 0 && warnColorClass(h.pct))
-      .sort((a,b) => a.name.localeCompare(b.name, 'vi'));
+      .sort((a,b) => a.pct - b.pct);
     const childHtml = children.length
       ? children.map(h => `<div class="warning-child ${warnColorClass(h.pct)}">
           <span>${h.name}</span>
