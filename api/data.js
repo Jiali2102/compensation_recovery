@@ -9,9 +9,13 @@ export default async function handler(req, res) {
       return;
     }
     const text = await response.text();
+    const lastModified = response.headers.get("last-modified") || "";
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     // Không cache ở tầng CDN/browser để luôn lấy dữ liệu mới nhất
     res.setHeader("Cache-Control", "no-store, max-age=0");
+    // Cho phép trình duyệt đọc header tùy chỉnh này qua fetch()
+    res.setHeader("Access-Control-Expose-Headers", "X-Data-Last-Modified");
+    res.setHeader("X-Data-Last-Modified", lastModified);
     res.status(200).send(text);
   } catch (err) {
     res.status(500).json({ error: "Lỗi server khi lấy dữ liệu" });
