@@ -108,8 +108,7 @@
   .table-wrap{overflow-x:auto;}
   table{width:100%;border-collapse:collapse;font-size:16.5px;table-layout:fixed;}
   th,td{padding:10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;overflow:hidden;}
-  th:first-child,td:first-child{text-align:left;width:36%;text-overflow:clip;}
-  td:first-child{transition:font-size .1s;}
+  th:first-child,td:first-child{text-align:left;width:36%;text-overflow:ellipsis;}
   th{color:var(--muted);font-weight:700;font-size:14px;text-transform:uppercase;}
 
   .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:14px;font-weight:700;}
@@ -140,6 +139,20 @@
   .warning-item .wname{font-weight:700;}
   .warning-item .wval{white-space:nowrap;color:#C62828;font-weight:700;}
   .warning-empty{color:var(--muted);font-size:14px;padding:8px 0;}
+  .warning-group{margin-bottom:14px;}
+  .warning-parent{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 14px;border-radius:6px;font-weight:800;margin-bottom:6px;font-size:15.5px;
+  }
+  .warning-parent.bad{background:#FDECEA;border-left:4px solid #C62828;color:#C62828;}
+  .warning-parent.warn{background:#FFF8E1;border-left:4px solid #B98900;color:#B98900;}
+  .warning-child{
+    margin-left:24px;padding:8px 12px;border-radius:6px;margin-bottom:4px;
+    display:flex;justify-content:space-between;gap:10px;font-size:14px;
+  }
+  .warning-child.bad{background:#FDECEA;border-left:3px solid #F44336;}
+  .warning-child.warn{background:#FFF8E1;border-left:3px solid #FFC107;}
+  .warning-child-empty{margin-left:24px;color:var(--muted);font-size:13px;padding:4px 0;}
   #batterySubFilter{font-family:inherit;font-size:15.5px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);}
 
   .loading{padding:60px;text-align:center;color:var(--muted);}
@@ -233,23 +246,6 @@ const fmtVND = fmtMoney;
 const fmtCompact = fmtMoney;
 
 function pillClass(pct){ if(pct<10) return 'bad'; if(pct<20) return 'warn'; return 'good'; }
-
-// Tự động thu nhỏ font tên kho cho vừa khung cột (tránh đẩy tràn cột Tỷ lệ thu hồi)
-function autoFitHubNames(){
-  const cells = document.querySelectorAll('#hubTableBody td:first-child');
-  cells.forEach(td=>{
-    td.style.fontSize = '';
-    let fontSize = parseFloat(getComputedStyle(td).fontSize);
-    const minFontSize = 10;
-    let guard = 0;
-    while(td.scrollWidth > td.clientWidth && fontSize > minFontSize && guard < 40){
-      fontSize -= 0.5;
-      td.style.fontSize = fontSize + 'px';
-      guard++;
-    }
-  });
-}
-window.addEventListener('resize', () => { if(document.getElementById('hubTableBody')) autoFitHubNames(); });
 const RATE_COLOR = { 'fill-red':'#F44336', 'fill-yellow':'#FFC107', 'fill-green':'#4CAF50', 'fill-purple':'#8E44AD' };
 
 // Ngưỡng màu cho battery (Deep dive tỷ lệ truy thu theo lý do)
@@ -381,19 +377,10 @@ function buildShell(){
     </section>
 
     <section>
-      <h2>⚠️ Cảnh báo: đền bù cao nhưng thu hồi thấp (&lt;10%)</h2>
+      <h2>⚠️ Cảnh báo: đền bù cao nhưng thu hồi thấp (&lt;20%)</h2>
       <div class="underline"></div>
-      <p class="desc">Vùng/kho có tổng giá trị đền bù lớn nhưng tỷ lệ truy thu dưới 10% — ưu tiên xử lý</p>
-      <div class="grid2">
-        <div>
-          <h3 style="font-size:15.5px;margin:0 0 10px;color:var(--navy);">Theo vùng chịu trách nhiệm</h3>
-          <div id="warnVungList"></div>
-        </div>
-        <div>
-          <h3 style="font-size:15.5px;margin:0 0 10px;color:var(--navy);">Theo kho chịu trách nhiệm</h3>
-          <div id="warnHubList"></div>
-        </div>
-      </div>
+      <p class="desc">🔴 Đỏ: tỷ lệ thu hồi dưới 10% &nbsp;·&nbsp; 🟡 Vàng: từ 10% đến dưới 20%. Vùng là nhóm cha, các kho trực thuộc hiển thị thu gọn bên dưới.</p>
+      <div id="warnGroupList"></div>
     </section>
   `;
 
@@ -662,7 +649,6 @@ function render(){
       <td><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>
     </tr>`;
   }).join('');
-  autoFitHubNames();
 
   // --- theo lý do đền bù theo vùng (không phụ thuộc filter vùng, để so sánh giữa các vùng) ---
   const byLyDoAllForVung = groupByFn(rows, r=>r.loai_yeu_cau);
@@ -689,25 +675,66 @@ function render(){
       scales:{x:{stacked:true, ticks:{callback:v=>fmtCompact(v)}}, y:{stacked:true}}}
   });
 
-  // --- cảnh báo: đền bù cao nhưng thu hồi thấp (<10%) ---
-  function renderWarnList(elId, byMap){
-    const list = Object.entries(byMap)
-      .filter(([name]) => name && name !== '(Không rõ)')
-      .map(([name,v]) => ({ name, den_bu:v.den_bu, pct: v.den_bu ? v.truy_thu/v.den_bu*100 : 0 }))
-      .filter(x => x.pct < 10 && x.den_bu > 0)
-      .sort((a,b) => b.den_bu - a.den_bu)
-      .slice(0,5);
-    document.getElementById(elId).innerHTML = list.length ? list.map(x => `
-      <div class="warning-item">
-        <span>⚠️ <span class="wname">${x.name}</span></span>
-        <span class="wval">${fmtMoney(x.den_bu)} · ${fmtPct(x.pct)}</span>
-      </div>
-    `).join('') : '<div class="warning-empty">Không có mục nào vượt ngưỡng cảnh báo</div>';
+  // --- cảnh báo: đền bù cao nhưng thu hồi thấp (<20%), nhóm vùng (cha) - kho (con) ---
+  function warnColorClass(pct){
+    if(pct < 10) return 'bad';
+    if(pct < 20) return 'warn';
+    return null;
   }
+
+  // ánh xạ kho -> vùng phổ biến nhất của kho đó (dựa trên dữ liệu thực tế)
+  const khoVungCount = {};
+  rows.forEach(r=>{
+    const kho = r.kho_chiu_trach_nhiem, vg = r.vung_chiu_trach_nhiem;
+    if(!kho || !vg) return;
+    if(!khoVungCount[kho]) khoVungCount[kho] = {};
+    khoVungCount[kho][vg] = (khoVungCount[kho][vg]||0) + 1;
+  });
+  const khoToVung = {};
+  Object.entries(khoVungCount).forEach(([kho,counts])=>{
+    khoToVung[kho] = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+  });
+
   const byVungFull = groupByFn(rows, r=>r.vung_chiu_trach_nhiem);
   const byHubFull = groupByFn(rows, r=>r.kho_chiu_trach_nhiem);
-  renderWarnList('warnVungList', byVungFull);
-  renderWarnList('warnHubList', byHubFull);
+  delete byHubFull['(Không rõ)'];
+
+  const hubsByVung = {};
+  Object.entries(byHubFull).forEach(([kho,v])=>{
+    const vg = khoToVung[kho] || '(Không rõ)';
+    if(!hubsByVung[vg]) hubsByVung[vg] = [];
+    hubsByVung[vg].push({ name:kho, den_bu:v.den_bu, truy_thu:v.truy_thu });
+  });
+
+  const flaggedVung = Object.entries(byVungFull)
+    .filter(([name]) => name && name !== '(Không rõ)')
+    .map(([name,v]) => ({ name, den_bu:v.den_bu, pct: v.den_bu ? v.truy_thu/v.den_bu*100 : 0 }))
+    .filter(x => x.den_bu > 0 && warnColorClass(x.pct))
+    .sort((a,b) => b.den_bu - a.den_bu);
+
+  const warnHtml = flaggedVung.map(vg => {
+    const parentCls = warnColorClass(vg.pct);
+    const children = (hubsByVung[vg.name] || [])
+      .map(h => ({ name:h.name, den_bu:h.den_bu, pct: h.den_bu ? h.truy_thu/h.den_bu*100 : 0 }))
+      .filter(h => h.den_bu > 0 && warnColorClass(h.pct))
+      .sort((a,b) => b.den_bu - a.den_bu)
+      .slice(0,5);
+    const childHtml = children.length
+      ? children.map(h => `<div class="warning-child ${warnColorClass(h.pct)}">
+          <span>${h.name}</span>
+          <span>${fmtMoney(h.den_bu)} · ${fmtPct(h.pct)}</span>
+        </div>`).join('')
+      : '<div class="warning-child-empty">Không có kho cụ thể nào dưới ngưỡng trong vùng này</div>';
+    return `<div class="warning-group">
+      <div class="warning-parent ${parentCls}">
+        <span>⚠️ ${vg.name}</span>
+        <span>${fmtMoney(vg.den_bu)} · ${fmtPct(vg.pct)}</span>
+      </div>
+      ${childHtml}
+    </div>`;
+  }).join('');
+
+  document.getElementById('warnGroupList').innerHTML = warnHtml || '<div class="warning-empty">Không có vùng nào vượt ngưỡng cảnh báo</div>';
 }
 </script>
 </body>
