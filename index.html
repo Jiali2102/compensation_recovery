@@ -106,9 +106,10 @@
   .chart-box{position:relative;height:340px;width:100%;}
 
   .table-wrap{overflow-x:auto;}
-  table{width:100%;border-collapse:collapse;font-size:16.5px;}
-  th,td{padding:10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;}
-  th:first-child,td:first-child{text-align:left;}
+  table{width:100%;border-collapse:collapse;font-size:16.5px;table-layout:fixed;}
+  th,td{padding:10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;overflow:hidden;}
+  th:first-child,td:first-child{text-align:left;width:36%;text-overflow:clip;}
+  td:first-child{transition:font-size .1s;}
   th{color:var(--muted);font-weight:700;font-size:14px;text-transform:uppercase;}
 
   .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:14px;font-weight:700;}
@@ -232,6 +233,23 @@ const fmtVND = fmtMoney;
 const fmtCompact = fmtMoney;
 
 function pillClass(pct){ if(pct<10) return 'bad'; if(pct<20) return 'warn'; return 'good'; }
+
+// Tự động thu nhỏ font tên kho cho vừa khung cột (tránh đẩy tràn cột Tỷ lệ thu hồi)
+function autoFitHubNames(){
+  const cells = document.querySelectorAll('#hubTableBody td:first-child');
+  cells.forEach(td=>{
+    td.style.fontSize = '';
+    let fontSize = parseFloat(getComputedStyle(td).fontSize);
+    const minFontSize = 10;
+    let guard = 0;
+    while(td.scrollWidth > td.clientWidth && fontSize > minFontSize && guard < 40){
+      fontSize -= 0.5;
+      td.style.fontSize = fontSize + 'px';
+      guard++;
+    }
+  });
+}
+window.addEventListener('resize', () => { if(document.getElementById('hubTableBody')) autoFitHubNames(); });
 const RATE_COLOR = { 'fill-red':'#F44336', 'fill-yellow':'#FFC107', 'fill-green':'#4CAF50', 'fill-purple':'#8E44AD' };
 
 // Ngưỡng màu cho battery (Deep dive tỷ lệ truy thu theo lý do)
@@ -638,12 +656,13 @@ function render(){
   document.getElementById('hubTableBody').innerHTML = topHubs.map(([name,v])=>{
     const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
     return `<tr>
-      <td>${name}</td>
+      <td title="${name}">${name}</td>
       <td>${fmtNum(v.so_don)}</td>
       <td>${fmtVND(v.den_bu)}</td>
       <td><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>
     </tr>`;
   }).join('');
+  autoFitHubNames();
 
   // --- theo lý do đền bù theo vùng (không phụ thuộc filter vùng, để so sánh giữa các vùng) ---
   const byLyDoAllForVung = groupByFn(rows, r=>r.loai_yeu_cau);
