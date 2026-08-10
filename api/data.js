@@ -1,5 +1,6 @@
 // Vercel Serverless Function — lấy dữ liệu qua Google Sheets API (nhanh, real-time hơn CSV publish)
-// Đồng thời gọi Google Drive API để lấy thời gian sửa gần nhất trong các sheet nguồn (modifiedTime)
+// Đồng thời gọi Google Drive API để lấy thời gian sửa gần nhất của sheet đang xem (modifiedTime)
+// Hỗ trợ tách riêng theo NĂM qua query param: /api/data?year=2025 hoặc /api/data?year=2026
 //
 // ============================================================
 // HƯỚNG DẪN THÊM SHEET NĂM MỚI (2027, 2028...) — CHỈ CẦN SỬA Ở ĐÂY, KHÔNG SỬA GÌ KHÁC:
@@ -7,8 +8,10 @@
 //      https://docs.google.com/spreadsheets/d/{ID_NẰM_Ở_ĐÂY}/edit#gid={GID_NẰM_Ở_ĐÂY}
 // 2. Đảm bảo sheet đó đã Share -> "Anyone with the link" -> Viewer (giống các sheet cũ)
 // 3. Thêm 1 dòng vào mảng SHEETS bên dưới, copy đúng mẫu dòng có sẵn
-// 4. Commit lên GitHub, Vercel tự deploy lại — KHÔNG cần sửa index.html hay bất kỳ file nào khác
-// Toàn bộ sheet trong danh sách sẽ tự động được gộp chung làm 1 nguồn dữ liệu cho dashboard.
+// 4. Mở file index.html, tìm div id="yearbar", thêm 1 button năm mới tương ứng
+//    (dòng comment "Thêm năm mới:" đã ghi rõ ngay tại đó)
+// 5. Cập nhật mảng AVAILABLE_YEARS trong index.html để khớp với SHEETS bên dưới
+// 6. Commit lên GitHub, Vercel tự deploy lại
 // ============================================================
 const SHEETS = [
   { year: 2025, spreadsheetId: "12jeRehojTgRmFEuBvuFyoWwY8cgbtd8kigN7HOxGhw4", gid: 0 },
@@ -24,6 +27,11 @@ export default async function handler(req, res) {
     res.status(500).json({ error: "Thiếu GOOGLE_DRIVE_API_KEY trong Environment Variables" });
     return;
   }
+
+  // Xác định năm cần lấy: từ query ?year=..., nếu không có/không hợp lệ thì mặc định năm mới nhất trong SHEETS
+  const requestedYear = parseInt(req.query.year, 10);
+  const matchedSheets = SHEETS.filter(s => s.year === requestedYear);
+  const activeSheets = matchedSheets.length ? matchedSheets : [SHEETS[SHEETS.length - 1]];
 
   function csvEscape(val) {
     const s = val === null || val === undefined ? "" : String(val);
@@ -64,11 +72,11 @@ export default async function handler(req, res) {
 
   try {
     const [valuesResults, modifiedTimes] = await Promise.all([
-      Promise.all(SHEETS.map(s => getValues(s.spreadsheetId, s.gid))),
-      Promise.all(SHEETS.map(s => getModifiedTime(s.spreadsheetId))),
+      Promise.all(activeSheets.map(s => getValues(s.spreadsheetId, s.gid))),
+      Promise.all(activeSheets.map(s => getModifiedTime(s.spreadsheetId))),
     ]);
 
-    // Gộp toàn bộ sheet lại: giữ 1 dòng header duy nhất (từ sheet đầu tiên), nối các dòng dữ liệu phía sau
+    // Gộp các sheet CÙNG NĂM lại (thường chỉ có 1), giữ 1 header duy nhất
     let header = null;
     let allRows = [];
     valuesResults.forEach(rows => {
@@ -80,13 +88,16 @@ export default async function handler(req, res) {
 
     const csvText = [header, ...allRows].map(row => row.map(csvEscape).join(",")).join("\n");
 
-    // Lấy thời điểm sửa gần nhất trong TẤT CẢ các sheet nguồn (không phải chỉ sheet đầu tiên)
     const latestModified = modifiedTimes
       .filter(Boolean)
       .sort((a, b) => new Date(b) - new Date(a))[0] || "";
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Cache-Control", "no-store, max-age=0");
+    // Cache ngắn hạn ở tầng CDN của Vercel (không phải trình duyệt) để giảm tải khi nhiều người
+    // cùng xem trong vài phút liên tiếp — data có thể trễ tối đa ~2 phút, đổi lại tốc độ tải nhanh hơn
+    // hẳn khi Sheet đã phình to. stale-while-revalidate cho phép vẫn trả bản cũ tức thời trong lúc
+    // âm thầm lấy bản mới ở nền, tránh người dùng phải chờ.
+    res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=600");
     res.setHeader("Access-Control-Expose-Headers", "X-Data-Last-Modified");
     res.setHeader("X-Data-Last-Modified", latestModified);
     res.status(200).send(csvText);
