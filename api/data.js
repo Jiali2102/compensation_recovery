@@ -11,7 +11,7 @@
 // Toàn bộ sheet trong danh sách sẽ tự động được gộp chung làm 1 nguồn dữ liệu cho dashboard.
 // ============================================================
 const SHEETS = [
-  { year: 2025, spreadsheetId: "12jeRehojTgRmFEuBvuFyoWwY8cgbtd8kigN7HOxGhw4", gid: 0 },
+  // { year: 2025, spreadsheetId: "12jeRehojTgRmFEuBvuFyoWwY8cgbtd8kigN7HOxGhw4", gid: 0 },
   { year: 2026, spreadsheetId: "1iFRPFRfZ4HIDx-a0m0EIfZSvkkausKJQZe-Wj-qBi5E", gid: 0 },
   // { year: 2027, spreadsheetId: "DÁN_ID_SHEET_2027_VÀO_ĐÂY", gid: 0 },
   // { year: 2028, spreadsheetId: "DÁN_ID_SHEET_2028_VÀO_ĐÂY", gid: 0 },
