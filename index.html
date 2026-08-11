@@ -39,7 +39,7 @@
   #stickyTop{position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,0.08);}
 
   .yearbar{
-    display:flex;align-items:center;gap:8px;
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
     background:var(--navy);
     padding:10px clamp(20px,4vw,48px);
   }
@@ -50,6 +50,12 @@
     background:transparent;color:#fff;cursor:pointer;
   }
   .yearbar button.active{background:var(--orange);border-color:var(--orange);}
+  .yearbar-sep{width:1px;height:22px;background:rgba(255,255,255,0.25);margin:0 4px;}
+  .yearbar select{
+    font-family:inherit;font-size:14px;padding:6px 10px;border:1px solid rgba(255,255,255,0.4);
+    border-radius:6px;background:#fff;color:var(--ink);
+  }
+  #shopeeSubWrap{display:none;align-items:center;gap:8px;}
 
   header{
     background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);
@@ -74,23 +80,12 @@
   .tabbar button:hover{color:#fff;}
   .status{margin-left:auto;font-size:16px;color:#8FA6C2;font-style:italic;white-space:nowrap;padding-right:4px;}
 
-  .filterbar{
-    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-    padding:14px clamp(20px,4vw,48px);
-    background:#fff;border-bottom:1px solid var(--border);
-  }
-  .filterbar label{font-size:16px;color:var(--muted);font-weight:700;}
-  .filterbar select{
-    font-family:inherit;font-size:16px;padding:6px 10px;border:1px solid var(--border);
-    border-radius:6px;background:#fff;color:var(--ink);
-  }
   .granularity{display:flex;gap:4px;margin-left:auto;}
   .granularity button{
     font-family:inherit;font-size:15.5px;padding:6px 14px;border:1px solid var(--border);
     background:#fff;color:var(--muted);border-radius:6px;cursor:pointer;font-weight:700;
   }
   .granularity button.active{background:var(--orange);border-color:var(--orange);color:#fff;}
-  #shopeeSubWrap{display:none;align-items:center;gap:8px;}
 
   .region-cluster{
     background:#FFF3EA;border:1px solid #FFD9BB;border-radius:10px;
@@ -213,10 +208,12 @@
   /* Bảng pivot sản phẩm */
   .pivot-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:14px;}
   .pivot-table th, .pivot-table td{padding:8px 10px;border:1px solid var(--border);text-align:right;white-space:nowrap;}
-  .pivot-table thead th{background:#F6F7FA;font-weight:800;text-transform:uppercase;font-size:11px;color:var(--muted);}
+  .pivot-table thead th{background:#F6F7FA;font-weight:800;text-transform:uppercase;font-size:11px;color:var(--muted);text-align:center;}
   .pivot-table td.label-col, .pivot-table th.label-col{
-    text-align:left;position:sticky;left:0;background:#fff;z-index:2;min-width:160px;
+    position:sticky;left:0;background:#fff;z-index:2;min-width:160px;
   }
+  .pivot-table td.label-col{text-align:left;}
+  .pivot-table th.label-col{text-align:center;}
   .pivot-table thead th.label-col{background:#F6F7FA;z-index:3;}
   .pivot-table .current-col{background:#FFF3EA;}
   .pivot-table thead th.current-col{background:#FFE0C2;}
@@ -240,10 +237,9 @@
     .tabbar button{padding:11px 14px;font-size:14px;white-space:nowrap;flex:0 0 auto;}
     .status{display:none;}
 
-    .filterbar{flex-direction:column;align-items:flex-start;gap:8px;padding:12px 16px;}
-    .filterbar label{margin-left:0 !important;font-size:13px;}
-    .filterbar select{width:100%;font-size:14px;}
-    .filterbar > span{display:none;}
+    .yearbar{flex-wrap:wrap;}
+    .yearbar select{width:100%;}
+    #shopeeSubWrap{width:100%;}
 
     main{padding:16px 12px 40px;}
     .kpis{grid-template-columns:repeat(2,1fr);gap:10px;}
@@ -282,6 +278,16 @@
   <!-- Thêm năm mới: thêm 1 button vào đây VÀ thêm 1 dòng tương ứng trong mảng SHEETS ở api/data.js -->
   <button class="year-btn" data-year="2025">2025</button>
   <button class="year-btn active" data-year="2026">2026</button>
+  <span class="yearbar-sep"></span>
+  <span>Kỳ xem:</span>
+  <select id="monthSelect"><option value="all">Tất cả</option></select>
+  <div id="shopeeSubWrap">
+    <span class="yearbar-sep"></span>
+    <span>Shopee:</span>
+    <select id="shopeeSubSelect">
+      <option value="all">Shopee - ALL</option>
+    </select>
+  </div>
 </div>
 
 <div class="tabbar" id="tabbar">
@@ -290,17 +296,6 @@
   <button class="tab-btn" data-tab="Lazada">Lazada</button>
   <button class="tab-btn" data-tab="Tiki">Tiki</button>
   <div class="status" id="statusText">Đang tải dữ liệu...</div>
-</div>
-
-<div class="filterbar">
-  <label>Kỳ xem:</label>
-  <select id="monthSelect"><option value="all">Tất cả</option></select>
-  <div id="shopeeSubWrap">
-    <label style="margin-left:16px;">Shopee:</label>
-    <select id="shopeeSubSelect">
-      <option value="all">Shopee - ALL</option>
-    </select>
-  </div>
 </div>
 </div>
 
@@ -541,24 +536,26 @@ function buildAppSkeleton(){
         <span style="font-size:12.5px;color:var(--orange-dark);">— áp dụng cho 3 mục bên dưới</span>
       </div>
       <div class="grid2">
-        <section>
-          <h2>Loại lý do đền bù theo nhóm hàng</h2>
-          <div class="underline"></div>
-          <p class="desc">Top lý do gây đền bù nhiều nhất</p>
-          <canvas id="chartLyDo"></canvas>
-        </section>
+        <div>
+          <section>
+            <h2>Loại lý do đền bù theo nhóm hàng</h2>
+            <div class="underline"></div>
+            <p class="desc">Top lý do gây đền bù nhiều nhất</p>
+            <canvas id="chartLyDo"></canvas>
+          </section>
+          <section>
+            <h2>Tỷ lệ đã truy thu theo lý do</h2>
+            <div class="underline"></div>
+            <div id="batteryList"></div>
+          </section>
+        </div>
         <section>
           <h2>Vùng &amp; kho chịu trách nhiệm</h2>
           <div class="underline"></div>
-          <p class="desc">Top 15 kho theo tổng giá trị đền bù, nhóm theo vùng<br>🔴 &lt;20% · 🟡 &lt;30% · 🟢 &lt;50% · 🟣 ≥50% (theo tỷ lệ đã truy thu)</p>
+          <p class="desc">4 vùng có tỷ lệ thu hồi thấp nhất · kèm các kho nằm trong Top 15 kho đền bù cao nhất<br>🔴 &lt;20% · 🟡 &lt;30% · 🟢 &lt;50% · 🟣 ≥50% (theo tỷ lệ đã truy thu)</p>
           <div id="hubGroupList"></div>
         </section>
       </div>
-      <section>
-        <h2>Tỷ lệ đã truy thu theo lý do</h2>
-        <div class="underline"></div>
-        <div id="batteryList"></div>
-      </section>
     </div>
 
     <section>
@@ -566,13 +563,6 @@ function buildAppSkeleton(){
       <div class="underline"></div>
       <p class="desc">Phân bổ giá trị đền bù theo từng lý do, chia theo vùng chịu trách nhiệm</p>
       <canvas id="chartLyDoVung"></canvas>
-    </section>
-
-    <section>
-      <h2>⚠️ Cảnh báo: đền bù cao nhưng thu hồi thấp (&lt;20%)</h2>
-      <div class="underline"></div>
-      <p class="desc">🔴 Đỏ: tỷ lệ thu hồi dưới 10% 🟡 Vàng: từ 10% đến dưới 20%</p>
-      <div id="warnGroupList"></div>
     </section>
 
     <section>
@@ -828,7 +818,7 @@ function render(){
     </div>`;
   }).join('');
 
-  // --- Tính chung: ánh xạ kho -> vùng, tổng theo vùng/kho (dùng cho cả "Vùng & kho" và "Cảnh báo") ---
+  // --- Tính chung: ánh xạ kho -> vùng, tổng theo vùng/kho ---
   const khoVungCount = {};
   rows.forEach(r=>{
     const kho = r.kho_chiu_trach_nhiem, vg = r.vung_chiu_trach_nhiem;
@@ -845,16 +835,13 @@ function render(){
   const byHubFull = groupByFn(rowsRegion, r=>r.kho_chiu_trach_nhiem);
   delete byHubFull['(Không rõ)'];
 
-  const hubsByVungFull = {};
-  Object.entries(groupByFn(rows, r=>r.kho_chiu_trach_nhiem)).forEach(([kho,v])=>{
-    if(kho === '(Không rõ)') return;
-    const vg = khoToVung[kho] || '(Không rõ)';
-    if(!hubsByVungFull[vg]) hubsByVungFull[vg] = [];
-    hubsByVungFull[vg].push({ name:kho, den_bu:v.den_bu, truy_thu:v.truy_thu });
-  });
+  // --- Vùng & kho chịu trách nhiệm: luôn hiện 4 vùng có tỷ lệ thu hồi thấp nhất ---
+  // Mỗi vùng hiện kèm: các kho nằm trong Top 15 kho đền bù cao nhất (nếu có) + 1 dòng gộp "các kho còn lại"
+  const TOP_N_HUB = 15;
+  const VUNG_SHOW_COUNT = 4;
 
-  // --- Vùng & kho chịu trách nhiệm: thay thế "Top 15 kho", nhóm theo vùng, màu theo tỷ lệ đã truy thu (4 cấp) ---
-  const topHubEntries = Object.entries(byHubFull).sort((a,b)=>b[1].den_bu - a[1].den_bu).slice(0,15);
+  const topHubEntries = Object.entries(byHubFull).sort((a,b)=>b[1].den_bu - a[1].den_bu).slice(0, TOP_N_HUB);
+  const topHubSet = new Set(topHubEntries.map(([name])=>name));
 
   const hubGroupByVung = {};
   topHubEntries.forEach(([kho,v])=>{
@@ -863,26 +850,44 @@ function render(){
     hubGroupByVung[vg].push({ name:kho, den_bu:v.den_bu, truy_thu:v.truy_thu });
   });
 
-  const vungForHubGroup = Object.keys(hubGroupByVung)
-    .map(name => {
-      const total = byVungFull[name] || { den_bu:0, truy_thu:0 };
-      return { name, den_bu: total.den_bu, pct: total.den_bu ? total.truy_thu/total.den_bu*100 : 0 };
-    })
-    .sort((a,b) => b.den_bu - a.den_bu);
+  const vungForHubGroup = Object.entries(byVungFull)
+    .filter(([name]) => name && name !== '(Không rõ)')
+    .map(([name,v]) => ({ name, den_bu:v.den_bu, truy_thu:v.truy_thu, pct: v.den_bu ? v.truy_thu/v.den_bu*100 : 0 }))
+    .filter(x => x.den_bu > 0)
+    .sort((a,b) => a.pct - b.pct)
+    .slice(0, VUNG_SHOW_COUNT);
 
   const hubGroupHtml = vungForHubGroup.map((vg, idx) => {
     const parentCls = colorSuffix(batteryClass(vg.pct));
     const children = (hubGroupByVung[vg.name] || [])
       .map(h => ({ name:h.name, den_bu:h.den_bu, pct: h.den_bu ? h.truy_thu/h.den_bu*100 : 0 }))
       .sort((a,b) => b.den_bu - a.den_bu);
-    const childHtml = children.map(h => `<div class="cluster-child ${colorSuffix(batteryClass(h.pct))}">
+
+    // Phần còn lại của vùng (những kho không nằm trong Top 15 tổng)
+    const sumChildDenBu = children.reduce((s,c)=>s+c.den_bu, 0);
+    const sumChildTruyThu = (hubGroupByVung[vg.name] || []).reduce((s,c)=>s+c.truy_thu, 0);
+    const remainDenBu = vg.den_bu - sumChildDenBu;
+    const remainTruyThu = vg.truy_thu - sumChildTruyThu;
+    const remainPct = remainDenBu > 0 ? (remainTruyThu/remainDenBu*100) : 0;
+    const totalKhoInVung = (Object.entries(byHubFull).filter(([k])=>khoToVung[k] === vg.name)).length;
+    const remainKhoCount = totalKhoInVung - children.length;
+
+    let childHtml = children.map(h => `<div class="cluster-child ${colorSuffix(batteryClass(h.pct))}">
         <span>${h.name}</span>
         <span>${fmtMoney(h.den_bu)} · ${fmtPct(h.pct)}</span>
       </div>`).join('');
+    if(remainDenBu > 0 && remainKhoCount > 0){
+      childHtml += `<div class="cluster-child ${colorSuffix(batteryClass(remainPct))}" style="font-style:italic;">
+        <span>${remainKhoCount} kho còn lại</span>
+        <span>${fmtMoney(remainDenBu)} · ${fmtPct(remainPct)}</span>
+      </div>`;
+    }
+
     const childId = `hubGroupChildren-${idx}`;
+    const badgeText = children.length ? `${children.length}/${TOP_N_HUB} kho thuộc nhóm đền bù cao nhất` : `Không có kho nào lọt Top ${TOP_N_HUB}`;
     return `<div class="cluster-group">
       <div class="cluster-parent ${parentCls}">
-        <span>${vg.name === '(Không rõ)' ? 'Không rõ vùng' : vg.name}</span>
+        <span>${vg.name === '(Không rõ)' ? 'Không rõ vùng' : vg.name}<br><span style="font-size:11.5px;font-weight:600;opacity:.85;">${badgeText}</span></span>
         <span style="display:flex;align-items:center;gap:10px;">
           <span>${fmtMoney(vg.den_bu)} · ${fmtPct(vg.pct)}</span>
           <button class="warn-toggle" type="button" data-target="${childId}">+</button>
@@ -918,48 +923,6 @@ function render(){
       plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:10.5}}}, datalabels:{display:false}},
       scales:{x:{stacked:true, ticks:{callback:v=>fmtCompact(v)}}, y:{stacked:true}}}
   });
-
-  // --- Cảnh báo: đền bù cao nhưng thu hồi thấp (<20%) ---
-  function warnColorClass(pct){
-    if(pct < 10) return 'bad';
-    if(pct < 20) return 'warn';
-    return null;
-  }
-
-  const flaggedVung = Object.entries(byVungFull)
-    .filter(([name]) => name && name !== '(Không rõ)')
-    .map(([name,v]) => ({ name, den_bu:v.den_bu, pct: v.den_bu ? v.truy_thu/v.den_bu*100 : 0 }))
-    .filter(x => x.den_bu > 0 && warnColorClass(x.pct))
-    .sort((a,b) => a.pct - b.pct);
-
-  const warnHtml = flaggedVung.map((vg, idx) => {
-    const parentCls = warnColorClass(vg.pct);
-    const children = (hubsByVungFull[vg.name] || [])
-      .map(h => ({ name:h.name, den_bu:h.den_bu, pct: h.den_bu ? h.truy_thu/h.den_bu*100 : 0 }))
-      .filter(h => h.den_bu > 0 && warnColorClass(h.pct))
-      .sort((a,b) => a.pct - b.pct);
-    const childHtml = children.length
-      ? children.map(h => `<div class="warning-child ${warnColorClass(h.pct)}">
-          <span>${h.name}</span>
-          <span>${fmtMoney(h.den_bu)} · ${fmtPct(h.pct)}</span>
-        </div>`).join('')
-      : '<div class="warning-child-empty">Không có kho cụ thể nào dưới ngưỡng trong vùng này</div>';
-    const childId = `warnChildren-${idx}`;
-    return `<div class="warning-group">
-      <div class="warning-parent ${parentCls}">
-        <span>⚠️ ${vg.name}</span>
-        <span style="display:flex;align-items:center;gap:10px;">
-          <span>${fmtMoney(vg.den_bu)} · ${fmtPct(vg.pct)}</span>
-          <button class="warn-toggle" type="button" data-target="${childId}">+</button>
-        </span>
-      </div>
-      <div class="warning-children" id="${childId}" style="display:none;">
-        ${childHtml}
-      </div>
-    </div>`;
-  }).join('');
-
-  document.getElementById('warnGroupList').innerHTML = warnHtml || '<div class="warning-empty">Không có vùng nào vượt ngưỡng cảnh báo</div>';
 
   // --- Đền bù theo sản phẩm: pivot 6 tháng gần nhất (Z-A), MoM, tỷ lệ thu hồi ---
   const prodRows = getTabFilteredRows();
