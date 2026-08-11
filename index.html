@@ -191,6 +191,40 @@
   .warn-toggle:hover{opacity:0.65;}
   #shopeeSubSelect{font-family:inherit;font-size:16px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);}
 
+  /* 4 màu dùng chung: cụm Vùng & kho chịu trách nhiệm (theo tỷ lệ đã truy thu) */
+  .cluster-group{margin-bottom:12px;}
+  .cluster-parent{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 14px;border-radius:6px;font-weight:800;margin-bottom:6px;font-size:15.5px;
+  }
+  .cluster-child{
+    margin-left:24px;padding:8px 12px;border-radius:6px;margin-bottom:4px;
+    display:flex;justify-content:space-between;gap:10px;font-size:14px;
+  }
+  .c-red{background:#FDECEA;border-left:4px solid #F44336;color:#C62828;}
+  .c-yellow{background:#FFF8E1;border-left:4px solid #FFC107;color:#B98900;}
+  .c-green{background:#E8F5E9;border-left:4px solid #4CAF50;color:#2E7D32;}
+  .c-purple{background:#F3E5F5;border-left:4px solid #8E44AD;color:#6A1B78;}
+  .cluster-child.c-red{border-left-width:3px;}
+  .cluster-child.c-yellow{border-left-width:3px;}
+  .cluster-child.c-green{border-left-width:3px;}
+  .cluster-child.c-purple{border-left-width:3px;}
+
+  /* Bảng pivot sản phẩm */
+  .pivot-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:14px;}
+  .pivot-table th, .pivot-table td{padding:8px 10px;border:1px solid var(--border);text-align:right;white-space:nowrap;}
+  .pivot-table thead th{background:#F6F7FA;font-weight:800;text-transform:uppercase;font-size:11px;color:var(--muted);}
+  .pivot-table td.label-col, .pivot-table th.label-col{
+    text-align:left;position:sticky;left:0;background:#fff;z-index:2;min-width:160px;
+  }
+  .pivot-table thead th.label-col{background:#F6F7FA;z-index:3;}
+  .pivot-table .current-col{background:#FFF3EA;}
+  .pivot-table thead th.current-col{background:#FFE0C2;}
+  .pivot-table .prod-detail td{background:#FAFAFA;text-align:left;}
+  .mom-up{color:#F44336;font-weight:700;}
+  .mom-down{color:#1E88E5;font-weight:700;}
+  .mom-flat{color:var(--muted);}
+
   .loading{padding:60px;text-align:center;color:var(--muted);}
   footer{text-align:center;font-size:14.5px;color:var(--muted);padding:20px;}
 
@@ -300,6 +334,7 @@ function batteryClass(pct){
   if(pct < 50) return 'fill-green';
   return 'fill-purple';
 }
+function colorSuffix(cls){ return cls.replace('fill-','c-'); }
 
 function fmtDateTime(d){
   const p = n => String(n).padStart(2,'0');
@@ -499,13 +534,6 @@ function buildAppSkeleton(){
       <canvas id="chartMonth" style="margin-top:14px;"></canvas>
     </section>
 
-    <section>
-      <h2>Đền bù theo sản phẩm</h2>
-      <div class="underline"></div>
-      <p class="desc">Top sản phẩm gây đền bù nhiều nhất</p>
-      <canvas id="chartSanPham"></canvas>
-    </section>
-
     <div class="region-cluster">
       <div class="region-cluster-filter">
         <label>📍 Vùng chịu trách nhiệm:</label>
@@ -520,15 +548,10 @@ function buildAppSkeleton(){
           <canvas id="chartLyDo"></canvas>
         </section>
         <section>
-          <h2>Top 15 kho chịu trách nhiệm</h2>
+          <h2>Vùng &amp; kho chịu trách nhiệm</h2>
           <div class="underline"></div>
-          <p class="desc">Xếp theo tổng giá trị đền bù</p>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Kho</th><th>Số đơn</th><th>Đền bù</th><th>Tỷ lệ thu hồi</th></tr></thead>
-              <tbody id="hubTableBody"></tbody>
-            </table>
-          </div>
+          <p class="desc">Top 15 kho theo tổng giá trị đền bù, nhóm theo vùng<br>🔴 &lt;20% · 🟡 &lt;30% · 🟢 &lt;50% · 🟣 ≥50% (theo tỷ lệ đã truy thu)</p>
+          <div id="hubGroupList"></div>
         </section>
       </div>
       <section>
@@ -550,6 +573,18 @@ function buildAppSkeleton(){
       <div class="underline"></div>
       <p class="desc">🔴 Đỏ: tỷ lệ thu hồi dưới 10% 🟡 Vàng: từ 10% đến dưới 20%</p>
       <div id="warnGroupList"></div>
+    </section>
+
+    <section>
+      <h2>Đền bù theo sản phẩm</h2>
+      <div class="underline"></div>
+      <p class="desc">Top sản phẩm theo tổng giá trị đền bù 6 tháng gần nhất · bấm (+) xem top 5 kho gây đền bù cho từng sản phẩm</p>
+      <div class="table-wrap">
+        <table class="pivot-table" id="pivotTable">
+          <thead id="pivotHead"></thead>
+          <tbody id="pivotBody"></tbody>
+        </table>
+      </div>
     </section>
   `;
 }
@@ -589,12 +624,12 @@ function setupOneTimeListeners(){
     render();
   });
 
-  document.getElementById('warnGroupList').addEventListener('click', e=>{
+  document.getElementById('app').addEventListener('click', e=>{
     if(!e.target.classList.contains('warn-toggle')) return;
     const targetEl = document.getElementById(e.target.dataset.target);
     if(!targetEl) return;
     const isOpen = targetEl.style.display !== 'none';
-    targetEl.style.display = isOpen ? 'none' : 'block';
+    targetEl.style.display = isOpen ? 'none' : (targetEl.tagName === 'TR' ? 'table-row' : 'block');
     e.target.textContent = isOpen ? '+' : '−';
   });
 }
@@ -610,6 +645,19 @@ function getFilteredRows(){
   }
   if(currentMonth !== 'all'){
     rows = rows.filter(r => String(r.ngay_duyet_eform||'').slice(0,7) === currentMonth);
+  }
+  return rows;
+}
+
+// Lọc theo tab/sub-client nhưng KHÔNG lọc theo tháng — dùng cho bảng pivot sản phẩm (cần dải nhiều tháng)
+function getTabFilteredRows(){
+  let rows = ALL_ROWS;
+  if(currentTab !== 'all'){
+    const ids = TAB_GROUPS[currentTab] || [];
+    rows = rows.filter(r => ids.includes(String(r.nhom_kh)));
+    if(currentTab === 'Shopee' && currentSubClient !== 'all'){
+      rows = rows.filter(r => String(r.nhom_kh) === currentSubClient);
+    }
   }
   return rows;
 }
@@ -719,18 +767,6 @@ function render(){
 
   const rowsRegion = currentRegion === 'all' ? rows : rows.filter(r => String(r.vung_chiu_trach_nhiem) === String(currentRegion));
 
-  const bySanPham = groupByFn(rows, r=>r.san_pham);
-  delete bySanPham['(Không rõ)'];
-  const sanPhamKeys = Object.keys(bySanPham).sort((a,b)=>bySanPham[b].den_bu - bySanPham[a].den_bu).slice(0,10);
-  destroyChart('sanpham');
-  charts.sanpham = new Chart(document.getElementById('chartSanPham'), {
-    type:'bar',
-    data:{ labels: sanPhamKeys, datasets:[{label:'Đền bù', data: sanPhamKeys.map(k=>bySanPham[k].den_bu), backgroundColor:navy}]},
-    options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false},
-      datalabels:{...dl, anchor:'end', align:'right', formatter:v=>fmtCompact(v)}},
-      scales:{x:{ticks:{callback:v=>fmtCompact(v)}}}}
-  });
-
   const byLyDo = groupByFn(rowsRegion, r=>r.loai_yeu_cau);
   const lyDoKeys = Object.keys(byLyDo).sort((a,b)=>byLyDo[b].den_bu - byLyDo[a].den_bu).slice(0,8);
   destroyChart('lydo');
@@ -792,18 +828,72 @@ function render(){
     </div>`;
   }).join('');
 
-  const byHub = groupByFn(rowsRegion, r=>r.kho_chiu_trach_nhiem);
-  delete byHub['(Không rõ)'];
-  const topHubs = Object.entries(byHub).sort((a,b)=>b[1].den_bu - a[1].den_bu).slice(0,15);
-  document.getElementById('hubTableBody').innerHTML = topHubs.map(([name,v])=>{
-    const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
-    return `<tr>
-      <td title="${name}">${name}</td>
-      <td>${fmtNum(v.so_don)}</td>
-      <td>${fmtVND(v.den_bu)}</td>
-      <td><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>
-    </tr>`;
+  // --- Tính chung: ánh xạ kho -> vùng, tổng theo vùng/kho (dùng cho cả "Vùng & kho" và "Cảnh báo") ---
+  const khoVungCount = {};
+  rows.forEach(r=>{
+    const kho = r.kho_chiu_trach_nhiem, vg = r.vung_chiu_trach_nhiem;
+    if(!kho || !vg) return;
+    if(!khoVungCount[kho]) khoVungCount[kho] = {};
+    khoVungCount[kho][vg] = (khoVungCount[kho][vg]||0) + 1;
+  });
+  const khoToVung = {};
+  Object.entries(khoVungCount).forEach(([kho,counts])=>{
+    khoToVung[kho] = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+  });
+
+  const byVungFull = groupByFn(rows, r=>r.vung_chiu_trach_nhiem);
+  const byHubFull = groupByFn(rowsRegion, r=>r.kho_chiu_trach_nhiem);
+  delete byHubFull['(Không rõ)'];
+
+  const hubsByVungFull = {};
+  Object.entries(groupByFn(rows, r=>r.kho_chiu_trach_nhiem)).forEach(([kho,v])=>{
+    if(kho === '(Không rõ)') return;
+    const vg = khoToVung[kho] || '(Không rõ)';
+    if(!hubsByVungFull[vg]) hubsByVungFull[vg] = [];
+    hubsByVungFull[vg].push({ name:kho, den_bu:v.den_bu, truy_thu:v.truy_thu });
+  });
+
+  // --- Vùng & kho chịu trách nhiệm: thay thế "Top 15 kho", nhóm theo vùng, màu theo tỷ lệ đã truy thu (4 cấp) ---
+  const topHubEntries = Object.entries(byHubFull).sort((a,b)=>b[1].den_bu - a[1].den_bu).slice(0,15);
+
+  const hubGroupByVung = {};
+  topHubEntries.forEach(([kho,v])=>{
+    const vg = khoToVung[kho] || '(Không rõ)';
+    if(!hubGroupByVung[vg]) hubGroupByVung[vg] = [];
+    hubGroupByVung[vg].push({ name:kho, den_bu:v.den_bu, truy_thu:v.truy_thu });
+  });
+
+  const vungForHubGroup = Object.keys(hubGroupByVung)
+    .map(name => {
+      const total = byVungFull[name] || { den_bu:0, truy_thu:0 };
+      return { name, den_bu: total.den_bu, pct: total.den_bu ? total.truy_thu/total.den_bu*100 : 0 };
+    })
+    .sort((a,b) => b.den_bu - a.den_bu);
+
+  const hubGroupHtml = vungForHubGroup.map((vg, idx) => {
+    const parentCls = colorSuffix(batteryClass(vg.pct));
+    const children = (hubGroupByVung[vg.name] || [])
+      .map(h => ({ name:h.name, den_bu:h.den_bu, pct: h.den_bu ? h.truy_thu/h.den_bu*100 : 0 }))
+      .sort((a,b) => b.den_bu - a.den_bu);
+    const childHtml = children.map(h => `<div class="cluster-child ${colorSuffix(batteryClass(h.pct))}">
+        <span>${h.name}</span>
+        <span>${fmtMoney(h.den_bu)} · ${fmtPct(h.pct)}</span>
+      </div>`).join('');
+    const childId = `hubGroupChildren-${idx}`;
+    return `<div class="cluster-group">
+      <div class="cluster-parent ${parentCls}">
+        <span>${vg.name === '(Không rõ)' ? 'Không rõ vùng' : vg.name}</span>
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span>${fmtMoney(vg.den_bu)} · ${fmtPct(vg.pct)}</span>
+          <button class="warn-toggle" type="button" data-target="${childId}">+</button>
+        </span>
+      </div>
+      <div class="warning-children" id="${childId}" style="display:none;">
+        ${childHtml}
+      </div>
+    </div>`;
   }).join('');
+  document.getElementById('hubGroupList').innerHTML = hubGroupHtml || '<div class="warning-empty">Không có dữ liệu</div>';
 
   const byLyDoAllForVung = groupByFn(rows, r=>r.loai_yeu_cau);
   const lyDoKeysForVung = Object.keys(byLyDoAllForVung).sort((a,b)=>byLyDoAllForVung[b].den_bu - byLyDoAllForVung[a].den_bu).slice(0,8);
@@ -829,34 +919,12 @@ function render(){
       scales:{x:{stacked:true, ticks:{callback:v=>fmtCompact(v)}}, y:{stacked:true}}}
   });
 
+  // --- Cảnh báo: đền bù cao nhưng thu hồi thấp (<20%) ---
   function warnColorClass(pct){
     if(pct < 10) return 'bad';
     if(pct < 20) return 'warn';
     return null;
   }
-
-  const khoVungCount = {};
-  rows.forEach(r=>{
-    const kho = r.kho_chiu_trach_nhiem, vg = r.vung_chiu_trach_nhiem;
-    if(!kho || !vg) return;
-    if(!khoVungCount[kho]) khoVungCount[kho] = {};
-    khoVungCount[kho][vg] = (khoVungCount[kho][vg]||0) + 1;
-  });
-  const khoToVung = {};
-  Object.entries(khoVungCount).forEach(([kho,counts])=>{
-    khoToVung[kho] = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
-  });
-
-  const byVungFull = groupByFn(rows, r=>r.vung_chiu_trach_nhiem);
-  const byHubFull = groupByFn(rows, r=>r.kho_chiu_trach_nhiem);
-  delete byHubFull['(Không rõ)'];
-
-  const hubsByVung = {};
-  Object.entries(byHubFull).forEach(([kho,v])=>{
-    const vg = khoToVung[kho] || '(Không rõ)';
-    if(!hubsByVung[vg]) hubsByVung[vg] = [];
-    hubsByVung[vg].push({ name:kho, den_bu:v.den_bu, truy_thu:v.truy_thu });
-  });
 
   const flaggedVung = Object.entries(byVungFull)
     .filter(([name]) => name && name !== '(Không rõ)')
@@ -866,7 +934,7 @@ function render(){
 
   const warnHtml = flaggedVung.map((vg, idx) => {
     const parentCls = warnColorClass(vg.pct);
-    const children = (hubsByVung[vg.name] || [])
+    const children = (hubsByVungFull[vg.name] || [])
       .map(h => ({ name:h.name, den_bu:h.den_bu, pct: h.den_bu ? h.truy_thu/h.den_bu*100 : 0 }))
       .filter(h => h.den_bu > 0 && warnColorClass(h.pct))
       .sort((a,b) => a.pct - b.pct);
@@ -892,6 +960,115 @@ function render(){
   }).join('');
 
   document.getElementById('warnGroupList').innerHTML = warnHtml || '<div class="warning-empty">Không có vùng nào vượt ngưỡng cảnh báo</div>';
+
+  // --- Đền bù theo sản phẩm: pivot 6 tháng gần nhất (Z-A), MoM, tỷ lệ thu hồi ---
+  const prodRows = getTabFilteredRows();
+  const allMonthsProd = [...new Set(prodRows.map(r=>String(r.ngay_duyet_eform||'').slice(0,7)).filter(Boolean))].sort();
+  const last7 = allMonthsProd.slice(-7);
+  const last6 = last7.slice(-6);
+  const monthsDesc = [...last6].reverse();
+  const currentMonth6 = monthsDesc[0];
+
+  const bySanPhamMonth = {};
+  prodRows.forEach(r=>{
+    const sp = r.san_pham || '(Không rõ)';
+    const m = String(r.ngay_duyet_eform||'').slice(0,7);
+    if(!last7.includes(m)) return;
+    if(!bySanPhamMonth[sp]) bySanPhamMonth[sp] = {};
+    if(!bySanPhamMonth[sp][m]) bySanPhamMonth[sp][m] = { den_bu:0, truy_thu:0 };
+    bySanPhamMonth[sp][m].den_bu += (+r.gia_tri_den_bu||0);
+    bySanPhamMonth[sp][m].truy_thu += (+r.so_tien_da_truy_thu||0);
+  });
+  delete bySanPhamMonth['(Không rõ)'];
+
+  const sanPhamRanked = Object.entries(bySanPhamMonth).map(([sp, byMonth])=>{
+    const total6 = last6.reduce((s,m)=> s + ((byMonth[m]&&byMonth[m].den_bu)||0), 0);
+    return { sp, byMonth, total6 };
+  }).sort((a,b)=>b.total6 - a.total6).slice(0,10);
+
+  function momPct(byMonth, month){
+    const idx = last7.indexOf(month);
+    if(idx <= 0) return null;
+    const prevMonth = last7[idx-1];
+    const cur = (byMonth[month] && byMonth[month].den_bu) || 0;
+    const prev = (byMonth[prevMonth] && byMonth[prevMonth].den_bu) || 0;
+    if(!prev) return null;
+    return (cur-prev)/prev*100;
+  }
+  function momCellHtml(pct){
+    if(pct === null) return '<span class="mom-flat">—</span>';
+    if(pct > 0) return `<span class="mom-up">▲ ${pct.toFixed(2)}%</span>`;
+    if(pct < 0) return `<span class="mom-down">▼ ${Math.abs(pct).toFixed(2)}%</span>`;
+    return '<span class="mom-flat">0.00%</span>';
+  }
+
+  const hubBySanPham = {};
+  prodRows.forEach(r=>{
+    const sp = r.san_pham || '(Không rõ)';
+    const kho = r.kho_chiu_trach_nhiem;
+    if(!kho) return;
+    if(!hubBySanPham[sp]) hubBySanPham[sp] = {};
+    if(!hubBySanPham[sp][kho]) hubBySanPham[sp][kho] = { den_bu:0, truy_thu:0 };
+    hubBySanPham[sp][kho].den_bu += (+r.gia_tri_den_bu||0);
+    hubBySanPham[sp][kho].truy_thu += (+r.so_tien_da_truy_thu||0);
+  });
+
+  const colGroup = n => monthsDesc.map(m=>`<th class="${m===currentMonth6?'current-col':''}">${m}</th>`).join('');
+  document.getElementById('pivotHead').innerHTML = `
+    <tr>
+      <th rowspan="2" class="label-col">Sản phẩm</th>
+      <th colspan="${monthsDesc.length}">Tổng tiền đền bù</th>
+      <th colspan="${monthsDesc.length}">Tăng/giảm MoM</th>
+      <th colspan="${monthsDesc.length}">Tỷ lệ thu hồi</th>
+    </tr>
+    <tr>${colGroup()}${colGroup()}${colGroup()}</tr>
+  `;
+
+  const pivotBodyHtml = sanPhamRanked.map((item, idx) => {
+    const { sp, byMonth } = item;
+    const rowId = `prodChildren-${idx}`;
+    const valCells = monthsDesc.map(m=>{
+      const v = (byMonth[m] && byMonth[m].den_bu) || 0;
+      return `<td class="${m===currentMonth6?'current-col':''}">${fmtMoney(v)}</td>`;
+    }).join('');
+    const momCells = monthsDesc.map(m=>{
+      return `<td class="${m===currentMonth6?'current-col':''}">${momCellHtml(momPct(byMonth,m))}</td>`;
+    }).join('');
+    const rateCells = monthsDesc.map(m=>{
+      const v = byMonth[m] || { den_bu:0, truy_thu:0 };
+      const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
+      return `<td class="${m===currentMonth6?'current-col':''}"><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>`;
+    }).join('');
+
+    const topHubsForSp = Object.entries(hubBySanPham[sp] || {})
+      .sort((a,b)=>b[1].den_bu - a[1].den_bu)
+      .slice(0,5);
+    const detailHtml = topHubsForSp.length
+      ? topHubsForSp.map(([kho,v])=>{
+          const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
+          return `<div class="cluster-child ${colorSuffix(batteryClass(pct))}" style="margin-left:0;display:inline-flex;margin-right:10px;">
+            <span>${kho}</span>&nbsp;<span>${fmtMoney(v.den_bu)} · ${fmtPct(pct)}</span>
+          </div>`;
+        }).join('')
+      : '<span class="warning-empty">Không có dữ liệu kho cho sản phẩm này</span>';
+
+    const totalCols = 1 + monthsDesc.length*3;
+    return `
+      <tr>
+        <td class="label-col"><button class="warn-toggle" type="button" data-target="${rowId}" style="margin-right:8px;">+</button>${sp}</td>
+        ${valCells}${momCells}${rateCells}
+      </tr>
+      <tr class="prod-detail" id="${rowId}" style="display:none;">
+        <td colspan="${totalCols}">
+          <strong style="font-size:13px;color:var(--muted);">Top 5 kho gây đền bù cho "${sp}":</strong><br>
+          ${detailHtml}
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  document.getElementById('pivotBody').innerHTML = pivotBodyHtml ||
+    `<tr><td colspan="${1+monthsDesc.length*3}">Không có dữ liệu sản phẩm trong ${monthsDesc.length} tháng gần nhất</td></tr>`;
 }
 </script>
 </body>
