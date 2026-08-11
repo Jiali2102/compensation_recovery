@@ -67,14 +67,13 @@
   header p{margin:0;color:#FFE4D2;font-size:16px;}
 
   .tabbar{
-    display:flex;align-items:center;gap:6px;flex-wrap:wrap;
-    background:var(--navy-deep);
-    padding:0 clamp(20px,4vw,48px);
+    display:flex;align-items:center;gap:4px;flex-wrap:wrap;
+    margin-left:auto;padding:0;
   }
   .tabbar button{
     font-family:inherit;
     background:transparent;border:none;color:#B9CBE0;
-    padding:13px 20px;font-size:17px;font-weight:700;cursor:pointer;
+    padding:8px 16px;font-size:15px;font-weight:700;cursor:pointer;
     border-bottom:3px solid transparent;
   }
   .tabbar button.active{color:#fff;border-bottom-color:var(--orange);}
@@ -208,7 +207,7 @@
 
   /* Bảng pivot sản phẩm */
   .pivot-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:14px;}
-  .pivot-table th, .pivot-table td{padding:8px 10px;border:1px solid var(--border);text-align:right;white-space:nowrap;line-height:1.6;}
+  .pivot-table th, .pivot-table td{padding:8px 10px;border:1px solid var(--border);text-align:right;white-space:nowrap;line-height:1.6;min-width:92px;}
   .pivot-table thead th{background:#F6F7FA;font-weight:800;text-transform:uppercase;font-size:11px;color:var(--muted);text-align:center;}
   .pivot-table td.label-col, .pivot-table th.label-col{
     position:sticky;left:0;background:#fff;z-index:2;min-width:160px;
@@ -219,6 +218,9 @@
   .pivot-table .current-col{background:#FFF3EA;}
   .pivot-table thead th.current-col{background:#FFE0C2;}
   .pivot-table .prod-detail td{background:#FAFAFA;text-align:left;}
+  .pivot-table-nested{margin-top:8px;font-size:12.5px;width:auto;min-width:0;}
+  .pivot-table-nested th, .pivot-table-nested td{padding:6px 8px;min-width:70px;}
+  .pivot-table-nested td.label-col, .pivot-table-nested th.label-col{position:static;min-width:140px;background:transparent;}
   .mom-up{color:#F44336;font-weight:700;}
   .mom-down{color:#1E88E5;font-weight:700;}
   .mom-flat{color:var(--muted);}
@@ -234,9 +236,9 @@
     header{padding:16px 16px 12px;}
     header h1{font-size:18px;letter-spacing:.1px;}
 
-    .tabbar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding:0 10px;}
+    .tabbar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;width:100%;margin-left:0;padding:6px 0 0;}
     .tabbar::-webkit-scrollbar{display:none;}
-    .tabbar button{padding:11px 14px;font-size:14px;white-space:nowrap;flex:0 0 auto;}
+    .tabbar button{padding:8px 12px;font-size:14px;white-space:nowrap;flex:0 0 auto;}
     .status{font-size:11px;}
 
     .yearbar{flex-wrap:wrap;}
@@ -293,13 +295,12 @@
       <option value="all">Shopee - ALL</option>
     </select>
   </div>
-</div>
-
-<div class="tabbar" id="tabbar">
-  <button class="tab-btn active" data-tab="all">Tổng quan</button>
-  <button class="tab-btn" data-tab="Shopee">Shopee</button>
-  <button class="tab-btn" data-tab="Lazada">Lazada</button>
-  <button class="tab-btn" data-tab="Tiki">Tiki</button>
+  <div class="tabbar" id="tabbar">
+    <button class="tab-btn active" data-tab="all">Tổng quan</button>
+    <button class="tab-btn" data-tab="Shopee">Shopee</button>
+    <button class="tab-btn" data-tab="Lazada">Lazada</button>
+    <button class="tab-btn" data-tab="Tiki">Tiki</button>
+  </div>
 </div>
 </div>
 
@@ -976,15 +977,40 @@ function render(){
     return '<span class="mom-flat">0.00%</span>';
   }
 
+  // Chênh lệch điểm % tỷ lệ thu hồi so với tháng liền trước (không phải % tăng trưởng như doanh thu)
+  function ratePctDiff(byMonth, month){
+    const idx = last7.indexOf(month);
+    if(idx <= 0) return null;
+    const prevMonth = last7[idx-1];
+    const curV = byMonth[month] || { den_bu:0, truy_thu:0 };
+    const prevV = byMonth[prevMonth] || { den_bu:0, truy_thu:0 };
+    if(!curV.den_bu || !prevV.den_bu) return null;
+    const curPct = curV.truy_thu/curV.den_bu*100;
+    const prevPct = prevV.truy_thu/prevV.den_bu*100;
+    return curPct - prevPct;
+  }
+  function momCellHtmlPP(diff){
+    if(diff === null) return '<span class="mom-flat">—</span>';
+    if(diff > 0) return `<span class="mom-up">▲ ${diff.toFixed(2)} điểm</span>`;
+    if(diff < 0) return `<span class="mom-down">▼ ${Math.abs(diff).toFixed(2)} điểm</span>`;
+    return '<span class="mom-flat">0.00 điểm</span>';
+  }
+
   const hubBySanPham = {};
   prodRows.forEach(r=>{
     const sp = r.san_pham || '(Không rõ)';
     const kho = r.kho_chiu_trach_nhiem;
+    const m = String(r.ngay_duyet_eform||'').slice(0,7);
     if(!kho) return;
     if(!hubBySanPham[sp]) hubBySanPham[sp] = {};
-    if(!hubBySanPham[sp][kho]) hubBySanPham[sp][kho] = { den_bu:0, truy_thu:0 };
+    if(!hubBySanPham[sp][kho]) hubBySanPham[sp][kho] = { den_bu:0, truy_thu:0, byMonth:{} };
     hubBySanPham[sp][kho].den_bu += (+r.gia_tri_den_bu||0);
     hubBySanPham[sp][kho].truy_thu += (+r.so_tien_da_truy_thu||0);
+    if(last7.includes(m)){
+      if(!hubBySanPham[sp][kho].byMonth[m]) hubBySanPham[sp][kho].byMonth[m] = { den_bu:0, truy_thu:0 };
+      hubBySanPham[sp][kho].byMonth[m].den_bu += (+r.gia_tri_den_bu||0);
+      hubBySanPham[sp][kho].byMonth[m].truy_thu += (+r.so_tien_da_truy_thu||0);
+    }
   });
 
   const colGroup = () => monthsDesc.map(m=>`<th class="${m===currentMonth6?'current-col':''}">${m}</th>`).join('');
@@ -1007,19 +1033,25 @@ function render(){
     const rateCells = monthsDesc.map(m=>{
       const v = byMonth[m] || { den_bu:0, truy_thu:0 };
       const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
-      return `<td class="${m===currentMonth6?'current-col':''}"><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>`;
+      return `<td class="${m===currentMonth6?'current-col':''}"><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span><br>${momCellHtmlPP(ratePctDiff(byMonth,m))}</td>`;
     }).join('');
 
     const topHubsForSp = Object.entries(hubBySanPham[sp] || {})
       .sort((a,b)=>b[1].den_bu - a[1].den_bu)
       .slice(0,5);
     const detailHtml = topHubsForSp.length
-      ? topHubsForSp.map(([kho,v])=>{
-          const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
-          return `<div class="cluster-child ${colorSuffix(batteryClass(pct))}" style="margin-left:0;display:inline-flex;margin-right:10px;">
-            <span>${kho}</span>&nbsp;<span>${fmtMoney(v.den_bu)} · ${fmtPct(pct)}</span>
-          </div>`;
-        }).join('')
+      ? `<table class="pivot-table pivot-table-nested">
+          <thead><tr><th class="label-col">Kho</th>${monthsDesc.map(m=>`<th class="${m===currentMonth6?'current-col':''}">${m}</th>`).join('')}</tr></thead>
+          <tbody>
+            ${topHubsForSp.map(([kho,v])=>{
+              const khoCells = monthsDesc.map(m=>{
+                const mv = v.byMonth[m] || { den_bu:0, truy_thu:0 };
+                return `<td class="${m===currentMonth6?'current-col':''}">${fmtMoney(mv.den_bu)}<br>${momCellHtml(momPct(v.byMonth,m))}</td>`;
+              }).join('');
+              return `<tr><td class="label-col">${kho}</td>${khoCells}</tr>`;
+            }).join('')}
+          </tbody>
+        </table>`
       : '<span class="warning-empty">Không có dữ liệu kho cho sản phẩm này</span>';
 
     const totalCols = 1 + monthsDesc.length*2;
@@ -1030,7 +1062,7 @@ function render(){
       </tr>
       <tr class="prod-detail" id="${rowId}" style="display:none;">
         <td colspan="${totalCols}">
-          <strong style="font-size:13px;color:var(--muted);">Top 5 kho gây đền bù cho "${translateSanPham(sp)}":</strong><br>
+          <strong style="font-size:13px;color:var(--muted);">Top 5 kho gây đền bù cho "${translateSanPham(sp)}":</strong>
           ${detailHtml}
         </td>
       </tr>
