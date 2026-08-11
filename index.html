@@ -62,6 +62,7 @@
     color:#fff;
     padding:22px clamp(20px,4vw,48px) 18px;
   }
+  .header-top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;}
   header h1{margin:0;font-size:27px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 3px rgba(0,0,0,0.15);}
   header p{margin:0;color:#FFE4D2;font-size:16px;}
 
@@ -78,7 +79,7 @@
   }
   .tabbar button.active{color:#fff;border-bottom-color:var(--orange);}
   .tabbar button:hover{color:#fff;}
-  .status{margin-left:auto;font-size:16px;color:#8FA6C2;font-style:italic;white-space:nowrap;padding-right:4px;}
+  .status{font-size:14px;color:#FFE4D2;font-style:italic;white-space:nowrap;}
 
   .granularity{display:flex;gap:4px;margin-left:auto;}
   .granularity button{
@@ -207,7 +208,7 @@
 
   /* Bảng pivot sản phẩm */
   .pivot-table{width:max-content;min-width:100%;border-collapse:collapse;font-size:14px;}
-  .pivot-table th, .pivot-table td{padding:8px 10px;border:1px solid var(--border);text-align:right;white-space:nowrap;}
+  .pivot-table th, .pivot-table td{padding:8px 10px;border:1px solid var(--border);text-align:right;white-space:nowrap;line-height:1.6;}
   .pivot-table thead th{background:#F6F7FA;font-weight:800;text-transform:uppercase;font-size:11px;color:var(--muted);text-align:center;}
   .pivot-table td.label-col, .pivot-table th.label-col{
     position:sticky;left:0;background:#fff;z-index:2;min-width:160px;
@@ -236,7 +237,7 @@
     .tabbar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding:0 10px;}
     .tabbar::-webkit-scrollbar{display:none;}
     .tabbar button{padding:11px 14px;font-size:14px;white-space:nowrap;flex:0 0 auto;}
-    .status{display:none;}
+    .status{font-size:11px;}
 
     .yearbar{flex-wrap:wrap;}
     .yearbar select{width:100%;}
@@ -271,7 +272,10 @@
 <div class="top-line"></div>
 
 <header>
-  <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
+  <div class="header-top">
+    <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
+    <div class="status" id="statusText">Đang tải dữ liệu...</div>
+  </div>
 </header>
 
 <div class="yearbar" id="yearbar">
@@ -296,7 +300,6 @@
   <button class="tab-btn" data-tab="Shopee">Shopee</button>
   <button class="tab-btn" data-tab="Lazada">Lazada</button>
   <button class="tab-btn" data-tab="Tiki">Tiki</button>
-  <div class="status" id="statusText">Đang tải dữ liệu...</div>
 </div>
 </div>
 
@@ -561,7 +564,7 @@ function buildAppSkeleton(){
         <section>
           <h2>Vùng &amp; kho chịu trách nhiệm</h2>
           <div class="underline"></div>
-          <p class="desc">4 vùng có tỷ lệ thu hồi thấp nhất · kèm các kho nằm trong Top 15 kho đền bù cao nhất<br>🔴 &lt;20% · 🟡 &lt;30% · 🟢 &lt;50% · 🟣 ≥50% (theo tỷ lệ đã truy thu)</p>
+          <p class="desc">Top 15 kho theo tổng giá trị đền bù, nhóm theo vùng<br>🔴 &lt;20% · 🟡 &lt;30% · 🟢 &lt;50% · 🟣 ≥50% (theo tỷ lệ đã truy thu)</p>
           <div id="hubGroupList"></div>
         </section>
       </div>
@@ -844,13 +847,12 @@ function render(){
   const byHubFull = groupByFn(rowsRegion, r=>r.kho_chiu_trach_nhiem);
   delete byHubFull['(Không rõ)'];
 
-  // --- Vùng & kho chịu trách nhiệm: luôn hiện 4 vùng có tỷ lệ thu hồi thấp nhất ---
-  // Mỗi vùng hiện kèm: các kho nằm trong Top 15 kho đền bù cao nhất (nếu có) + 1 dòng gộp "các kho còn lại"
+  // --- Vùng & kho chịu trách nhiệm: Top 15 kho theo tổng giá trị đền bù, nhóm theo vùng ---
+  // Chỉ hiện những vùng có ít nhất 1 kho lọt Top 15, sắp theo tổng giá trị đền bù của vùng giảm dần
+  // Mỗi vùng hiện kèm: các kho nằm trong Top 15 (nếu có) + 1 dòng gộp "các kho còn lại"
   const TOP_N_HUB = 15;
-  const VUNG_SHOW_COUNT = 4;
 
   const topHubEntries = Object.entries(byHubFull).sort((a,b)=>b[1].den_bu - a[1].den_bu).slice(0, TOP_N_HUB);
-  const topHubSet = new Set(topHubEntries.map(([name])=>name));
 
   const hubGroupByVung = {};
   topHubEntries.forEach(([kho,v])=>{
@@ -859,12 +861,12 @@ function render(){
     hubGroupByVung[vg].push({ name:kho, den_bu:v.den_bu, truy_thu:v.truy_thu });
   });
 
-  const vungForHubGroup = Object.entries(byVungFull)
-    .filter(([name]) => name && name !== '(Không rõ)')
-    .map(([name,v]) => ({ name, den_bu:v.den_bu, truy_thu:v.truy_thu, pct: v.den_bu ? v.truy_thu/v.den_bu*100 : 0 }))
-    .filter(x => x.den_bu > 0)
-    .sort((a,b) => a.pct - b.pct)
-    .slice(0, VUNG_SHOW_COUNT);
+  const vungForHubGroup = Object.keys(hubGroupByVung)
+    .map(name => {
+      const total = byVungFull[name] || { den_bu:0, truy_thu:0 };
+      return { name, den_bu: total.den_bu, truy_thu: total.truy_thu, pct: total.den_bu ? total.truy_thu/total.den_bu*100 : 0 };
+    })
+    .sort((a,b) => b.den_bu - a.den_bu);
 
   const hubGroupHtml = vungForHubGroup.map((vg, idx) => {
     const parentCls = colorSuffix(batteryClass(vg.pct));
@@ -985,26 +987,22 @@ function render(){
     hubBySanPham[sp][kho].truy_thu += (+r.so_tien_da_truy_thu||0);
   });
 
-  const colGroup = n => monthsDesc.map(m=>`<th class="${m===currentMonth6?'current-col':''}">${m}</th>`).join('');
+  const colGroup = () => monthsDesc.map(m=>`<th class="${m===currentMonth6?'current-col':''}">${m}</th>`).join('');
   document.getElementById('pivotHead').innerHTML = `
     <tr>
       <th rowspan="2" class="label-col">Sản phẩm</th>
-      <th colspan="${monthsDesc.length}">Tổng tiền đền bù</th>
-      <th colspan="${monthsDesc.length}">Tăng/giảm MoM</th>
+      <th colspan="${monthsDesc.length}">Tổng tiền đền bù (tăng/giảm MoM)</th>
       <th colspan="${monthsDesc.length}">Tỷ lệ thu hồi</th>
     </tr>
-    <tr>${colGroup()}${colGroup()}${colGroup()}</tr>
+    <tr>${colGroup()}${colGroup()}</tr>
   `;
 
   const pivotBodyHtml = sanPhamRanked.map((item, idx) => {
     const { sp, byMonth } = item;
     const rowId = `prodChildren-${idx}`;
-    const valCells = monthsDesc.map(m=>{
+    const valMomCells = monthsDesc.map(m=>{
       const v = (byMonth[m] && byMonth[m].den_bu) || 0;
-      return `<td class="${m===currentMonth6?'current-col':''}">${fmtMoney(v)}</td>`;
-    }).join('');
-    const momCells = monthsDesc.map(m=>{
-      return `<td class="${m===currentMonth6?'current-col':''}">${momCellHtml(momPct(byMonth,m))}</td>`;
+      return `<td class="${m===currentMonth6?'current-col':''}">${fmtMoney(v)}<br>${momCellHtml(momPct(byMonth,m))}</td>`;
     }).join('');
     const rateCells = monthsDesc.map(m=>{
       const v = byMonth[m] || { den_bu:0, truy_thu:0 };
@@ -1024,11 +1022,11 @@ function render(){
         }).join('')
       : '<span class="warning-empty">Không có dữ liệu kho cho sản phẩm này</span>';
 
-    const totalCols = 1 + monthsDesc.length*3;
+    const totalCols = 1 + monthsDesc.length*2;
     return `
       <tr>
         <td class="label-col"><button class="warn-toggle" type="button" data-target="${rowId}" style="margin-right:8px;">+</button>${translateSanPham(sp)}</td>
-        ${valCells}${momCells}${rateCells}
+        ${valMomCells}${rateCells}
       </tr>
       <tr class="prod-detail" id="${rowId}" style="display:none;">
         <td colspan="${totalCols}">
