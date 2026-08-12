@@ -1,1912 +1,803 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Tra cứu</title>
-  <meta name="description" content="Tra cứu đền bù, đơn quá hạn, miễn cước" />
-  <link rel="icon" type="image/png"
-    href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAJm0lEQVR42u2bf4xUVxXHP/e9mdn5tTv7A9giCMvSGKytJVSp0XQbSqxKg7WmrQ1tUStqQg1NpBrS1J+Jtv5jUxtrovUHmig/KgVLa0toYrEoRLpSuqYIxBLK0gKBhd3Z3dmdeff6x7lv35thdpn9wULLvOTmvXn3vvfu+d5zzznfc+8osx5DHsgDhZLi2bMOFQPGAIAygFGgDcYolDagFRiD0aBCz8jztq1f5wV1ck/q8YJ7F/pwuMyPKgBVAKoAVAGoAlAFoArA5XtELshblbIFKdizUhI+Sghpb5rQM46tp/jZoSMUhl6SADiudLCgoWCKwufScFpkN0PykzegPan3Qm1L9TXiyMPau4QAUEoE6fOkk+kGiCSLBTYBF6DgQdc7EIvL78EBmDpjiFcMC0B/D3R1y3XSAa0vAQCUIwJp4OP3wYLl0PwhVCxZpLmAjJrjov65Fh5fCUvvgoEcvLgOteaP0PoREcpxArIVfkl/DxzYjdnyU2jfAWl33JowPgAcBwY8iNailq2DDyyp7LnXNgtgjbMgPwh9wGvPwbw2mRZKlX+uJgULb0UtvBXz1CrY+ARkIuAVLoIXcBzIa4jVwpe3ivBeHoxnDVVJ0Zb7njyEObgD4kCqAZL1EAP2bIL8gB1sbe1DmeIVQGvUip/BLcvhTAHc6CQD4AsfTcOXtsLsNtB56Yhy7QiWFmv59m6Gnhy4QHqKgFADpvMQHNhp7YkJeZKS4kbkrD3UN34DbZ+Bs3m5PykAqJDwX3zOCl8A5zyjoFwBoX2DTDwFpBoh2SC9yAO7N5QYjfO5WQf1rY1w7ULoKYwJBGdMwkeSqHv/IsJ7g3Lf6OGLLohQxzrgcDvEXAEgUQ+JjJ3fwL+fhYFeeZ/2Rn6nb1RjSdRDW2D2XMgWhgzoxAOgFHgGUs2or74MLYvkvhuzAcwIxYnIee+fxVUqR7SgYQZkrpBeRKNw7Bjs32Gfcc//Xn861F+BevTvMHMuDBqpm1gvoMRH48CND0IkAUd3iWClGlvu2ljD9up6MXi6ADEHuo5CLgtRGxSh4KVfQu1U8MRlVtQ3XYBYAnX7aswvVo0qmRipePQLGqa2QqYFOv9lo75ygpZc+wYt1wtdb4nx8y36o23SxrUARQwc2Qed+22QoyrXZe2JUZ11JfxvP9Q4FQFRuQZoIDEVPnj72PyNMbD1+9DbC471CloHgCklGejGmXDDPWOPTV74OXj7g+h0QgMhUwj8eaWj42tAX5fECKXu1ACeDghTIW8N4AgBUdnvaJn7owyKRuk3lJ2XYwCgdD4rK3gJKRxqO2oAfDapLqAbHPdhitU9nYF0vVz7HR+lAO+ehIhPfZX9bB64fxOsfBoGL15uZvI1wHEkarv7EZh3E1y1GO76DnQPgqveywAY4QrdGhYvh0+tEf+tC3DbD1GfWArdZswx/aUPgONC9hRcdR3qnl+JpVc22jMGvr4WZjYL53/3AWDExelhitEwkBX+/7UNgUfw84DaE1b4wO8hErX2Qts4QReHl8bGD1pPSH5w/Prm+1/ljuwZ3Ris2g5Nc8rU2W5cfTM0zpZpMRzH95ngJZEUNZZ46Dx0tkOu2xIRP9mpxNdPuxIa58Dh3XD8oNTNmg+10+Q93SfgrQ55X22TaEjnGxIUOVGY3mpJl4Luk3DyqFxPb4VE3bg0ITLukT+6G55egXmnA+VvqLAarAzQD7TMhdV74MklcPI0ZgDU6g1w3R3yro5tmJ/cKwPb0grffh6+eQ2m4EEvqK/8AO74rrR9ZR3m8VXCH9o+i1qzxQ7EZNoAn7n1d8GfboPODoi6NsuTgtqkLWmoT8ocz+cgXgdxR4obK84z+PeTGSgMWiOpIAbmhSehtyv4tqOEQZ7qHHfwFBnz6DsROLYHTr0Nqajw8Dt/B603gS7YAVFirCIxiKVEMKMDeqxt3O7lbTa4lIIbiEfg6HF4+Q+wZJW09adYrOYi2wBv0Ia1eaibBvPvDnIEpcdAtpieJuqCtrFEiAu4IS1DgIkpzPNPoJasCmi4b2MqSaFdOC8QTgA4MNAD8Qwc2QUn3wTXrhnEa2FuW9DWBd54CfrsIsd/d0DEZpyGyFbI6iccOHAI/vM3SNQGCybKudheQBd31E9jPXM/Zt9eVMoaweYpsOZ1q9ZATMEzj8AAQUIk7kLWCyiysQa1qQmuXgTPrsdsfQz14ZuDqTIB7nD8bpCwOtqe1b8fZpwAnQXVC8lGK7yfzAQaMuDUyLO5fujrk+uwBjhAPof69ErMq3+F9m2YwRwklNgcZ/wa4EyoBvgLIF9Yi3qoA2bMh5xNghqLlEI6v/wp+NF++PF++Nz3pJ1DIJTPHHO90DIfblwGXTnYt10WSE1oCphJB8CEVnCsGjoRqKmVEUw0SHFrZLR9VQ0HLKkmWRNINsiSlwlxhnA7xwEvj7rlAbEFpiQqvPihsIFIBPrPwOsbId4gkaFyIXtCjJu/KOIPq6NkHviCeoUghzfkRaxwblQyxzPmwUc/Cf/YBnVRed73GKPJUE0IAH64O/NjkE5DdxaiZ+G3dxZvfY1aHRvsDTK3GNkLEE55DfbLfgInpGGe/e0VhtYa1dLVmJ0v2vXBidko4YwZAGOgbgYs2wQt18sqT6YW6urknKkVlxVLw7Wfh5q0XSCJwvtmCT/w9bllATQ2StwfS8hoRmMyHeqmQiItTa9ZDNcvAu1CPDYhgZCqaLO0caHfg9kL4b7dgcqFRzF73EZ26lyyVDddrruOyIJHuilYEvOPnhPQl4V4GlL1cLoTCgVIZSAzLfjWYD90HZfP1CSlLsRNzMM3QPsrkKps70BkzAbQN0LGWvl08/kzw42zz73nX9dOC9ghwLQ559JgP2psbrmYdFiVgBAOXU359kOC6nPvDQEZMpJKDd+26DtlcgOjjA4jFY+6C5w5DPl+ITelH1OMYIlD6XDDuS6x+CUB22S4tmUA0VpC7zNvB8tvE2YEjRa6e/oE7HrMZn9czt0EUUFRF6LYleKd6+HNg0KrK1wgrXwKaC0LjtsfxuT7UAtWQHJKZSo3Vo9lKmyUy8LuzZhfPwhRNaoMkRrTX2b6gXQcFW8UJSr3lxlT8peZ0Da5cn+nGfrLjBnlX2YU0J+FU2dlk4U7OsDHFgglXcnw5I4FmyBNMUhFe/1KN0r6xRumbrh9giOBkHKDzVUXPBL001URFWxu9M/+KDrlAPDb2N9OKQC23hklAEO70CaVC/hb19QwZ8qUkeqGqX/vLI1dmkcVgCoAVQCqAFQBqAJQBeDyPf4P7BtqF9VGJCIAAAAASUVORK5CYII=">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    :root {
-      --orange: #FE5F00;
-      --orange-dark: #E0500A;
-      --blue: #0E4174;
-      --blue-soft: #EAF1F8;
-      --bg: #F6F5F2;
-      --surface: #FFFFFF;
-      --border: #E7E4DE;
-      --text: #1A1A1A;
-      --muted: #6B7280;
-      --ok: #16A34A;
-      --ok-bg: #EAF7EE;
-      --warn: #D97706;
-      --warn-bg: #FDF3E3;
-      --danger: #DC2626;
-      --danger-bg: #FCEAEA;
-      --pending: #6B7280;
-      --pending-bg: #EEF0F2;
-      --radius: 14px;
-      --mono: 'Cambria', 'Times New Roman', serif;
-      --sans: 'Cambria', Georgia, 'Times New Roman', serif;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      overflow: hidden;
-    }
-
-    body {
-      font-family: var(--sans);
-      font-size: 23px;
-
-      background:
-        radial-gradient(1200px 400px at 100% -10%, rgba(254, 95, 0, 0.06), transparent 60%),
-        var(--bg);
-      color: var(--text);
-    }
-
-    .wrap {
-      max-width: 100%;
-      margin: 0 auto;
-      padding: 28px 32px;
-      height: 100vh;
-      box-sizing: border-box;
-    }
-
-
-    .layout {
-      display: grid;
-      grid-template-columns: 340px 1fr 260px;
-      gap: 24px;
-      align-items: stretch;
-      height: 100%;
-    }
-
-    .left-col {
-      height: 100%;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      padding-right: 4px;
-    }
-
-
-    .left-col,
-    .results-table-wrap,
-    .notfound-body {
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-
-    .left-col::-webkit-scrollbar,
-    .results-table-wrap::-webkit-scrollbar,
-    .notfound-body::-webkit-scrollbar {
-      width: 7px;
-      height: 7px;
-    }
-
-    .left-col::-webkit-scrollbar-track,
-    .results-table-wrap::-webkit-scrollbar-track,
-    .notfound-body::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .left-col::-webkit-scrollbar-thumb,
-    .results-table-wrap::-webkit-scrollbar-thumb,
-    .notfound-body::-webkit-scrollbar-thumb {
-      background: var(--border);
-      border-radius: 8px;
-    }
-
-    .left-col::-webkit-scrollbar-thumb:hover,
-    .results-table-wrap::-webkit-scrollbar-thumb:hover,
-    .notfound-body::-webkit-scrollbar-thumb:hover {
-      background: #c9c5bd;
-    }
-
-    .right-col {
-      height: 100%;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    #results-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    .notfound-col {
-      height: 100%;
-      min-width: 0;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    #notfound-area {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      min-height: 0;
-    }
-
-    @media (max-width:1300px) {
-      .layout {
-        grid-template-columns: 360px 1fr;
-      }
-
-      .notfound-col {
-        grid-column: 1 / -1;
-      }
-    }
-
-    @media (max-width:1000px) {
-
-      html,
-      body {
-        overflow: auto;
-      }
-
-      .wrap {
-        height: auto;
-      }
-
-      .layout {
-        grid-template-columns: 1fr;
-        height: auto;
-      }
-
-      .left-col,
-      .right-col,
-      .notfound-col {
-        height: auto;
-        overflow: visible;
-      }
-    }
-
-    header.top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .logout-btn {
-      background: transparent;
-      border: 1.5px solid var(--border);
-      color: var(--muted);
-      font-family: var(--sans);
-      font-weight: 600;
-      font-size: 12.5px;
-      border-radius: 8px;
-      padding: 6px 10px;
-      cursor: pointer;
-      transition: all .15s;
-      white-space: nowrap;
-    }
-
-    .logout-btn:hover {
-      color: var(--danger);
-      border-color: var(--danger);
-      background: var(--danger-bg);
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .brand .mark {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: linear-gradient(135deg, var(--orange), var(--orange-dark));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 800;
-      font-size: 15px;
-      flex-shrink: 0;
-    }
-
-    .brand .name {
-      font-weight: 800;
-      font-size: 17px;
-      letter-spacing: -0.01em;
-    }
-
-    .brand .sub {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 1px;
-    }
-
-    .tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 4px;
-      margin-bottom: 8px;
-    }
-
-    .tab {
-      flex: 1 1 45%;
-      text-align: center;
-      padding: 7px 6px;
-      border-radius: 9px;
-      font-weight: 600;
-      font-size: 15px;
-      color: var(--muted);
-      cursor: pointer;
-      user-select: none;
-      transition: all .15s ease;
-      border: 1px solid transparent;
-    }
-
-    .tab.active {
-      background: var(--orange);
-      color: white;
-      box-shadow: 0 2px 8px rgba(254, 95, 0, 0.28);
-    }
-
-    .tab:not(.active):hover {
-      background: #F2F1ED;
-      color: var(--text);
-    }
-
-    .tab .cnt {
-      display: block;
-      font-size: 13.5px;
-      font-weight: 500;
-      opacity: .85;
-      margin-top: 1px;
-    }
-
-    .panel {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 14px;
-      margin-bottom: 0;
-    }
-
-    .panel h2 {
-      margin: 0 0 3px;
-      font-size: 17px;
-      font-weight: 700;
-    }
-
-    .panel p.hint {
-      margin: 0 0 8px;
-      font-size: 14px;
-      color: var(--muted);
-      line-height: 1.4;
-    }
-
-    label.field-label {
-      display: block;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 4px;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 150px;
-      resize: vertical;
-      font-family: var(--mono);
-      font-size: 15px;
-      line-height: 1.5;
-      padding: 9px 12px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      background: #FBFAF8;
-      color: var(--text);
-      outline: none;
-      transition: border-color .15s;
-    }
-
-    textarea:focus {
-      border-color: var(--orange);
-      background: white;
-    }
-
-    .row {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-top: 12px;
-    }
-
-    .row .col {
-      flex: 1;
-      min-width: 150px;
-    }
-
-    input[type=date] {
-      width: 100%;
-      font-family: var(--sans);
-      font-size: 16px;
-      padding: 10px 12px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      background: #FBFAF8;
-      color: var(--text);
-      outline: none;
-    }
-
-    input[type=date]:focus {
-      border-color: var(--orange);
-      background: white;
-    }
-
-    .actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    button {
-      font-family: var(--sans);
-      font-weight: 700;
-      font-size: 15px;
-      border: none;
-      border-radius: 10px;
-      padding: 8px 16px;
-      cursor: pointer;
-      transition: transform .1s, opacity .15s;
-    }
-
-    button:active {
-      transform: scale(0.97);
-    }
-
-    .btn-primary {
-      background: var(--orange);
-      color: white;
-    }
-
-    .btn-primary:hover {
-      background: var(--orange-dark);
-    }
-
-    .btn-primary:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
-
-    .btn-ghost {
-      background: transparent;
-      color: var(--muted);
-      border: 1.5px solid var(--border);
-    }
-
-    .btn-ghost:hover {
-      color: var(--text);
-      border-color: #c9c5bd;
-    }
-
-    .btn-ghost:disabled {
-      opacity: .4;
-      cursor: not-allowed;
-    }
-
-    .count-tag {
-      margin-left: auto;
-      font-size: 15px;
-      color: var(--muted);
-      font-family: var(--mono);
-    }
-
-    .divider-or {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin: 8px 0;
-      color: var(--muted);
-      font-size: 12.5px;
-      text-transform: uppercase;
-      letter-spacing: .04em;
-    }
-
-    .divider-or::before,
-    .divider-or::after {
-      content: "";
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-
-    .file-upload-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    .file-upload-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: 700;
-      font-size: 14px;
-      background: var(--blue-soft);
-      color: var(--blue);
-      padding: 7px 12px;
-      border-radius: 10px;
-      cursor: pointer;
-      border: 1.5px dashed var(--blue);
-      transition: background .15s;
-    }
-
-    .file-upload-btn:hover {
-      background: #dfeafb;
-    }
-
-    .file-upload-hint {
-      font-size: 12.5px;
-      color: var(--muted);
-    }
-
-    .toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-      flex: none;
-    }
-
-    .result-search-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-
-    .result-search-input {
-      flex: 1;
-      min-width: 220px;
-      font-family: var(--sans);
-      font-size: 16px;
-      padding: 9px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      background: var(--surface);
-      color: var(--text);
-      outline: none;
-      transition: border-color .15s;
-    }
-
-    .result-search-input:focus {
-      border-color: var(--orange);
-    }
-
-    .result-search-count {
-      font-size: 15px;
-      color: var(--muted);
-      font-family: var(--mono);
-      white-space: nowrap;
-    }
-
-    .stats {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .stat-badge {
-      font-size: 15px;
-      font-weight: 700;
-      padding: 6px 12px;
-      border-radius: 100px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-
-    .stat-badge.total {
-      color: var(--blue);
-      border-color: #cfe0f0;
-      background: var(--blue-soft);
-    }
-
-    .stat-badge.found {
-      color: var(--ok);
-      border-color: #bfe6cc;
-      background: var(--ok-bg);
-    }
-
-    .stat-badge.notfound {
-      color: var(--danger);
-      border-color: #f3c9c9;
-      background: var(--danger-bg);
-    }
-
-    .toolbar-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .pagesize-label {
-      font-size: 15.5px;
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    select#page-size-select {
-      font-family: var(--sans);
-      font-size: 16px;
-      font-weight: 600;
-      padding: 7px 10px;
-      border-radius: 8px;
-      border: 1.5px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      cursor: pointer;
-    }
-
-    .pagination {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin-top: 14px;
-      flex-wrap: wrap;
-    }
-
-    .pagination .page-indicator {
-      font-size: 15.5px;
-      color: var(--muted);
-      font-family: var(--mono);
-    }
-
-    .pagination button {
-      padding: 8px 16px;
-      font-size: 16px;
-    }
-
-    .page-jump-select {
-      font-family: var(--sans);
-      font-size: 16px;
-      font-weight: 600;
-      padding: 7px 10px;
-      border-radius: 8px;
-      border: 1.5px solid var(--border);
-      background: var(--surface);
-      color: var(--text);
-      cursor: pointer;
-    }
-
-    .results-table-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow-x: auto;
-      overflow-y: auto;
-      flex: 1;
-      min-height: 0;
-    }
-
-    table.result-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 16px;
-      min-width: 520px;
-    }
-
-    table.result-table thead th {
-      position: sticky;
-      top: 0;
-      background: var(--blue);
-      color: white;
-      text-align: left;
-      padding: 11px 14px;
-      font-weight: 600;
-      font-size: 15px;
-      text-transform: uppercase;
-      letter-spacing: .02em;
-      white-space: nowrap;
-    }
-
-    table.result-table thead th:first-child {
-      border-top-left-radius: var(--radius);
-    }
-
-    table.result-table thead th:last-child {
-      border-top-right-radius: var(--radius);
-    }
-
-    table.result-table tbody td {
-      padding: 11px 14px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: top;
-      color: var(--text);
-    }
-
-    table.result-table tbody tr:last-child td {
-      border-bottom: none;
-    }
-
-    table.result-table tbody tr:nth-child(even) {
-      background: #FBFAF8;
-    }
-
-    table.result-table tbody tr:hover {
-      background: var(--blue-soft);
-    }
-
-    table.result-table td.code-cell {
-      font-family: var(--mono);
-      font-weight: 700;
-      white-space: nowrap;
-    }
-
-    table.result-table td.amount-cell {
-      font-family: var(--mono);
-      color: var(--blue);
-      font-weight: 600;
-      white-space: nowrap;
-      text-align: right;
-    }
-
-    table.result-table td.date-cell {
-      font-family: var(--mono);
-      white-space: nowrap;
-      text-align: right;
-    }
-
-    table.result-table th.align-right {
-      text-align: right;
-    }
-
-    table.result-table td.align-right {
-      text-align: right;
-    }
-
-    table.result-table td.badge-cell .badge {
-      display: inline-block;
-    }
-
-    .ticket-link {
-      color: var(--orange);
-      font-weight: 700;
-      text-decoration: none;
-      white-space: nowrap;
-    }
-
-    .ticket-link:hover {
-      text-decoration: underline;
-    }
-
-    .dup-badge {
-      font-size: 16px;
-      cursor: help;
-    }
-
-    .badge {
-      font-size: 14px;
-      font-weight: 700;
-      padding: 3px 9px;
-      border-radius: 100px;
-      background: var(--pending-bg);
-      color: var(--pending);
-      white-space: nowrap;
-    }
-
-    .badge.ok {
-      background: var(--ok-bg);
-      color: var(--ok);
-    }
-
-    .badge.warn {
-      background: var(--warn-bg);
-      color: var(--warn);
-    }
-
-    .badge.danger {
-      background: var(--danger-bg);
-      color: var(--danger);
-    }
-
-    .empty,
-    .state {
-      text-align: center;
-      padding: 44px 20px;
-      color: var(--muted);
-      font-size: 16.5px;
-      background: var(--surface);
-      border: 1px dashed var(--border);
-      border-radius: var(--radius);
-    }
-
-    .empty .big {
-      font-size: 31px;
-      margin-bottom: 8px;
-    }
-
-    .state.error {
-      color: var(--danger);
-      border-color: #f3c9c9;
-      background: var(--danger-bg);
-    }
-
-    .state.loading {
-      color: var(--muted);
-    }
-
-    .spinner {
-      width: 18px;
-      height: 18px;
-      border: 2.5px solid var(--border);
-      border-top-color: var(--orange);
-      border-radius: 50%;
-      display: inline-block;
-      animation: spin .7s linear infinite;
-      vertical-align: -4px;
-      margin-right: 8px;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .notfound-list {
-      margin-top: 10px;
-      font-size: 15px;
-      color: var(--muted);
-      font-family: var(--mono);
-      word-break: break-all;
-    }
-
-    .notfound-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
-
-    .notfound-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border);
-      font-weight: 700;
-      font-size: 16px;
-      color: var(--danger);
-      background: var(--danger-bg);
-      flex: none;
-    }
-
-    .btn-copy-all {
-      font-family: var(--sans);
-      font-weight: 700;
-      font-size: 14.5px;
-      border: 1.5px solid var(--danger);
-      border-radius: 8px;
-      background: white;
-      color: var(--danger);
-      padding: 5px 10px;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: opacity .15s;
-    }
-
-    .btn-copy-all:hover {
-      opacity: .8;
-    }
-
-    .btn-copy-all:disabled {
-      opacity: .7;
-      cursor: default;
-    }
-
-    .notfound-body {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      padding: 6px 14px;
-    }
-
-    .notfound-item {
-      font-family: var(--mono);
-      font-size: 15.5px;
-      color: var(--text);
-      padding: 6px 0;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .notfound-item:last-child {
-      border-bottom: none;
-    }
-
-    .notfound-empty {
-      padding: 30px 16px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 15.5px;
-      background: var(--surface);
-      border: 1px dashed var(--border);
-      border-radius: var(--radius);
-    }
-
-    @media (max-width:600px) {
-      .tab {
-        font-size: 15px;
-        padding: 9px 4px;
-      }
-
-      .fields {
-        grid-template-columns: 1fr 1fr;
-      }
-    }
-
-    #auth-gate {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background:
-        radial-gradient(1200px 400px at 100% -10%, rgba(254, 95, 0, 0.08), transparent 60%),
-        var(--bg);
-      padding: 20px;
-    }
-
-    .auth-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 32px 28px;
-      width: 100%;
-      max-width: 340px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
-    }
-
-    .auth-mark {
-      width: 44px;
-      height: 44px;
-      margin: 0 auto 14px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--orange), var(--orange-dark));
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-weight: 800;
-      font-size: 18px;
-    }
-
-    .auth-card h2 {
-      margin: 0 0 4px;
-      font-size: 19px;
-      font-weight: 800;
-    }
-
-    .auth-card p {
-      margin: 0 0 18px;
-      font-size: 14px;
-      color: var(--muted);
-    }
-
-    #auth-password,
-    #auth-user-id {
-      width: 100%;
-      font-family: var(--sans);
-      font-size: 16px;
-      padding: 10px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      background: #FBFAF8;
-      color: var(--text);
-      outline: none;
-      margin-bottom: 12px;
-      text-align: center;
-      transition: border-color .15s;
-    }
-
-    #auth-password:focus,
-    #auth-user-id:focus {
-      border-color: var(--orange);
-      background: white;
-    }
-
-    .auth-submit {
-      width: 100%;
-    }
-
-    .auth-error {
-      margin: 10px 0 0 !important;
-      color: var(--danger) !important;
-      font-size: 13px !important;
-      min-height: 16px;
-    }
-
-    .auth-link-btn {
-      background: none;
-      border: none;
-      color: var(--blue);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      padding: 10px 0 0;
-      width: 100%;
-      text-decoration: underline;
-    }
-
-    .get-userid-btn {
-      display: block;
-      width: 100%;
-      box-sizing: border-box;
-      text-align: center;
-      text-decoration: none;
-      margin-top: 4px;
-      font-family: var(--sans);
-      font-weight: 700;
-      font-size: 15px;
-      border-radius: 10px;
-      padding: 8px 16px;
-      cursor: pointer;
-      transition: transform .1s, opacity .15s;
-    }
-
-    .get-userid-btn:active {
-      transform: scale(0.97);
-    }
-
-    .auth-link-btn:hover {
-      opacity: .8;
-    }
-
-    .request-status {
-      margin: 10px 0 0;
-      font-size: 13px;
-      min-height: 16px;
-      color: var(--muted);
-    }
-
-    .request-status.ok {
-      color: var(--ok);
-    }
-
-    .request-status.error {
-      color: var(--danger);
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</title>
+<link rel="icon" type="image/png" href="logo.png">
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<style>
+  :root{
+    --orange:#FE5F00;
+    --orange-dark:#E04F00;
+    --orange-light:#FF9E64;
+    --orange-tint:#FFE4D2;
+    --navy:#0E4174;
+    --navy-deep:#0A2F54;
+    --bg:#F6F7FA;
+    --card:#FFFFFF;
+    --ink:#383838;
+    --muted:#6B6B6B;
+    --border:#E4E8F0;
+    --good:#4CAF50;
+    --warn:#FFC107;
+    --bad:#F44336;
+  }
+  *{box-sizing:border-box;}
+  html,body{width:100%;}
+  body{
+    margin:0;
+    font-family:"Cambria","Times New Roman",Georgia,serif;
+    background:var(--bg);
+    color:var(--ink);
+    line-height:1.6;
+  }
+  .top-line{height:3px;background:var(--orange);width:100%;}
+  .bottom-bar{height:6px;background:var(--orange);width:100%;}
+  #stickyTop{position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,0.08);}
+
+  header{
+    background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);
+    color:#fff;
+    padding:22px clamp(20px,4vw,48px) 18px;
+  }
+  header h1{margin:0;font-size:27px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 3px rgba(0,0,0,0.15);}
+  header p{margin:0;color:#FFE4D2;font-size:16px;}
+
+  .tabbar{
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+    background:var(--navy-deep);
+    padding:0 clamp(20px,4vw,48px);
+  }
+  .tabbar button{
+    font-family:inherit;
+    background:transparent;border:none;color:#B9CBE0;
+    padding:13px 20px;font-size:17px;font-weight:700;cursor:pointer;
+    border-bottom:3px solid transparent;
+  }
+  .tabbar button.active{color:#fff;border-bottom-color:var(--orange);}
+  .tabbar button:hover{color:#fff;}
+  .status{margin-left:auto;font-size:16px;color:#8FA6C2;font-style:italic;white-space:nowrap;padding-right:4px;}
+
+  .filterbar{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:14px clamp(20px,4vw,48px);
+    background:#fff;border-bottom:1px solid var(--border);
+  }
+  .filterbar label{font-size:16px;color:var(--muted);font-weight:700;}
+  .filterbar select{
+    font-family:inherit;font-size:16px;padding:6px 10px;border:1px solid var(--border);
+    border-radius:6px;background:#fff;color:var(--ink);
+  }
+  .granularity{display:flex;gap:4px;margin-left:auto;}
+  .granularity button{
+    font-family:inherit;font-size:15.5px;padding:6px 14px;border:1px solid var(--border);
+    background:#fff;color:var(--muted);border-radius:6px;cursor:pointer;font-weight:700;
+  }
+  .granularity button.active{background:var(--orange);border-color:var(--orange);color:#fff;}
+
+  main{width:100%;max-width:1800px;margin:0 auto;padding:24px clamp(20px,4vw,48px) 60px;}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:26px;}
+  .kpi{
+    container-type:inline-size;
+    background:var(--card);border:1px solid var(--border);border-left:4px solid var(--navy);
+    border-radius:8px;padding:20px 18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);
+  }
+  .kpi.accent{border-left-color:var(--orange);}
+  .kpi .label{font-size:clamp(14px,5.5cqw,16px);color:var(--muted);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+  .kpi .value{font-size:clamp(23px,11.5cqw,43px);font-weight:800;margin-top:6px;color:var(--navy);line-height:1.15;}
+  .kpi.accent .value{color:var(--orange);}
+  .kpi .sub{font-size:clamp(14px,4.5cqw,16px);color:var(--muted);margin-top:4px;}
+
+  section{
+    background:var(--card);border:1px solid var(--border);border-radius:8px;
+    padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  }
+  section h2{font-size:19px;font-weight:800;margin:0 0 4px;color:var(--orange);text-transform:uppercase;letter-spacing:.5px;}
+  section .underline{width:70px;height:3px;background:var(--orange);margin:6px 0 12px;border-radius:2px;}
+  section .desc{font-size:15.5px;color:var(--muted);margin:0 0 14px;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .grid2 > section, .grid2 > div{min-width:0;}
+  @media(max-width:900px){.grid2{grid-template-columns:1fr;}}
+  canvas{max-height:360px;max-width:100%;}
+  .chart-box{position:relative;height:340px;width:100%;}
+  .chart-box-tuyen{position:relative;height:400px;width:100%;}
+
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:16.5px;table-layout:fixed;}
+  th,td{padding:10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;overflow:hidden;}
+  th:first-child,td:first-child{text-align:left;width:36%;text-overflow:ellipsis;}
+  th{color:var(--muted);font-weight:700;font-size:14px;text-transform:uppercase;}
+
+  .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:14px;font-weight:700;}
+  .pill.good{background:#E8F5E9;color:#2E7D32;}
+  .pill.warn{background:#FFF8E1;color:#B98900;}
+  .pill.bad{background:#FDECEA;color:#C62828;}
+
+  /* Deep dive: biểu đồ sạc pin tỷ lệ truy thu theo lý do */
+  .battery-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);}
+  .battery-row:last-child{border-bottom:none;}
+  .battery-label{flex:0 0 200px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .battery{position:relative;flex:1;height:22px;border:2px solid #A9A9A9;border-radius:4px;background:#F2F2F2;}
+  .battery::after{
+    content:'';position:absolute;top:5px;right:-6px;width:4px;height:10px;
+    background:#A9A9A9;border-radius:0 2px 2px 0;
+  }
+  .battery-fill{height:100%;border-radius:1px;transition:width .3s;}
+  .fill-red{background:#F44336;}
+  .fill-yellow{background:#FFC107;}
+  .fill-green{background:#4CAF50;}
+  .fill-purple{background:#8E44AD;}
+  .battery-pct{flex:0 0 60px;text-align:right;font-size:16px;font-weight:700;}
+  .rate-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px;vertical-align:middle;}
+  .warning-item{
+    background:#FDECEA;border-left:4px solid #C62828;padding:10px 14px;border-radius:6px;
+    margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:15px;
+  }
+  .warning-item .wname{font-weight:700;}
+  .warning-item .wval{white-space:nowrap;color:#C62828;font-weight:700;}
+  .warning-empty{color:var(--muted);font-size:14px;padding:8px 0;}
+  .warning-group{margin-bottom:14px;}
+  .warning-parent{
+    display:flex;justify-content:space-between;align-items:center;gap:10px;
+    padding:10px 14px;border-radius:6px;font-weight:800;margin-bottom:6px;font-size:15.5px;
+  }
+  .warning-parent.bad{background:#FDECEA;border-left:4px solid #C62828;color:#C62828;}
+  .warning-parent.warn{background:#FFF8E1;border-left:4px solid #B98900;color:#B98900;}
+  .warning-child{
+    margin-left:24px;padding:8px 12px;border-radius:6px;margin-bottom:4px;
+    display:flex;justify-content:space-between;gap:10px;font-size:14px;
+  }
+  .warning-child.bad{background:#FDECEA;border-left:3px solid #F44336;}
+  .warning-child.warn{background:#FFF8E1;border-left:3px solid #FFC107;}
+  .warning-child-empty{margin-left:24px;color:var(--muted);font-size:13px;padding:4px 0;}
+  .warn-toggle{
+    background:transparent;border:1.5px solid currentColor;color:inherit;
+    width:24px;height:24px;border-radius:50%;font-size:15px;font-weight:800;
+    cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;
+    flex:0 0 auto;font-family:inherit;
+  }
+  .warn-toggle:hover{opacity:0.65;}
+  #batterySubFilter{font-family:inherit;font-size:15.5px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);}
+
+  .loading{padding:60px;text-align:center;color:var(--muted);}
+  footer{text-align:center;font-size:14.5px;color:var(--muted);padding:20px;}
+
+  @media(max-width:640px){
+    header{padding:16px 16px 12px;}
+    header h1{font-size:18px;letter-spacing:.1px;}
+
+    .tabbar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;padding:0 10px;}
+    .tabbar::-webkit-scrollbar{display:none;}
+    .tabbar button{padding:11px 14px;font-size:14px;white-space:nowrap;flex:0 0 auto;}
+    .status{display:none;}
+
+    .filterbar{flex-direction:column;align-items:flex-start;gap:8px;padding:12px 16px;}
+    .filterbar label{margin-left:0 !important;font-size:13px;}
+    .filterbar select{width:100%;font-size:14px;}
+    .filterbar > span{display:none;}
+
+    main{padding:16px 12px 40px;}
+    .kpis{grid-template-columns:repeat(2,1fr);gap:10px;}
+    .kpi{padding:14px 12px;}
+    .kpi .value{font-size:clamp(18px,9.5cqw,26px);}
+
+    section{padding:16px;}
+    section h2{font-size:14.5px;}
+    section .desc{font-size:12.5px;}
+
+    .granularity{margin-left:0;width:100%;flex-wrap:wrap;}
+    .granularity button{font-size:12.5px;padding:5px 10px;}
+
+    .battery-row{gap:8px;}
+    .battery-label{flex-basis:100px;font-size:12.5px;}
+    .battery-pct{flex-basis:44px;font-size:12.5px;}
+
+    table{font-size:13px;}
+    th,td{padding:7px 6px;}
+
+    canvas{max-height:260px;}
+  }
+</style>
 </head>
-
 <body>
 
-  <!-- ============ GATE MẬT KHẨU ============ -->
-  <div id="auth-gate">
-    <form id="auth-form" class="auth-card">
-      <div class="auth-mark">KA</div>
-      <h2>Tra cứu KAC</h2>
-      <p>Nhập User ID và mật khẩu để tiếp tục</p>
-      <input type="text" id="auth-user-id" placeholder="Telegram User ID" autocomplete="off" autofocus />
-      <input type="password" id="auth-password" placeholder="Mật khẩu" autocomplete="off" />
-      <button type="submit" class="btn-primary auth-submit">Vào trang</button>
-      <button type="button" id="btn-show-request" class="auth-link-btn">Chưa có mật khẩu? Yêu cầu cấp</button>
-      <p id="auth-error" class="auth-error"></p>
-    </form>
+<div id="stickyTop">
+<div class="top-line"></div>
 
-    <form id="request-form" class="auth-card" style="display:none;">
-      <div class="auth-mark">KA</div>
-      <h2>Yêu cầu cấp mật khẩu</h2>
-      <p>Chưa biết Telegram User ID của mình? Lấy ID trước, sau đó nhập vào bên dưới để gửi yêu cầu.</p>
-      <a href="https://t.me/userinfobot" target="_blank" rel="noopener" class="btn-ghost get-userid-btn">🔎 Lấy User ID
-        qua @userinfobot</a>
-      <div class="divider-or">sau đó</div>
-      <input type="text" id="request-user-id" placeholder="Nhập Telegram User ID" autocomplete="off" />
-      <button type="submit" class="btn-primary auth-submit">Gửi yêu cầu</button>
-      <button type="button" id="btn-back-to-login" class="auth-link-btn">← Quay lại đăng nhập</button>
-      <p id="request-status" class="request-status"></p>
-    </form>
-  </div>
+<header>
+  <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
+</header>
 
-  <div id="app-root" style="display:none;">
-    <div class="wrap">
+<div class="tabbar" id="tabbar">
+  <button class="tab-btn active" data-tab="all">Tổng quan</button>
+  <button class="tab-btn" data-tab="Shopee">Shopee</button>
+  <button class="tab-btn" data-tab="Lazada">Lazada</button>
+  <button class="tab-btn" data-tab="Tiki">Tiki</button>
+  <div class="status" id="statusText">Đang tải dữ liệu...</div>
+</div>
 
-      <div class="layout">
-        <div class="left-col">
-          <header class="top">
-            <div class="brand">
-              <div class="mark">KA</div>
-              <div>
-                <div class="name">Tra cứu</div>
-                <div class="sub">Đền bù · Quá hạn · Miễn cước</div>
-              </div>
-            </div>
-            <button type="button" id="btn-logout" class="logout-btn" title="Đăng xuất">⏻ Đăng xuất</button>
-          </header>
+<div class="filterbar">
+  <label>Kỳ xem:</label>
+  <select id="monthSelect"><option value="all">Tất cả</option></select>
+  <label style="margin-left:16px;">Vùng chịu trách nhiệm:</label>
+  <select id="regionSelect"><option value="all">Tất cả vùng</option></select>
+  <span style="font-size:12px;color:var(--muted);margin-left:6px;">(áp dụng cho 3 chart: Loại lý do đền bù theo nhóm hàng, Top 15 kho, Tỷ lệ đã truy thu theo lý do)</span>
+</div>
+</div>
 
-          <div class="tabs" id="tabs"></div>
+<main id="app">
+  <div class="loading">Đang tải dữ liệu từ nguồn (có thể mất vài giây)...</div>
+</main>
 
-          <div class="panel">
-            <h2 id="panel-title"></h2>
-            <p class="hint" id="panel-hint"></p>
+<footer>© 2026 [KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</footer>
+<div class="bottom-bar"></div>
 
-            <label class="field-label">Danh sách mã đơn</label>
-            <textarea id="codes-input"
-              placeholder="Dán mã đơn vào đây — mỗi dòng, cách nhau bằng dấu phẩy hoặc khoảng trắng đều được.&#10;Mã trùng sẽ tự động loại bỏ."></textarea>
+<script>
+const CSV_URL = "/api/data";
 
-            <div class="divider-or">hoặc</div>
-            <div class="file-upload-row">
-              <label class="file-upload-btn" for="file-input">📎 Tải file Excel / CSV</label>
-              <input type="file" id="file-input" accept=".xlsx,.xls,.csv" multiple style="display:none" />
-              <span class="file-upload-hint" id="file-upload-status">Chọn nhiều file, tự dò cột mã đơn trong mọi
-                sheet</span>
-            </div>
+const fmtNum = n => n.toLocaleString('vi-VN');
+const fmtPct = n => n.toFixed(2) + '%';
 
-            <div class="row" id="date-row" style="display:none;">
-              <div class="col">
-                <label class="field-label">Từ ngày</label>
-                <input type="date" id="date-from" />
-              </div>
-              <div class="col">
-                <label class="field-label">Đến ngày</label>
-                <input type="date" id="date-to" />
-              </div>
-            </div>
+function fmtMoney(n){
+  const abs = Math.abs(n);
+  if(abs >= 1e9) return (n/1e9).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' tỷ';
+  if(abs >= 1e6) return (n/1e6).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' triệu';
+  if(abs >= 1e3) return (n/1e3).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' nghìn';
+  return fmtNum(n) + 'đ';
+}
+const fmtVND = fmtMoney;
+const fmtCompact = fmtMoney;
 
-            <div class="actions">
-              <button class="btn-primary" id="btn-search">Tra cứu</button>
-              <button class="btn-ghost" id="btn-clear">Xóa</button>
-              <span class="count-tag" id="code-count"></span>
-            </div>
-          </div>
+function pillClass(pct){ if(pct<10) return 'bad'; if(pct<20) return 'warn'; return 'good'; }
+const RATE_COLOR = { 'fill-red':'#F44336', 'fill-yellow':'#FFC107', 'fill-green':'#4CAF50', 'fill-purple':'#8E44AD' };
+
+function batteryClass(pct){
+  if(pct < 20) return 'fill-red';
+  if(pct < 30) return 'fill-yellow';
+  if(pct < 50) return 'fill-green';
+  return 'fill-purple';
+}
+
+function fmtDateTime(d){
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+const CLIENT_NAMES = {
+  '18692': 'SPE Express',
+  '3892833': 'SPE Bulky',
+  '224845': 'SPE Reverse',
+  '2781603': 'SPX Express',
+  '9794': 'Lazada',
+  '2590595': 'Tiki',
+  '1367': 'Tiki',
+};
+function clientLabel(id){ return CLIENT_NAMES[String(id)] || ('KH ' + id); }
+
+const TAB_GROUPS = {
+  Shopee: ['18692','3892833','224845','2781603'],
+  Lazada: ['9794'],
+  Tiki: ['2590595','1367'],
+};
+
+Chart.defaults.font.family = "Cambria, 'Times New Roman', Georgia, serif";
+Chart.defaults.color = '#383838';
+if(typeof ChartDataLabels !== 'undefined'){ Chart.register(ChartDataLabels); }
+
+const outsideLabelsPlugin = {
+  id: 'outsideLabels',
+  afterDraw(chart){
+    if(chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
+    const meta = chart.getDatasetMeta(0);
+    if(!meta || !meta.data || !meta.data.length) return;
+    const dataset = chart.data.datasets[0];
+    const total = dataset.data.reduce((a,b)=>a+b,0);
+    if(!total) return;
+    const {ctx} = chart;
+    ctx.save();
+    ctx.font = "700 12px Cambria, 'Times New Roman', Georgia, serif";
+    ctx.fillStyle = '#383838';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#B0B0B0';
+    meta.data.forEach((arc, i)=>{
+      const value = dataset.data[i];
+      if(!value) return;
+      const pct = value/total*100;
+      const angle = (arc.startAngle + arc.endAngle) / 2;
+      const outerR = arc.outerRadius;
+      const cx = arc.x, cy = arc.y;
+      const x1 = cx + Math.cos(angle) * outerR;
+      const y1 = cy + Math.sin(angle) * outerR;
+      const x2 = cx + Math.cos(angle) * (outerR + 14);
+      const y2 = cy + Math.sin(angle) * (outerR + 14);
+      const isRight = Math.cos(angle) >= 0;
+      const x3 = x2 + (isRight ? 16 : -16);
+      const y3 = y2;
+
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.lineTo(x3, y3);
+      ctx.stroke();
+
+      ctx.textAlign = isRight ? 'left' : 'right';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(pct.toFixed(1) + '%', x3 + (isRight ? 4 : -4), y3);
+    });
+    ctx.restore();
+  }
+};
+Chart.register(outsideLabelsPlugin);
+
+let ALL_ROWS = [];
+let currentTab = 'all';
+let currentMonth = 'all';
+let currentGranularity = 'month';
+let currentSubClient = 'all';
+let currentRegion = 'all';
+let charts = {};
+
+fetch(CSV_URL)
+  .then(r => {
+    const lastModifiedHeader = r.headers.get('X-Data-Last-Modified');
+    if(lastModifiedHeader){
+      const d = new Date(lastModifiedHeader);
+      if(!isNaN(d)){
+        document.getElementById('statusText').textContent = 'Dữ liệu cập nhật lúc ' + fmtDateTime(d);
+      }
+    }
+    return r.text();
+  })
+  .then(csvText => {
+    const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true, dynamicTyping:true});
+    ALL_ROWS = parsed.data.filter(r => r.ma_dh);
+    buildShell();
+  })
+  .catch(err => {
+    document.getElementById('app').innerHTML =
+      '<div class="loading">Không tải được dữ liệu.<br><small>'+err+'</small></div>';
+    console.error(err);
+  });
+
+function buildShell(){
+  document.getElementById('app').innerHTML = `
+    <div class="kpis" id="kpis"></div>
+    <div class="grid2">
+      <section>
+        <h2>Đền bù theo nhóm hàng</h2>
+        <div class="underline"></div>
+        <p class="desc">Giá trị đền bù vs. đã truy thu theo từng client (đã gộp client trùng nhóm)</p>
+        <canvas id="chartClient"></canvas>
+      </section>
+      <section>
+        <h2>Đền bù theo tuyến</h2>
+        <div class="underline"></div>
+        <p class="desc">Phân bổ giá trị đền bù theo loại tuyến vận chuyển<br><em>Ghi chú: Từ 2026-05-01 theo tuyến sáp nhập</em></p>
+        <div class="chart-box-tuyen"><canvas id="chartTuyen"></canvas></div>
+      </section>
+    </div>
+
+    <section>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+        <div>
+          <h2>Xu hướng theo kỳ</h2>
+          <div class="underline"></div>
+          <p class="desc" style="margin-bottom:0;">Giá trị đền bù và truy thu theo kỳ đã chọn</p>
         </div>
-
-        <div class="right-col">
-          <div id="results-area"></div>
-        </div>
-
-        <div class="notfound-col">
-          <div id="notfound-area"></div>
+        <div class="granularity" id="granularity">
+          <button data-g="week">Tuần</button>
+          <button data-g="month" class="active">Tháng</button>
+          <button data-g="quarter">Quý</button>
+          <button data-g="year">Năm</button>
         </div>
       </div>
+      <canvas id="chartMonth" style="margin-top:14px;"></canvas>
+    </section>
 
+    <div class="grid2">
+      <section>
+        <h2>Loại lý do đền bù theo nhóm hàng</h2>
+        <div class="underline"></div>
+        <p class="desc">Top lý do gây đền bù nhiều nhất</p>
+        <canvas id="chartLyDo"></canvas>
+        <h2 style="margin-top:22px;">Tỷ lệ đã truy thu theo lý do</h2>
+        <div class="underline"></div>
+        <div id="batterySubFilterWrap" style="display:none;margin-bottom:10px;">
+          <label style="font-size:12.5px;color:var(--muted);font-weight:700;margin-right:8px;">Xem theo:</label>
+          <select id="batterySubFilter">
+            <option value="all">Tất cả Shopee</option>
+          </select>
+        </div>
+        <div id="batteryList"></div>
+      </section>
+      <section>
+        <h2>Top 15 kho chịu trách nhiệm</h2>
+        <div class="underline"></div>
+        <p class="desc">Xếp theo tổng giá trị đền bù</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Kho</th><th>Số đơn</th><th>Đền bù</th><th>Tỷ lệ thu hồi</th></tr></thead>
+            <tbody id="hubTableBody"></tbody>
+          </table>
+        </div>
+      </section>
     </div>
-  </div>
 
-  <script>function initApp() {
-      const CONFIG = {
-        WEBHOOK_URL: WEBHOOK_BASE_URL,
-        TABS: {
-          denbu: {
-            label: "Đền bù",
-            hint: "Nhập mã đơn để tra cứu các lần đền bù — mỗi dòng là 1 lần đền bù riêng biệt.",
-            useDateRange: false,
-            knownFields: ["so_tien", "loai_yeu_cau", "ngay_duyet"],
-            amountFields: ["so_tien"],
-            dateFields: ["ngay_duyet"],
-            statusField: null
-          },
-          quahan: {
-            label: "Quá hạn",
-            hint: "Nhập mã đơn để tra cứu lý do và ngày chốt quá hạn.",
-            useDateRange: false,
-            knownFields: ["reason", "overdue_date"],
-            amountFields: [],
-            dateFields: ["overdue_date"],
-            statusField: null
-          },
-          miencuoc: {
-            label: "Miễn cước",
-            hint: "Nhập mã đơn để tra cứu lý do và số tiền miễn cước.",
-            useDateRange: false,
-            knownFields: ["ly_do", "so_tien_mien", "ngay_duyet", "trang_thai"],
-            amountFields: ["so_tien_mien"],
-            dateFields: ["ngay_duyet"],
-            statusField: "trang_thai",
-            notReady: true
-          },
-          ticket: {
-            label: "Ticket",
-            hint: "Nhập mã đơn để tra cứu ticket liên quan — 1 đơn có thể có nhiều ticket.",
-            useDateRange: false,
-            knownFields: ["client_name", "reason_type", "first_article_from"],
-            amountFields: [],
-            dateFields: [],
-            statusField: null,
-            linkedFieldMap: {
-              reason_type: "ticket_url"
-            },
-            exportExtraFields: ["ticket_url"]
-          },
-          fake_attempt: {
-            label: "Fake Attempt",
-            hint: "Nhập mã đơn để tra cứu tình trạng fake attempt (tháng phát sinh, loại client).",
-            useDateRange: false,
-            knownFields: ["month", "client_type"],
-            amountFields: [],
-            dateFields: ["month"],
-            statusField: null
-          }
-        },
-        FIELD_LABELS: {
-          ma_don: "Mã đơn",
-          order_code: "Mã đơn",
-          so_tien: "Giá trị đền bù",
-          loai_yeu_cau: "Loại yêu cầu",
-          ngay_duyet: "Ngày duyệt",
-          reason: "Lý do",
-          overdue_date: "Ngày chốt quá hạn",
-          ly_do: "Lý do",
-          so_tien_mien: "Số tiền miễn",
-          trang_thai: "Trạng thái",
-          client_name: "Client / Team",
-          reason_type: "Lý do",
-          ticket_url: "Link ticket",
-          first_article_from: "Người tạo",
-          month: "Tháng phát sinh",
-          client_type: "Loại client"
-        }
-      };
-      let activeTab = "denbu";
-      let lastResults = [];
-      let lastFullItems = [];
-      let lastRequestedCodes = [];
-      let searchQuery = "";
-      let currentPage = 1;
-      let pageSize = 20;
-      const el = sel => document.querySelector(sel);
-      const tabsEl = el("#tabs");
-      const codesInput = el("#codes-input");
-      const dateRow = el("#date-row");
-      const dateFrom = el("#date-from");
-      const dateTo = el("#date-to");
-      const resultsArea = el("#results-area");
-      const codeCount = el("#code-count");
-      const fileInput = el("#file-input");
-      const fileUploadStatus = el("#file-upload-status");
-      function parseCodes(raw) {
-        return [...new Set(raw.split(/[\s,;]+/).map(s => s.trim()).filter(Boolean))];
-      }
-      function renderTabs() {
-        tabsEl.innerHTML = "";
-        Object.entries(CONFIG.TABS).forEach(([key, cfg]) => {
-          const d = document.createElement("div");
-          d.className = "tab" + (key === activeTab ? " active" : "");
-          d.innerHTML = cfg.label;
-          d.onclick = () => switchTab(key);
-          tabsEl.appendChild(d);
-        });
-      }
-      const tabState = {};
-      function saveCurrentTabState() {
-        tabState[activeTab] = {
-          lastFullItems,
-          lastRequestedCodes,
-          searchQuery,
-          currentPage,
-          pageSize,
-          codesInputValue: codesInput.value
-        };
-      }
-      function switchTab(key) {
-        saveCurrentTabState();
-        activeTab = key;
-        const cfg = CONFIG.TABS[key];
-        renderTabs();
-        el("#panel-title").textContent = "Tra cứu " + cfg.label.toLowerCase();
-        el("#panel-hint").textContent = cfg.hint;
-        dateRow.style.display = cfg.useDateRange ? "flex" : "none";
-        const saved = tabState[key];
-        if (saved) {
-          lastFullItems = saved.lastFullItems;
-          lastRequestedCodes = saved.lastRequestedCodes;
-          searchQuery = saved.searchQuery;
-          currentPage = saved.currentPage;
-          pageSize = saved.pageSize;
-          codesInput.value = saved.codesInputValue;
-          updateCount();
-          if (lastFullItems.length || lastRequestedCodes.length) {
-            rerenderTable();
-          } else {
-            resultsArea.innerHTML = "";
-            el("#notfound-area").innerHTML = "";
-          }
-        } else {
-          codesInput.value = "";
-          resultsArea.innerHTML = "";
-          el("#notfound-area").innerHTML = "";
-          currentPage = 1;
-          updateCount();
-        }
-      }
-      function updateCount() {
-        const n = parseCodes(codesInput.value).length;
-        codeCount.textContent = n > 0 ? n + " mã đơn" : "";
-      }
-      codesInput.addEventListener("input", updateCount);
-      function statusClass(value) {
-        if (!value) return "";
-        const v = value.toString().toLowerCase();
-        if (/(hoàn thành|đã duyệt|đã đền|thành công|ok|approved)/.test(v)) return "ok";
-        if (/(đang xử lý|chờ|pending|xem xét)/.test(v)) return "warn";
-        if (/(từ chối|hủy|reject|không đạt)/.test(v)) return "danger";
-        return "";
-      }
-      function formatAmount(v) {
-        const n = Number(String(v).replace(/[^\d.-]/g, ""));
-        if (isNaN(n)) return v;
-        return n.toLocaleString("vi-VN") + " đ";
-      }
-      function getCode(item) {
-        return item.ma_don || item.order_code || item.code || "";
-      }
-      function numberToEmoji(n) {
-        if (n === 10) return "🔟";
-        return String(n).split("").map(d => d + "️⃣").join("");
-      }
-      function annotateAndSortItems(items) {
-        const sorted = [...items].sort((a, b) => getCode(a).localeCompare(getCode(b), "vi", {
-          numeric: true,
-          sensitivity: "base"
-        }));
-        const totalCounts = {};
-        sorted.forEach(it => {
-          const c = getCode(it).toString().toUpperCase();
-          totalCounts[c] = (totalCounts[c] || 0) + 1;
-        });
-        const runningIdx = {};
-        return sorted.map(it => {
-          const c = getCode(it).toString().toUpperCase();
-          runningIdx[c] = (runningIdx[c] || 0) + 1;
-          return {
-            ...it,
-            _occIndex: runningIdx[c],
-            _occTotal: totalCounts[c]
-          };
-        });
-      }
-      function normalizeKey(str) {
-        return String(str || "").replace(/^\uFEFF/, "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/g, "d").replace(/[\s_]+/g, "");
-      }
-      const ALLOWED_COLUMN_NAMES = ["order_code", "ordercode", "order code", "madonhang", "ma_don_hang", "madh", "ma dh", "ma don hang", "ma don", "lmtn", "spx_shipment_id", "spx shipment id", "tracking no", "tracking_no", "trackingno"].map(normalizeKey);
-      fileInput.addEventListener("change", handleFileUpload);
-      async function handleFileUpload(e) {
-        const files = Array.from(e.target.files || []);
-        if (!files.length) return;
-        fileUploadStatus.textContent = "Đang đọc file...";
-        let allCodes = [];
-        let filesRead = 0;
-        let sheetsRead = 0;
-        let sheetsWithoutMatch = 0;
-        try {
-          for (const file of files) {
-            const buf = await file.arrayBuffer();
-            const wb = XLSX.read(buf, {
-              type: "array"
-            });
-            filesRead++;
-            for (const sheetName of wb.SheetNames) {
-              const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {
-                defval: ""
-              });
-              if (!rows.length) continue;
-              sheetsRead++;
-              const firstRowKeys = Object.keys(rows[0]);
-              const matchedKey = firstRowKeys.find(k => ALLOWED_COLUMN_NAMES.includes(normalizeKey(k)));
-              let codes;
-              if (matchedKey) {
-                codes = rows.map(r => String(r[matchedKey] || "").trim().toUpperCase()).filter(Boolean);
-              } else {
-                sheetsWithoutMatch++;
-                codes = rows.map(r => String(Object.values(r)[0] || "").trim().toUpperCase()).filter(Boolean);
-              }
-              allCodes.push(...codes);
-            }
-          }
-          allCodes = [...new Set(allCodes)];
-          codesInput.value = allCodes.join("\n");
-          updateCount();
-          const warn = sheetsWithoutMatch > 0 ? ` (⚠️ ${sheetsWithoutMatch} sheet không thấy cột quen thuộc, đã lấy cột đầu tiên)` : "";
-          fileUploadStatus.textContent = `✅ Đã đọc ${allCodes.length} mã đơn từ ${filesRead} file / ${sheetsRead} sheet.${warn}`;
-        } catch (err) {
-          fileUploadStatus.textContent = "❌ Lỗi đọc file: " + err.message;
-        } finally {
-          e.target.value = "";
-        }
-      }
-      function buildExportRows(cfg) {
-        const fields = [...cfg.knownFields, ...cfg.exportExtraFields || []];
-        const header = ["Mã đơn", ...fields.map(f => CONFIG.FIELD_LABELS[f] || f), "Số lần phát sinh"];
-        const splitFields = cfg.splitFieldsForExport || [];
-        const rows = [];
-        lastResults.forEach(item => {
-          const code = getCode(item);
-          if (splitFields.length) {
-            const splitValuesMap = {};
-            let maxCount = 1;
-            splitFields.forEach(f => {
-              const vals = String(item[f] ?? "").split(",").map(s => s.trim()).filter(Boolean);
-              splitValuesMap[f] = vals;
-              if (vals.length > maxCount) maxCount = vals.length;
-            });
-            if (maxCount > 1) {
-              for (let i = 0; i < maxCount; i++) {
-                const row = [code];
-                fields.forEach(f => {
-                  if (splitFields.includes(f)) {
-                    const vals = splitValuesMap[f];
-                    row.push(vals[i] ?? vals[vals.length - 1] ?? "");
-                  } else {
-                    row.push(item[f] ?? "");
-                  }
-                });
-                row.push(maxCount);
-                rows.push(row);
-              }
-              return;
-            }
-          }
-          rows.push([code, ...fields.map(f => item[f] ?? ""), item._occTotal || 1]);
-        });
-        rows.sort((a, b) => String(a[0]).localeCompare(String(b[0]), "vi", { numeric: true, sensitivity: "base" }));
-        return [header, ...rows];
-      }
-      function downloadBlob(blob, filename) {
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(a.href), 2e3);
-      }
-      function exportFileBaseName() {
-        const epoch = (Date.now() / 1000).toFixed(3);
-        return `output_${activeTab}_${epoch}`;
-      }
-      function exportCsv() {
-        if (!lastResults.length) return;
-        const cfg = CONFIG.TABS[activeTab];
-        const aoa = buildExportRows(cfg);
-        const ws = XLSX.utils.aoa_to_sheet(aoa);
-        const csv = XLSX.utils.sheet_to_csv(ws);
-        const blob = new Blob(["\ufeff" + csv], {
-          type: "text/csv;charset=utf-8;"
-        });
-        downloadBlob(blob, `${exportFileBaseName()}.csv`);
-      }
-      function exportXlsx() {
-        if (!lastResults.length) return;
-        const cfg = CONFIG.TABS[activeTab];
-        const aoa = buildExportRows(cfg);
-        const ws = XLSX.utils.aoa_to_sheet(aoa);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "KetQua");
-        XLSX.writeFile(wb, `${exportFileBaseName()}.xlsx`);
-      }
-      function renderNotFound(codes) {
-        const area = el("#notfound-area");
-        if (!codes || !codes.length) {
-          area.innerHTML = "";
-          return;
-        }
-        const itemsHtml = codes.map(c => `<div class="notfound-item">${c}</div>`).join("");
-        area.innerHTML = `\n    <div class="notfound-card">\n      <div class="notfound-header">\n        <span>Không tìm thấy (${codes.length})</span>\n        <button class="btn-copy-all" id="btn-copy-notfound" type="button">📋 Copy all</button>\n      </div>\n      <div class="notfound-body">${itemsHtml}</div>\n    </div>`;
-        el("#btn-copy-notfound").onclick = () => copyNotFoundCodes(codes);
-      }
-      async function copyNotFoundCodes(codes) {
-        const text = codes.join("\n");
-        const btn = el("#btn-copy-notfound");
-        try {
-          await navigator.clipboard.writeText(text);
-          showCopyFeedback(btn, "✅ Đã copy");
-        } catch (err) {
-          try {
-            const ta = document.createElement("textarea");
-            ta.value = text;
-            ta.style.position = "fixed";
-            ta.style.opacity = "0";
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            document.body.removeChild(ta);
-            showCopyFeedback(btn, "✅ Đã copy");
-          } catch (err2) {
-            showCopyFeedback(btn, "❌ Lỗi copy");
-          }
-        }
-      }
-      function showCopyFeedback(btn, text) {
-        if (!btn) return;
-        const original = "📋 Copy all";
-        btn.textContent = text;
-        btn.disabled = true;
-        setTimeout(() => {
-          btn.textContent = original;
-          btn.disabled = false;
-        }, 1500);
-      }
-      async function copyFoundCodes() {
-        const codes = [...new Set(lastResults.map(getCode).filter(Boolean))];
-        const text = codes.join("\n");
-        const btn = el("#btn-copy-found");
-        try {
-          await navigator.clipboard.writeText(text);
-          showFoundCopyFeedback(btn, "✅ Đã copy");
-        } catch (err) {
-          try {
-            const ta = document.createElement("textarea");
-            ta.value = text;
-            ta.style.position = "fixed";
-            ta.style.opacity = "0";
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand("copy");
-            document.body.removeChild(ta);
-            showFoundCopyFeedback(btn, "✅ Đã copy");
-          } catch (err2) {
-            showFoundCopyFeedback(btn, "❌ Lỗi copy");
-          }
-        }
-      }
-      function showFoundCopyFeedback(btn, text) {
-        if (!btn) return;
-        const original = "📋 Copy mã đơn";
-        btn.textContent = text;
-        btn.disabled = true;
-        setTimeout(() => {
-          btn.textContent = original;
-          btn.disabled = false;
-        }, 1500);
-      }
-      function renderResults(rawItems, requestedCodes) {
-        lastFullItems = annotateAndSortItems(rawItems);
-        lastRequestedCodes = requestedCodes || [];
-        searchQuery = "";
-        currentPage = 1;
-        rerenderTable();
-      }
-      function rerenderTable() {
-        const allItems = lastFullItems;
-        const cfg = CONFIG.TABS[activeTab];
-        let statsHtml = "";
-        let notFoundCodes = [];
-        if (lastRequestedCodes.length) {
-          const foundSet = new Set(allItems.map(i => getCode(i).toString().toUpperCase()));
-          const foundCount = lastRequestedCodes.filter(c => foundSet.has(c.toUpperCase())).length;
-          notFoundCodes = lastRequestedCodes.filter(c => !foundSet.has(c.toUpperCase()));
-          statsHtml = `\n      <div class="stats">\n        <span class="stat-badge total">Tổng mã đơn: ${lastRequestedCodes.length}</span>\n        <span class="stat-badge found">Có kết quả: ${foundCount}</span>\n        <span class="stat-badge notfound">Không có kết quả: ${notFoundCodes.length}</span>\n      </div>`;
-        }
-        renderNotFound(notFoundCodes);
-        if (!allItems.length) {
-          lastResults = [];
-          resultsArea.innerHTML = `\n      ${statsHtml ? `<div class="toolbar">${statsHtml}</div>` : ""}\n      <div class="empty"><div class="big">🔍</div>Không tìm thấy kết quả phù hợp.</div>`;
-          return;
-        }
-        const filterTokens = parseCodes(searchQuery);
-        let items = allItems;
-        if (filterTokens.length) {
-          const tokensUpper = filterTokens.map(t => t.toUpperCase());
-          items = allItems.filter(it => {
-            const code = getCode(it).toString().toUpperCase();
-            return tokensUpper.some(t => code.includes(t));
-          });
-        }
-        lastResults = items;
-        const searchBoxHtml = `\n    <div class="result-search-row">\n      <input type="text" id="result-search" class="result-search-input" placeholder="Lọc mã đơn trong kết quả này — dán được nhiều mã, cách nhau bằng dấu phẩy/khoảng trắng" value="${searchQuery.replace(/"/g, "&quot;")}" />\n      ${searchQuery ? `<button class="btn-ghost" id="btn-clear-search">Xóa lọc</button>` : ""}\n      <span class="result-search-count">${filterTokens.length ? `${items.length}/${allItems.length} dòng khớp` : `${allItems.length} dòng`}</span>\n    </div>`;
-        if (!items.length) {
-          resultsArea.innerHTML = `\n      ${statsHtml ? `<div class="toolbar">${statsHtml}</div>` : ""}\n      ${searchBoxHtml}\n      <div class="empty"><div class="big">🔍</div>Không có mã đơn nào khớp ô lọc.</div>`;
-          bindResultSearchEvents();
-          return;
-        }
-        const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-        if (currentPage > totalPages) currentPage = totalPages;
-        if (currentPage < 1) currentPage = 1;
-        const startIdx = (currentPage - 1) * pageSize;
-        const pageItems = items.slice(startIdx, startIdx + pageSize);
-        const pageSizeOptions = [10, 20, 50, 100].map(n => `<option value="${n}" ${n === pageSize ? "selected" : ""}>${n}</option>`).join("");
-        const toolbarHtml = `\n    <div class="toolbar">\n      ${statsHtml}\n      <div class="toolbar-actions">\n        <label class="pagesize-label">Hiện <select id="page-size-select">${pageSizeOptions}</select> / trang</label>\n        <button class="btn-ghost" id="btn-copy-found">📋 Copy mã đơn</button>\n        <button class="btn-ghost" id="btn-export-csv">Xuất CSV</button>\n        <button class="btn-ghost" id="btn-export-xlsx">Xuất Excel</button>\n      </div>\n    </div>`;
-        const headerFieldKeys = [null, ...cfg.knownFields];
-        const headerCells = ["Mã đơn", ...cfg.knownFields.map(f => CONFIG.FIELD_LABELS[f] || f)];
-        const theadHtml = `<tr>${headerCells.map((h, i) => {
-          const key = headerFieldKeys[i];
-          const isRight = key && (cfg.amountFields.includes(key) || (cfg.dateFields || []).includes(key));
-          return `<th${isRight ? ' class="align-right"' : ""}>${h}</th>`;
-        }).join("")}</tr>`;
-        const rowsHtml = pageItems.map(item => {
-          const status = cfg.statusField ? item[cfg.statusField] : "";
-          const sClass = statusClass(status);
-          const code = getCode(item) || "—";
-          let dupBadge = "";
-          if (item._occIndex >= 2) {
-            dupBadge = ` <span class="dup-badge" title="Lần phát sinh thứ ${item._occIndex}/${item._occTotal} của mã đơn này">${numberToEmoji(item._occIndex)}</span>`;
-          } else if (cfg.multiCountField && item[cfg.multiCountField]) {
-            const count = String(item[cfg.multiCountField]).split(",").map(s => s.trim()).filter(Boolean).length;
-            if (count >= 2) {
-              dupBadge = ` <span class="dup-badge" title="Phát sinh ${count} lần (gộp trong cùng 1 dòng)">${numberToEmoji(count)}</span>`;
-            }
-          }
-          const cells = cfg.knownFields.map(f => {
-            const raw = item[f];
-            if (raw === undefined || raw === null || raw === "") return `<td class="align-right">—</td>`;
-            if (cfg.amountFields.includes(f)) return `<td class="amount-cell">${formatAmount(raw)}</td>`;
-            if ((cfg.dateFields || []).includes(f)) return `<td class="date-cell">${raw}</td>`;
-            if (cfg.linkedFieldMap && cfg.linkedFieldMap[f]) {
-              const url = item[cfg.linkedFieldMap[f]];
-              if (url) return `<td><a class="ticket-link" href="${url}" target="_blank" rel="noopener">${raw} ↗</a></td>`;
-              return `<td>${raw}</td>`;
-            }
-            if (f === cfg.statusField) return `<td class="badge-cell"><span class="badge${sClass ? " " + sClass : ""}">${raw}</span></td>`;
-            return `<td>${raw}</td>`;
-          }).join("");
-          return `<tr><td class="code-cell">${code}${dupBadge}</td>${cells}</tr>`;
-        }).join("");
-        const pageJumpOptions = Array.from({
-          length: totalPages
-        }, (_, i) => i + 1).map(p => `<option value="${p}" ${p === currentPage ? "selected" : ""}>Trang ${p}</option>`).join("");
-        const paginationHtml = totalPages > 1 ? `\n    <div class="pagination">\n      <button class="btn-ghost" id="btn-prev-page" ${currentPage <= 1 ? "disabled" : ""}>← Trước</button>\n      <select id="page-jump-select" class="page-jump-select">${pageJumpOptions}</select>\n      <span class="page-indicator">/ ${totalPages} (${items.length} kết quả)</span>\n      <button class="btn-ghost" id="btn-next-page" ${currentPage >= totalPages ? "disabled" : ""}>Sau →</button>\n    </div>` : `<div class="pagination"><span class="page-indicator">${items.length} kết quả</span></div>`;
-        resultsArea.innerHTML = `\n    ${toolbarHtml}\n    ${searchBoxHtml}\n    <div class="results-table-wrap">\n      <table class="result-table">\n        <thead>${theadHtml}</thead>\n        <tbody>${rowsHtml}</tbody>\n      </table>\n    </div>\n    ${paginationHtml}`;
-        el("#btn-copy-found").onclick = copyFoundCodes;
-        el("#btn-export-csv").onclick = exportCsv;
-        el("#btn-export-xlsx").onclick = exportXlsx;
-        el("#page-size-select").onchange = e => {
-          pageSize = Number(e.target.value);
-          currentPage = 1;
-          rerenderTable();
-        };
-        const prevBtn = el("#btn-prev-page");
-        const nextBtn = el("#btn-next-page");
-        const jumpSelect = el("#page-jump-select");
-        if (prevBtn) prevBtn.onclick = () => {
-          currentPage--;
-          rerenderTable();
-        };
-        if (nextBtn) nextBtn.onclick = () => {
-          currentPage++;
-          rerenderTable();
-        };
-        if (jumpSelect) jumpSelect.onchange = e => {
-          currentPage = Number(e.target.value);
-          rerenderTable();
-        };
-        bindResultSearchEvents();
-      }
-      function bindResultSearchEvents() {
-        const input = el("#result-search");
-        if (input) {
-          input.oninput = e => {
-            searchQuery = e.target.value;
-            currentPage = 1;
-            const cursorPos = e.target.selectionStart;
-            rerenderTable();
-            const newInput = el("#result-search");
-            if (newInput) {
-              newInput.focus();
-              newInput.setSelectionRange(cursorPos, cursorPos);
-            }
-          };
-        }
-        const clearBtn = el("#btn-clear-search");
-        if (clearBtn) {
-          clearBtn.onclick = () => {
-            searchQuery = "";
-            currentPage = 1;
-            rerenderTable();
-            const newInput = el("#result-search");
-            if (newInput) newInput.focus();
-          };
-        }
-      }
-      const CODES_PER_REQUEST = 1e3;
-      function chunkArray(arr, size) {
-        const out = [];
-        for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-        return out;
-      }
-      async function doSearch() {
-        const cfg = CONFIG.TABS[activeTab];
-        if (cfg.notReady) {
-          resultsArea.innerHTML = `<div class="empty"><div class="big">🚧</div>Chưa có nguồn dữ liệu cho mục này.<br/>Sẽ bổ sung khi có Google Sheet miễn cước.</div>`;
-          el("#notfound-area").innerHTML = "";
-          return;
-        }
-        const codes = parseCodes(codesInput.value);
-        if (!codes.length && !cfg.useDateRange) {
-          resultsArea.innerHTML = `<div class="empty"><div class="big">✏️</div>Nhập ít nhất một mã đơn để tra cứu.</div>`;
-          el("#notfound-area").innerHTML = "";
-          return;
-        }
-        if (cfg.useDateRange && !codes.length && (!dateFrom.value || !dateTo.value)) {
-          resultsArea.innerHTML = `<div class="empty"><div class="big">✏️</div>Nhập mã đơn hoặc chọn khoảng ngày để tra cứu.</div>`;
-          el("#notfound-area").innerHTML = "";
-          return;
-        }
-        el("#btn-search").disabled = true;
-        currentPage = 1;
-        const codeChunks = codes.length > CODES_PER_REQUEST ? chunkArray(codes, CODES_PER_REQUEST) : [codes];
-        const totalChunks = codeChunks.length;
-        let allItems = [];
-        const failedChunks = [];
-        for (let i = 0; i < totalChunks; i++) {
-          const chunk = codeChunks[i];
-          resultsArea.innerHTML = `<div class="state loading"><span class="spinner"></span>Đang tra cứu${totalChunks > 1 ? ` — lượt ${i + 1}/${totalChunks} (${chunk.length} mã)` : "..."}</div>`;
-          const params = new URLSearchParams({
-            type: activeTab,
-            codes: chunk.join(","),
-            password: sessionPassword
-          });
-          if (cfg.useDateRange) {
-            if (dateFrom.value) params.set("tu_ngay", dateFrom.value);
-            if (dateTo.value) params.set("den_ngay", dateTo.value);
-          }
-          try {
-            const res = await fetch(`${CONFIG.WEBHOOK_URL}?${params.toString()}`);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            const data = await res.json();
-            if (data.ok === false) throw new Error(data.message || "Lỗi không xác định");
-            const items = Array.isArray(data.items) ? data.items : Array.isArray(data) ? data : [];
-            allItems.push(...items);
-          } catch (err) {
-            failedChunks.push({
-              index: i + 1,
-              count: chunk.length,
-              message: err.message
-            });
-          }
-        }
-        el("#btn-search").disabled = false;
-        if (failedChunks.length === totalChunks) {
-          const msg = failedChunks[0].message;
-          resultsArea.innerHTML = `<div class="state error">⚠️ Không thể tải dữ liệu: ${msg}<br/><span style="font-size:14.5px;">Kiểm tra lại URL webhook trong cấu hình, hoặc n8n workflow có đang bật không.</span></div>`;
-          el("#notfound-area").innerHTML = "";
-          return;
-        }
-        renderResults(allItems, codes);
-        if (failedChunks.length) {
-          const failNote = failedChunks.map(f => `lượt ${f.index} (${f.count} mã, lỗi: ${f.message})`).join("; ");
-          resultsArea.innerHTML += `<div class="state error" style="margin-top:10px;">⚠️ ${failedChunks.length}/${totalChunks} lượt tra cứu bị lỗi, kết quả có thể chưa đầy đủ: ${failNote}. Thử tra cứu lại để bổ sung phần còn thiếu.</div>`;
-        }
-      }
-      el("#btn-search").onclick = doSearch;
-      el("#btn-clear").onclick = () => {
-        codesInput.value = "";
-        dateFrom.value = "";
-        dateTo.value = "";
-        fileUploadStatus.textContent = "Chọn nhiều file, tự dò cột mã đơn trong mọi sheet";
-        resultsArea.innerHTML = "";
-        el("#notfound-area").innerHTML = "";
-        lastFullItems = [];
-        lastResults = [];
-        lastRequestedCodes = [];
-        searchQuery = "";
-        currentPage = 1;
-        delete tabState[activeTab];
-        updateCount();
-      };
-      el("#btn-logout").onclick = () => {
-        if (!confirm("Đăng xuất khỏi tool tra cứu?")) return;
-        // Dọn sạch toàn bộ dữ liệu phiên hiện tại (mọi tab) trước khi đăng xuất,
-        // tránh người dùng kế tiếp trên cùng máy nhìn thấy dữ liệu cũ.
-        Object.keys(tabState).forEach(k => delete tabState[k]);
-        lastFullItems = [];
-        lastResults = [];
-        lastRequestedCodes = [];
-        searchQuery = "";
-        currentPage = 1;
-        codesInput.value = "";
-        dateFrom.value = "";
-        dateTo.value = "";
-        resultsArea.innerHTML = "";
-        el("#notfound-area").innerHTML = "";
-        doLogout();
-      };
-      codesInput.addEventListener("keydown", e => {
-        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) doSearch();
-      });
-      (function initFromUrl() {
-        const params = new URLSearchParams(window.location.search);
-        const type = params.get("type");
-        const codes = params.get("codes");
-        if (type && CONFIG.TABS[type]) activeTab = type;
-        switchTab(activeTab);
-        if (codes) {
-          codesInput.value = codes.split(",").join("\n");
-          updateCount();
-          doSearch();
-        }
-      })();
+    <section>
+      <h2>Loại lý do đền bù theo vùng</h2>
+      <div class="underline"></div>
+      <p class="desc">Phân bổ giá trị đền bù theo từng lý do, chia theo vùng chịu trách nhiệm</p>
+      <canvas id="chartLyDoVung"></canvas>
+    </section>
+
+    <section>
+      <h2>⚠️ Cảnh báo: đền bù cao nhưng thu hồi thấp (&lt;20%)</h2>
+      <div class="underline"></div>
+      <p class="desc">🔴 Đỏ: tỷ lệ thu hồi dưới 10% 🟡 Vàng: từ 10% đến dưới 20%</p>
+      <div id="warnGroupList"></div>
+    </section>
+  `;
+
+  const months = [...new Set(ALL_ROWS.map(r=>String(r.ngay_duyet_eform||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const sel = document.getElementById('monthSelect');
+  months.forEach(m=>{
+    const opt = document.createElement('option');
+    opt.value = m; opt.textContent = m;
+    sel.appendChild(opt);
+  });
+  sel.addEventListener('change', e=>{ currentMonth = e.target.value; render(); });
+
+  const regions = [...new Set(ALL_ROWS.map(r=>r.vung_chiu_trach_nhiem).filter(v=>v!==null && v!==undefined && String(v).trim()!==''))].sort();
+  const regionSel = document.getElementById('regionSelect');
+  regions.forEach(rg=>{
+    const opt = document.createElement('option');
+    opt.value = rg; opt.textContent = rg;
+    regionSel.appendChild(opt);
+  });
+  regionSel.addEventListener('change', e=>{ currentRegion = e.target.value; render(); });
+
+  document.getElementById('tabbar').addEventListener('click', e=>{
+    if(e.target.tagName !== 'BUTTON') return;
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentTab = e.target.dataset.tab;
+    currentSubClient = 'all';
+    const wrap = document.getElementById('batterySubFilterWrap');
+    const subSel = document.getElementById('batterySubFilter');
+    if(currentTab === 'Shopee'){
+      wrap.style.display = 'block';
+      subSel.innerHTML = '<option value="all">Tất cả Shopee</option>' +
+        TAB_GROUPS.Shopee.map(id=>`<option value="${id}">${clientLabel(id)}</option>`).join('');
+      subSel.value = 'all';
+    } else {
+      wrap.style.display = 'none';
     }
-  </script>
+    render();
+  });
 
-  <script>const WEBHOOK_BASE_URL = "https://n8n-workflow.ghn.vn/webhook/compensation";
-  </script>
+  document.getElementById('batterySubFilter').addEventListener('change', e=>{
+    currentSubClient = e.target.value;
+    render();
+  });
 
-  <script>const AUTH_STORAGE_KEY = "ka_lookup_authed_v1";
-    const AUTH_PASSWORD_KEY = "ka_lookup_pw_v1";
-    let sessionPassword = "";
+  document.getElementById('granularity').addEventListener('click', e=>{
+    if(e.target.tagName !== 'BUTTON') return;
+    document.querySelectorAll('#granularity button').forEach(b=>b.classList.remove('active'));
+    e.target.classList.add('active');
+    currentGranularity = e.target.dataset.g;
+    render();
+  });
 
-    const authGate = document.getElementById("auth-gate");
+  document.getElementById('warnGroupList').addEventListener('click', e=>{
+    if(!e.target.classList.contains('warn-toggle')) return;
+    const targetEl = document.getElementById(e.target.dataset.target);
+    if(!targetEl) return;
+    const isOpen = targetEl.style.display !== 'none';
+    targetEl.style.display = isOpen ? 'none' : 'block';
+    e.target.textContent = isOpen ? '+' : '−';
+  });
 
-    const appRoot = document.getElementById("app-root");
+  render();
+}
 
-    const authForm = document.getElementById("auth-form");
+function getFilteredRows(){
+  let rows = ALL_ROWS;
+  if(currentTab !== 'all'){
+    const ids = TAB_GROUPS[currentTab] || [];
+    rows = rows.filter(r => ids.includes(String(r.nhom_kh)));
+  }
+  if(currentMonth !== 'all'){
+    rows = rows.filter(r => String(r.ngay_duyet_eform||'').slice(0,7) === currentMonth);
+  }
+  return rows;
+}
 
-    const authUserIdInput = document.getElementById("auth-user-id");
+function groupByFn(rows, keyFn){
+  const m = {};
+  rows.forEach(r=>{
+    const k = keyFn(r) || '(Không rõ)';
+    if(!m[k]) m[k] = {den_bu:0, truy_thu:0, so_don:0};
+    m[k].den_bu += (+r.gia_tri_den_bu||0);
+    m[k].truy_thu += (+r.so_tien_da_truy_thu||0);
+    m[k].so_don += 1;
+  });
+  return m;
+}
 
-    const authPasswordInput = document.getElementById("auth-password");
+function getISOWeekLabel(dateStr){
+  const d = new Date(dateStr);
+  if(isNaN(d)) return null;
+  const target = new Date(d.valueOf());
+  const dayNr = (d.getUTCDay() + 6) % 7;
+  target.setUTCDate(target.getUTCDate() - dayNr + 3);
+  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(),0,4));
+  const week = 1 + Math.round(((target - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay()+6)%7)) / 7);
+  return target.getUTCFullYear() + '-W' + String(week).padStart(2,'0');
+}
 
-    const authError = document.getElementById("auth-error");
+function periodKey(dateStr, granularity){
+  if(!dateStr) return null;
+  const s = String(dateStr);
+  if(granularity === 'month') return s.slice(0,7);
+  if(granularity === 'year') return s.slice(0,4);
+  if(granularity === 'quarter'){
+    const y = s.slice(0,4), m = +s.slice(5,7);
+    return y + '-Q' + (Math.floor((m-1)/3)+1);
+  }
+  if(granularity === 'week') return getISOWeekLabel(s);
+  return s.slice(0,7);
+}
 
-    const authSubmitBtn = authForm.querySelector(".auth-submit");
+function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
 
-    function unlockApp() {
-      authGate.style.display = "none";
-      appRoot.style.display = "block";
-      initApp();
-    }
+function render(){
+  const rows = getFilteredRows();
 
-    async function verifyPassword(userId, password) {
-      const params = new URLSearchParams({
-        type: "auth",
-        user_id: userId,
-        password: password
-      });
-      const res = await fetch(`${WEBHOOK_BASE_URL}?${params.toString()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      return data.ok === true;
-    }
+  const totalDenBu = rows.reduce((s,r)=>s+(+r.gia_tri_den_bu||0),0);
+  const totalTruyThu = rows.reduce((s,r)=>s+(+r.so_tien_da_truy_thu||0),0);
+  const soDonTruyThu = rows.filter(r => (+r.so_tien_da_truy_thu||0) > 0).length;
+  const tyLeThuHoi = totalDenBu ? (totalTruyThu/totalDenBu*100) : 0;
 
-    authForm.addEventListener("submit", async e => {
-      e.preventDefault();
-      const userId = authUserIdInput.value.trim();
-      const password = authPasswordInput.value;
-      if (!userId || !password) {
-        authError.textContent = "Vui lòng nhập đầy đủ User ID và mật khẩu.";
-        return;
-      }
-      authSubmitBtn.disabled = true;
-      authError.textContent = "";
-      try {
-        const ok = await verifyPassword(userId, password);
-        if (ok) {
-          sessionPassword = password;
-          try {
-            localStorage.setItem(AUTH_STORAGE_KEY, "1");
-            localStorage.setItem(AUTH_PASSWORD_KEY, sessionPassword);
-          } catch (err) { }
-          unlockApp();
-        } else {
-          authError.textContent = "Sai User ID hoặc mật khẩu (mật khẩu chỉ dùng được 1 lần), thử lại.";
-          authPasswordInput.value = "";
-          authPasswordInput.focus();
-        }
-      } catch (err) {
-        authError.textContent = "Không kiểm tra được mật khẩu, thử lại.";
-      } finally {
-        authSubmitBtn.disabled = false;
-      }
+  function hasTicket(r){
+    const v = r.kho_chiu_trach_nhiem;
+    return !(v === null || v === undefined || String(v).trim() === '');
+  }
+  const withTicket = rows.filter(hasTicket);
+  const withoutTicket = rows.filter(r => !hasTicket(r));
+
+  document.getElementById('kpis').innerHTML = `
+    <div class="kpi"><div class="label">Tổng đơn đền bù</div><div class="value">${fmtNum(rows.length)}</div></div>
+    <div class="kpi accent"><div class="label">Tổng giá trị đền bù</div><div class="value">${fmtVND(totalDenBu)}</div></div>
+    <div class="kpi"><div class="label">Đã truy thu</div><div class="value">${fmtVND(totalTruyThu)}</div></div>
+    <div class="kpi"><div class="label">Tỷ lệ thu hồi</div><div class="value">${fmtPct(tyLeThuHoi)}<span class="rate-dot" style="background:${RATE_COLOR[batteryClass(tyLeThuHoi)]}"></span></div><div class="sub">${fmtNum(soDonTruyThu)} đơn đã truy thu</div></div>
+    <div class="kpi"><div class="label">Có ticket truy thu</div><div class="value">${fmtNum(withTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
+    <div class="kpi accent"><div class="label">Chưa ticket truy thu</div><div class="value">${fmtNum(withoutTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withoutTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
+  `;
+
+  const orange = '#FE5F00', navy = '#0E4174', orangeLight = '#FF9E64', navyLight = '#7FA6C9';
+  const dl = { color:'#383838', font:{family:"Cambria, 'Times New Roman', Georgia, serif", size:10, weight:'bold'}, display:'auto' };
+
+  const byClient = groupByFn(rows, r => clientLabel(r.nhom_kh));
+  const clientKeys = Object.keys(byClient).sort((a,b)=>byClient[b].den_bu - byClient[a].den_bu);
+  destroyChart('client');
+  charts.client = new Chart(document.getElementById('chartClient'), {
+    type:'bar',
+    data:{ labels: clientKeys, datasets:[
+      {label:'Đền bù', data: clientKeys.map(k=>byClient[k].den_bu), backgroundColor:navy},
+      {label:'Đã truy thu', data: clientKeys.map(k=>byClient[k].truy_thu), backgroundColor:orange},
+    ]},
+    options:{responsive:true, plugins:{legend:{position:'bottom'},
+      datalabels:{...dl, anchor:'end', align:'top', formatter:v=>fmtCompact(v)}},
+      scales:{y:{ticks:{callback:v=>fmtCompact(v)}}}}
+  });
+
+  const byTuyen = groupByFn(rows, r=>r.tuyen);
+  const tuyenKeys = Object.keys(byTuyen).sort((a,b)=>byTuyen[b].den_bu - byTuyen[a].den_bu);
+  const tuyenTotal = tuyenKeys.reduce((s,k)=>s+byTuyen[k].den_bu,0);
+  destroyChart('tuyen');
+  const isNarrowScreen = window.innerWidth < 640;
+  charts.tuyen = new Chart(document.getElementById('chartTuyen'), {
+    type:'doughnut',
+    data:{ labels: tuyenKeys, datasets:[{data: tuyenKeys.map(k=>byTuyen[k].den_bu),
+      backgroundColor:[orange,navy,orangeLight,navyLight,'#E04F00','#0A2F54','#FFE4D2'], cutout:'55%'}]},
+    options:{responsive:true, maintainAspectRatio:false,
+      layout:{padding:{top:30,bottom:30,left:60,right:60}},
+      plugins:{legend:{position: isNarrowScreen ? 'bottom' : 'left', align:'center', labels:{boxWidth:12,font:{size:12},padding:14}},
+      datalabels:{display:false}}}
+  });
+
+  const byPeriod = {};
+  rows.forEach(r=>{
+    const k = periodKey(r.ngay_duyet_eform, currentGranularity);
+    if(!k) return;
+    if(!byPeriod[k]) byPeriod[k] = {den_bu:0, truy_thu:0};
+    byPeriod[k].den_bu += (+r.gia_tri_den_bu||0);
+    byPeriod[k].truy_thu += (+r.so_tien_da_truy_thu||0);
+  });
+  const periods = Object.keys(byPeriod).sort();
+  destroyChart('month');
+  charts.month = new Chart(document.getElementById('chartMonth'), {
+    type:'line',
+    data:{ labels: periods, datasets:[
+      {label:'Đền bù', data: periods.map(m=>byPeriod[m].den_bu), borderColor:navy, backgroundColor:navy, tension:.3},
+      {label:'Truy thu', data: periods.map(m=>byPeriod[m].truy_thu), borderColor:orange, backgroundColor:orange, tension:.3},
+    ]},
+    options:{responsive:true, plugins:{legend:{position:'bottom'},
+      datalabels:{...dl, align:'top', formatter:v=>fmtCompact(v)}},
+      scales:{y:{ticks:{callback:v=>fmtCompact(v)}}}}
+  });
+
+  const rowsRegion = currentRegion === 'all' ? rows : rows.filter(r => String(r.vung_chiu_trach_nhiem) === String(currentRegion));
+  const byLyDo = groupByFn(rowsRegion, r=>r.loai_yeu_cau);
+  const lyDoKeys = Object.keys(byLyDo).sort((a,b)=>byLyDo[b].den_bu - byLyDo[a].den_bu).slice(0,8);
+  destroyChart('lydo');
+
+  const CLIENT_PALETTE = [navy, orange, orangeLight, navyLight, '#0A2F54', '#E04F00', '#B9CBE0', '#FFE4D2'];
+  const CLIENT_COLOR_MAP = {
+    'SPE Express': navy,
+    'SPE Bulky': orange,
+    'SPE Reverse': navyLight,
+    'SPX Express': orangeLight,
+    'Lazada': '#00A896',
+    'Tiki': '#7B2CBF',
+  };
+  function getClientColor(label, i){ return CLIENT_COLOR_MAP[label] || CLIENT_PALETTE[i % CLIENT_PALETTE.length]; }
+
+  if(currentTab === 'all'){
+    const clientLabelsAll = [...new Set(rowsRegion.map(r=>clientLabel(r.nhom_kh)))];
+    const byLyDoClient = {};
+    rowsRegion.forEach(r=>{
+      const lyDo = r.loai_yeu_cau || '(Không rõ)';
+      const cl = clientLabel(r.nhom_kh);
+      if(!byLyDoClient[lyDo]) byLyDoClient[lyDo] = {};
+      byLyDoClient[lyDo][cl] = (byLyDoClient[lyDo][cl]||0) + (+r.gia_tri_den_bu||0);
     });
-
-    const requestForm = document.getElementById("request-form");
-    const requestUserIdInput = document.getElementById("request-user-id");
-    const requestStatus = document.getElementById("request-status");
-    const requestSubmitBtn = requestForm.querySelector(".auth-submit");
-    const btnShowRequest = document.getElementById("btn-show-request");
-    const btnBackToLogin = document.getElementById("btn-back-to-login");
-
-    btnShowRequest.addEventListener("click", () => {
-      authForm.style.display = "none";
-      requestForm.style.display = "block";
-      requestStatus.textContent = "";
-      requestStatus.className = "request-status";
-      requestUserIdInput.focus();
+    const datasets = clientLabelsAll.map((cl,i)=>({
+      label: cl,
+      data: lyDoKeys.map(k => (byLyDoClient[k] && byLyDoClient[k][cl]) || 0),
+      backgroundColor: getClientColor(cl, i),
+    }));
+    charts.lydo = new Chart(document.getElementById('chartLyDo'), {
+      type:'bar',
+      data:{ labels: lyDoKeys, datasets },
+      options:{indexAxis:'y', responsive:true,
+        plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:10.5}}},
+          datalabels:{display:false}},
+        scales:{x:{stacked:true, ticks:{callback:v=>fmtCompact(v)}}, y:{stacked:true}}}
     });
-
-    btnBackToLogin.addEventListener("click", () => {
-      requestForm.style.display = "none";
-      authForm.style.display = "block";
-      authPasswordInput.focus();
+  } else {
+    charts.lydo = new Chart(document.getElementById('chartLyDo'), {
+      type:'bar',
+      data:{ labels: lyDoKeys, datasets:[{label:'Đền bù', data: lyDoKeys.map(k=>byLyDo[k].den_bu), backgroundColor:orange}]},
+      options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false},
+        datalabels:{...dl, anchor:'end', align:'right', formatter:v=>fmtCompact(v)}},
+        scales:{x:{ticks:{callback:v=>fmtCompact(v)}}}}
     });
+  }
 
-    async function submitPasswordRequest(userId) {
-      const params = new URLSearchParams({
-        type: "request_password",
-        user_id: userId
-      });
-      const res = await fetch(`${WEBHOOK_BASE_URL}?${params.toString()}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    }
+  let batteryRows = rowsRegion;
+  if(currentTab === 'Shopee' && currentSubClient !== 'all'){
+    batteryRows = batteryRows.filter(r => String(r.nhom_kh) === currentSubClient);
+  }
+  const byLyDoBattery = groupByFn(batteryRows, r=>r.loai_yeu_cau);
+  const lyDoBatteryKeys = Object.keys(byLyDoBattery).sort((a,b)=>byLyDoBattery[b].den_bu - byLyDoBattery[a].den_bu).slice(0,8);
 
-    requestForm.addEventListener("submit", async e => {
-      e.preventDefault();
-      const userId = requestUserIdInput.value.trim();
-      if (!userId) return;
-      requestSubmitBtn.disabled = true;
-      requestStatus.textContent = "Đang gửi yêu cầu...";
-      requestStatus.className = "request-status";
-      try {
-        const data = await submitPasswordRequest(userId);
-        if (data.ok) {
-          requestStatus.textContent = data.message || "Đã gửi yêu cầu thành công.";
-          requestStatus.className = "request-status ok";
-          requestUserIdInput.value = "";
-        } else {
-          requestStatus.textContent = data.message || "Gửi yêu cầu thất bại.";
-          requestStatus.className = "request-status error";
-        }
-      } catch (err) {
-        requestStatus.textContent = "Lỗi kết nối, thử lại sau.";
-        requestStatus.className = "request-status error";
-      } finally {
-        requestSubmitBtn.disabled = false;
-      }
-    });
+  document.getElementById('batteryList').innerHTML = lyDoBatteryKeys.map(k=>{
+    const v = byLyDoBattery[k];
+    const pct = v.den_bu ? (v.truy_thu/v.den_bu*100) : 0;
+    const widthPct = Math.min(pct,100);
+    return `<div class="battery-row">
+      <div class="battery-label" title="${k}">${k}</div>
+      <div class="battery"><div class="battery-fill ${batteryClass(pct)}" style="width:${widthPct}%"></div></div>
+      <div class="battery-pct">${fmtPct(pct)}</div>
+    </div>`;
+  }).join('');
 
-    function doLogout() {
-      try {
-        localStorage.removeItem(AUTH_STORAGE_KEY);
-        localStorage.removeItem(AUTH_PASSWORD_KEY);
-      } catch (err) { }
-      sessionPassword = "";
-      appRoot.style.display = "none";
-      authGate.style.display = "";
-      authForm.style.display = "block";
-      requestForm.style.display = "none";
-      authUserIdInput.value = "";
-      authPasswordInput.value = "";
-      authError.textContent = "";
-      requestStatus.textContent = "";
-      requestStatus.className = "request-status";
-      requestUserIdInput.value = "";
-    }
+  const byHub = groupByFn(rowsRegion, r=>r.kho_chiu_trach_nhiem);
+  delete byHub['(Không rõ)'];
+  const topHubs = Object.entries(byHub).sort((a,b)=>b[1].den_bu - a[1].den_bu).slice(0,15);
+  document.getElementById('hubTableBody').innerHTML = topHubs.map(([name,v])=>{
+    const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
+    return `<tr>
+      <td title="${name}">${name}</td>
+      <td>${fmtNum(v.so_don)}</td>
+      <td>${fmtVND(v.den_bu)}</td>
+      <td><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>
+    </tr>`;
+  }).join('');
 
-    (function checkExistingAuth() {
-      let authed = false;
-      try {
-        authed = localStorage.getItem(AUTH_STORAGE_KEY) === "1";
-        if (authed) sessionPassword = localStorage.getItem(AUTH_PASSWORD_KEY) || "";
-      } catch (err) { }
-      if (authed) unlockApp();
-    })();
-  </script>
+  const byLyDoAllForVung = groupByFn(rows, r=>r.loai_yeu_cau);
+  const lyDoKeysForVung = Object.keys(byLyDoAllForVung).sort((a,b)=>byLyDoAllForVung[b].den_bu - byLyDoAllForVung[a].den_bu).slice(0,8);
+  const vungListAll = [...new Set(rows.map(r=>r.vung_chiu_trach_nhiem || '(Không rõ)'))];
+  const byLyDoVung = {};
+  rows.forEach(r=>{
+    const lyDo = r.loai_yeu_cau || '(Không rõ)';
+    const vg = r.vung_chiu_trach_nhiem || '(Không rõ)';
+    if(!byLyDoVung[lyDo]) byLyDoVung[lyDo] = {};
+    byLyDoVung[lyDo][vg] = (byLyDoVung[lyDo][vg]||0) + (+r.gia_tri_den_bu||0);
+  });
+  const vungDatasets = vungListAll.map((vg,i)=>({
+    label: vg,
+    data: lyDoKeysForVung.map(k => (byLyDoVung[k] && byLyDoVung[k][vg]) || 0),
+    backgroundColor: CLIENT_PALETTE[i % CLIENT_PALETTE.length],
+  }));
+  destroyChart('lydoVung');
+  charts.lydoVung = new Chart(document.getElementById('chartLyDoVung'), {
+    type:'bar',
+    data:{ labels: lyDoKeysForVung, datasets: vungDatasets },
+    options:{indexAxis:'y', responsive:true,
+      plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:10.5}}}, datalabels:{display:false}},
+      scales:{x:{stacked:true, ticks:{callback:v=>fmtCompact(v)}}, y:{stacked:true}}}
+  });
+
+  function warnColorClass(pct){
+    if(pct < 10) return 'bad';
+    if(pct < 20) return 'warn';
+    return null;
+  }
+
+  const khoVungCount = {};
+  rows.forEach(r=>{
+    const kho = r.kho_chiu_trach_nhiem, vg = r.vung_chiu_trach_nhiem;
+    if(!kho || !vg) return;
+    if(!khoVungCount[kho]) khoVungCount[kho] = {};
+    khoVungCount[kho][vg] = (khoVungCount[kho][vg]||0) + 1;
+  });
+  const khoToVung = {};
+  Object.entries(khoVungCount).forEach(([kho,counts])=>{
+    khoToVung[kho] = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
+  });
+
+  const byVungFull = groupByFn(rows, r=>r.vung_chiu_trach_nhiem);
+  const byHubFull = groupByFn(rows, r=>r.kho_chiu_trach_nhiem);
+  delete byHubFull['(Không rõ)'];
+
+  const hubsByVung = {};
+  Object.entries(byHubFull).forEach(([kho,v])=>{
+    const vg = khoToVung[kho] || '(Không rõ)';
+    if(!hubsByVung[vg]) hubsByVung[vg] = [];
+    hubsByVung[vg].push({ name:kho, den_bu:v.den_bu, truy_thu:v.truy_thu });
+  });
+
+  const flaggedVung = Object.entries(byVungFull)
+    .filter(([name]) => name && name !== '(Không rõ)')
+    .map(([name,v]) => ({ name, den_bu:v.den_bu, pct: v.den_bu ? v.truy_thu/v.den_bu*100 : 0 }))
+    .filter(x => x.den_bu > 0 && warnColorClass(x.pct))
+    .sort((a,b) => a.pct - b.pct);
+
+  const warnHtml = flaggedVung.map((vg, idx) => {
+    const parentCls = warnColorClass(vg.pct);
+    const children = (hubsByVung[vg.name] || [])
+      .map(h => ({ name:h.name, den_bu:h.den_bu, pct: h.den_bu ? h.truy_thu/h.den_bu*100 : 0 }))
+      .filter(h => h.den_bu > 0 && warnColorClass(h.pct))
+      .sort((a,b) => a.pct - b.pct);
+    const childHtml = children.length
+      ? children.map(h => `<div class="warning-child ${warnColorClass(h.pct)}">
+          <span>${h.name}</span>
+          <span>${fmtMoney(h.den_bu)} · ${fmtPct(h.pct)}</span>
+        </div>`).join('')
+      : '<div class="warning-child-empty">Không có kho cụ thể nào dưới ngưỡng trong vùng này</div>';
+    const childId = `warnChildren-${idx}`;
+    return `<div class="warning-group">
+      <div class="warning-parent ${parentCls}">
+        <span>⚠️ ${vg.name}</span>
+        <span style="display:flex;align-items:center;gap:10px;">
+          <span>${fmtMoney(vg.den_bu)} · ${fmtPct(vg.pct)}</span>
+          <button class="warn-toggle" type="button" data-target="${childId}">+</button>
+        </span>
+      </div>
+      <div class="warning-children" id="${childId}" style="display:none;">
+        ${childHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('warnGroupList').innerHTML = warnHtml || '<div class="warning-empty">Không có vùng nào vượt ngưỡng cảnh báo</div>';
+}
+</script>
 </body>
-
 </html>
