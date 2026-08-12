@@ -218,9 +218,9 @@
   .pivot-table .current-col{background:#FFF3EA;}
   .pivot-table thead th.current-col{background:#FFE0C2;}
   .pivot-table .prod-detail td{background:#FAFAFA;text-align:left;}
-  .pivot-table-nested{margin-top:8px;font-size:12.5px;width:auto;min-width:0;}
-  .pivot-table-nested th, .pivot-table-nested td{padding:6px 8px;min-width:70px;}
-  .pivot-table-nested td.label-col, .pivot-table-nested th.label-col{position:static;min-width:140px;background:transparent;}
+  .pivot-table-nested{margin-top:8px;font-size:12.5px;width:100%;}
+  .pivot-table-nested th, .pivot-table-nested td{padding:6px 8px;}
+  .pivot-table-nested td.label-col, .pivot-table-nested th.label-col{position:static;background:transparent;}
   .mom-up{color:#F44336;font-weight:700;}
   .mom-down{color:#1E88E5;font-weight:700;}
   .mom-flat{color:var(--muted);}
@@ -1025,6 +1025,11 @@ function render(){
       .slice(0,5);
     const detailHtml = topHubsForSp.length
       ? `<table class="pivot-table pivot-table-nested">
+          <colgroup>
+            <col style="width:150px">
+            ${monthsDesc.map(()=>'<col style="width:88px">').join('')}
+            ${monthsDesc.map(()=>'<col style="width:88px">').join('')}
+          </colgroup>
           <thead>
             <tr><th rowspan="2" class="label-col">Kho</th><th colspan="${monthsDesc.length}">Tổng tiền đền bù (tăng/giảm MoM)</th><th colspan="${monthsDesc.length}">Tỷ lệ thu hồi</th></tr>
             <tr>${monthsDesc.map(m=>`<th class="${m===currentMonth6?'current-col':''}">${m}</th>`).join('')}${monthsDesc.map(m=>`<th class="${m===currentMonth6?'current-col':''}">${m}</th>`).join('')}</tr>
