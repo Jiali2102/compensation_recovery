@@ -14,8 +14,10 @@
 // 6. Commit lên GitHub, Vercel tự deploy lại
 // ============================================================
 const SHEETS = [
-  { year: 2025, spreadsheetId: "12jeRehojTgRmFEuBvuFyoWwY8cgbtd8kigN7HOxGhw4", gid: 0 },
-  { year: 2026, spreadsheetId: "1iFRPFRfZ4HIDx-a0m0EIfZSvkkausKJQZe-Wj-qBi5E", gid: 0 },
+  { year: 2025, spreadsheetId: "1YSUWR5GZADtmtZv9VGG5vpeWjkToq9YJ7xND27nbYdI", gid: 0 },
+  { year: 2026, spreadsheetId: "1Uvx07l2mmUr0bmQdnUbuAPN38TY2mFEWPxpO7thyLe8", gid: 0 },
+  // { year: 2025, spreadsheetId: "12jeRehojTgRmFEuBvuFyoWwY8cgbtd8kigN7HOxGhw4", gid: 0 },
+  // { year: 2026, spreadsheetId: "1iFRPFRfZ4HIDx-a0m0EIfZSvkkausKJQZe-Wj-qBi5E", gid: 0 },
   // { year: 2027, spreadsheetId: "DÁN_ID_SHEET_2027_VÀO_ĐÂY", gid: 0 },
   // { year: 2028, spreadsheetId: "DÁN_ID_SHEET_2028_VÀO_ĐÂY", gid: 0 },
 ];
