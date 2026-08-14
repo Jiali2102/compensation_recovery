@@ -302,7 +302,7 @@
   <div id="loginBox">
     <div class="login-orange-bar"></div>
     <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
-    <p>Vui lòng đăng nhập bằng tài khoản <strong>Giao Hàng Nhanh</strong> để tiếp tục</p>
+    <p>Đăng nhập bằng tài khoản </b><strong>Giao Hàng Nhanh</strong></b> để tiếp tục</p>
     <div id="g_id_onload"
       data-client_id="382454937501-ab4u4m13r827lbm3gup5qqmq6eimcavt.apps.googleusercontent.com"
       data-callback="handleGoogleLogin"
@@ -327,7 +327,10 @@
 <header>
   <div class="header-top">
     <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
-    <div class="status" id="statusText">Đang tải dữ liệu...<button id="logoutBtn" type="button" onclick="handleLogout()">Đăng xuất</button></div>
+    <div style="display:flex;align-items:center;">
+      <div class="status" id="statusText">Đang tải dữ liệu...</div>
+      <button id="logoutBtn" type="button" onclick="handleLogout()">Đăng xuất</button>
+    </div>
   </div>
 </header>
 
@@ -496,13 +499,44 @@ let currentRegion = 'all';
 let charts = {};
 let shellReady = false;
 let isLoadingYear = false;
+const yearDataCache = {}; // { [year]: { rows: [...], lastModifiedText: '...' } } — cache để đổi năm không cần tải lại
+
+function applyLoadedRows(rows){
+  ALL_ROWS = rows;
+  currentTab = 'all';
+  currentMonth = 'all';
+  currentRegion = 'all';
+  currentSubClient = 'all';
+  currentGranularity = 'month';
+  if(!shellReady){
+    buildAppSkeleton();
+    setupOneTimeListeners();
+    shellReady = true;
+  }
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab === 'all'));
+  document.getElementById('shopeeSubWrap').style.display = 'none';
+  document.querySelectorAll('#granularity button').forEach(b=>b.classList.toggle('active', b.dataset.g === 'month'));
+  populateFilterDropdowns();
+  render();
+}
 
 function loadYear(year){
   if(isLoadingYear) return;
-  isLoadingYear = true;
   currentYear = year;
   document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active', b.dataset.year == year));
+
+  // Nếu năm này đã tải trước đó trong phiên hiện tại, dùng lại ngay từ bộ nhớ — không gọi lại server
+  if(yearDataCache[year]){
+    hideLoginOverlay();
+    document.getElementById('statusText').textContent = yearDataCache[year].statusLabel;
+    applyLoadedRows(yearDataCache[year].rows);
+    return;
+  }
+
+  isLoadingYear = true;
   document.getElementById('statusText').textContent = 'Đang tải dữ liệu...';
+
+  let statusLabel = 'Dữ liệu cập nhật';
 
   fetch('/api/data?year=' + year)
     .then(r => {
@@ -515,29 +549,17 @@ function loadYear(year){
       if(lastModifiedHeader){
         const d = new Date(lastModifiedHeader);
         if(!isNaN(d)){
-          document.getElementById('statusText').textContent = 'Dữ liệu cập nhật lúc ' + fmtDateTime(d);
+          statusLabel = 'Dữ liệu cập nhật lúc ' + fmtDateTime(d);
         }
       }
+      document.getElementById('statusText').textContent = statusLabel;
       return r.text();
     })
     .then(csvText => {
       const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true, dynamicTyping:true});
-      ALL_ROWS = parsed.data.filter(r => r.ma_dh);
-      currentTab = 'all';
-      currentMonth = 'all';
-      currentRegion = 'all';
-      currentSubClient = 'all';
-      currentGranularity = 'month';
-      if(!shellReady){
-        buildAppSkeleton();
-        setupOneTimeListeners();
-        shellReady = true;
-      }
-      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab === 'all'));
-      document.getElementById('shopeeSubWrap').style.display = 'none';
-      document.querySelectorAll('#granularity button').forEach(b=>b.classList.toggle('active', b.dataset.g === 'month'));
-      populateFilterDropdowns();
-      render();
+      const rows = parsed.data.filter(r => r.ma_dh);
+      yearDataCache[year] = { rows, statusLabel };
+      applyLoadedRows(rows);
     })
     .catch(err => {
       if(err.message === '__UNAUTHORIZED__') return;
