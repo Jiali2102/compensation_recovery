@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
     --orange:#FE5F00;
@@ -266,17 +267,66 @@
 
     canvas{max-height:260px;}
   }
+
+  /* Màn hình đăng nhập Google SSO */
+  #loginOverlay{
+    position:fixed;inset:0;z-index:1000;
+    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);
+    display:flex;align-items:center;justify-content:center;
+  }
+  #loginBox{
+    background:#fff;border-radius:14px;padding:40px 36px;max-width:380px;width:90%;
+    text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  }
+  #loginBox h1{font-size:20px;color:var(--navy);margin:0 0 6px;font-weight:800;}
+  #loginBox p{font-size:14px;color:var(--muted);margin:0 0 24px;}
+  #loginBox .login-orange-bar{width:60px;height:4px;background:var(--orange);margin:0 auto 20px;border-radius:2px;}
+  #googleSignInBtn{display:flex;justify-content:center;margin:0 auto;}
+  #loginError{
+    margin-top:16px;font-size:13px;color:#C62828;background:#FDECEA;
+    border-radius:6px;padding:10px;display:none;
+  }
+  #appShellWrap{display:none;}
+  #logoutBtn{
+    background:transparent;border:1px solid rgba(255,255,255,0.4);color:#fff;
+    font-family:inherit;font-size:12px;padding:5px 12px;border-radius:14px;cursor:pointer;
+    margin-left:10px;
+  }
+  #logoutBtn:hover{background:rgba(255,255,255,0.15);}
 </style>
 </head>
 <body>
 
+<div id="loginOverlay">
+  <div id="loginBox">
+    <div class="login-orange-bar"></div>
+    <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
+    <p>Vui lòng đăng nhập bằng tài khoản Google <strong>@ghn.vn</strong> để tiếp tục</p>
+    <div id="g_id_onload"
+      data-client_id="382454937501-ab4u4m13r827lbm3gup5qqmq6eimcavt.apps.googleusercontent.com"
+      data-callback="handleGoogleLogin"
+      data-auto_prompt="false">
+    </div>
+    <div id="googleSignInBtn" class="g_id_signin"
+      data-type="standard"
+      data-shape="pill"
+      data-theme="outline"
+      data-text="signin_with"
+      data-size="large"
+      data-locale="vi">
+    </div>
+    <div id="loginError"></div>
+  </div>
+</div>
+
+<div id="appShellWrap">
 <div id="stickyTop">
 <div class="top-line"></div>
 
 <header>
   <div class="header-top">
     <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
-    <div class="status" id="statusText">Đang tải dữ liệu...</div>
+    <div class="status" id="statusText">Đang tải dữ liệu...<button id="logoutBtn" type="button" onclick="handleLogout()">Đăng xuất</button></div>
   </div>
 </header>
 
@@ -310,6 +360,7 @@
 
 <footer>© 2026 [KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</footer>
 <div class="bottom-bar"></div>
+</div>
 
 <script>
 const fmtNum = n => n.toLocaleString('vi-VN');
@@ -454,6 +505,10 @@ function loadYear(year){
 
   fetch('/api/data?year=' + year)
     .then(r => {
+      if(r.status === 401){
+        showLoginOverlay();
+        throw new Error('__UNAUTHORIZED__');
+      }
       const lastModifiedHeader = r.headers.get('X-Data-Last-Modified');
       if(lastModifiedHeader){
         const d = new Date(lastModifiedHeader);
@@ -483,9 +538,53 @@ function loadYear(year){
       render();
     })
     .catch(err => {
+      if(err.message === '__UNAUTHORIZED__') return;
       document.getElementById('app').innerHTML =
         '<div class="loading">Không tải được dữ liệu.<br><small>'+err+'</small></div>';
       console.error(err);
+    });
+}
+
+function showLoginOverlay(){
+  document.getElementById('loginOverlay').style.display = 'flex';
+  document.getElementById('appShellWrap').style.display = 'none';
+}
+
+function hideLoginOverlay(){
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('appShellWrap').style.display = 'block';
+}
+
+function handleGoogleLogin(response){
+  const errBox = document.getElementById('loginError');
+  errBox.style.display = 'none';
+  fetch('/api/verify', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    credentials: 'include',
+    body: JSON.stringify({ credential: response.credential })
+  })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(({ ok, data }) => {
+      if(ok){
+        hideLoginOverlay();
+        loadYear(currentYear);
+      } else {
+        errBox.textContent = data.error || 'Đăng nhập thất bại';
+        errBox.style.display = 'block';
+      }
+    })
+    .catch(err => {
+      errBox.textContent = 'Lỗi kết nối: ' + err.message;
+      errBox.style.display = 'block';
+    });
+}
+
+function handleLogout(){
+  fetch('/api/logout', { method: 'POST', credentials: 'include' })
+    .finally(() => {
+      shellReady = false;
+      showLoginOverlay();
     });
 }
 
