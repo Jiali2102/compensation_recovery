@@ -1,36 +1,76 @@
-// Vercel Serverless Function — lấy dữ liệu qua Google Sheets API (nhanh, real-time hơn CSV publish)
-// Đồng thời gọi Google Drive API để lấy thời gian sửa gần nhất của sheet đang xem (modifiedTime)
-// Hỗ trợ tách riêng theo NĂM qua query param: /api/data?year=2025 hoặc /api/data?year=2026
+// Vercel Serverless Function — lấy dữ liệu qua Google Sheets API bằng OAUTH2 REFRESH TOKEN
+// (dùng chính tài khoản Google @ghn.vn của Jiali để xin quyền, không dùng API Key hay
+// Service Account — vì công ty chặn share cho tài khoản ngoài domain @ghn.vn)
+//
+// ============================================================
+// CÁCH HOẠT ĐỘNG:
+// Một lần duy nhất, Jiali đăng nhập Google (tài khoản @ghn.vn có sẵn quyền xem Sheet) để lấy
+// "refresh token". Từ đó về sau, mỗi lần có người mở dashboard, server dùng refresh token này
+// đổi lấy access token mới rồi gọi Sheets API/Drive API — y hệt việc trình duyệt tự động đăng
+// nhập lại mà không cần nhập mật khẩu mỗi lần.
 //
 // ============================================================
 // HƯỚNG DẪN THÊM SHEET NĂM MỚI (2027, 2028...) — CHỈ CẦN SỬA Ở ĐÂY, KHÔNG SỬA GÌ KHÁC:
 // 1. Mở sheet năm mới trên trình duyệt, copy ID từ URL:
 //      https://docs.google.com/spreadsheets/d/{ID_NẰM_Ở_ĐÂY}/edit#gid={GID_NẰM_Ở_ĐÂY}
-// 2. Đảm bảo sheet đó đã Share -> "Anyone with the link" -> Viewer (giống các sheet cũ)
-// 3. Thêm 1 dòng vào mảng SHEETS bên dưới, copy đúng mẫu dòng có sẵn
-// 4. Mở file index.html, tìm div id="yearbar", thêm 1 button năm mới tương ứng
-//    (dòng comment "Thêm năm mới:" đã ghi rõ ngay tại đó)
-// 5. Cập nhật mảng AVAILABLE_YEARS trong index.html để khớp với SHEETS bên dưới
+// 2. Đảm bảo tài khoản @ghn.vn đã dùng để lấy refresh token có quyền xem sheet đó
+//    (nếu là sheet của người khác trong công ty, nhờ họ share cho đúng email @ghn.vn đó)
+// 3. Vào Vercel → Settings → Environment Variables → thêm biến mới, ví dụ:
+//      GOOGLE_SHEET_ID_2027 = <ID vừa copy>
+// 4. Thêm 1 dòng vào mảng SHEETS bên dưới, copy đúng mẫu dòng có sẵn (đọc từ biến môi trường)
+// 5. Mở file index.html, tìm div id="yearbar", thêm 1 button năm mới tương ứng
+//    (dòng comment "Thêm năm mới:" đã ghi rõ ngay tại đó), và cập nhật AVAILABLE_YEARS
 // 6. Commit lên GitHub, Vercel tự deploy lại
 // ============================================================
+
 const SHEETS = [
-  // { year: 2025, spreadsheetId: "1YSUWR5GZADtmtZv9VGG5vpeWjkToq9YJ7xND27nbYdI", gid: 0 },
-  // { year: 2026, spreadsheetId: "1Uvx07l2mmUr0bmQdnUbuAPN38TY2mFEWPxpO7thyLe8", gid: 0 },
-  { year: 2025, spreadsheetId: "12jeRehojTgRmFEuBvuFyoWwY8cgbtd8kigN7HOxGhw4", gid: 0 }, // cty
-  { year: 2026, spreadsheetId: "1iFRPFRfZ4HIDx-a0m0EIfZSvkkausKJQZe-Wj-qBi5E", gid: 0 }, // cty
-  // { year: 2027, spreadsheetId: "DÁN_ID_SHEET_2027_VÀO_ĐÂY", gid: 0 },
-  // { year: 2028, spreadsheetId: "DÁN_ID_SHEET_2028_VÀO_ĐÂY", gid: 0 },
-];
+  { year: 2025, spreadsheetId: process.env.GOOGLE_SHEET_ID_2025, gid: 0 },
+  { year: 2026, spreadsheetId: process.env.GOOGLE_SHEET_ID_2026, gid: 0 },
+  // { year: 2027, spreadsheetId: process.env.GOOGLE_SHEET_ID_2027, gid: 0 },
+].filter(s => s.spreadsheetId); // bỏ qua năm nào chưa cấu hình biến môi trường tương ứng
+
+let cachedToken = null;
+let cachedTokenExpiry = 0;
+
+async function getAccessToken() {
+  // Tái sử dụng access token còn hạn (trong cùng 1 instance đang "ấm") để đỡ gọi lại Google nhiều lần
+  if (cachedToken && Date.now() < cachedTokenExpiry - 60000) {
+    return cachedToken;
+  }
+
+  const clientId = process.env.GOOGLE_OAUTH_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_OAUTH_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_OAUTH_REFRESH_TOKEN;
+  if (!clientId || !clientSecret || !refreshToken) {
+    throw new Error("Thiếu GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET / GOOGLE_OAUTH_REFRESH_TOKEN trong Environment Variables");
+  }
+
+  const resp = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      refresh_token: refreshToken,
+      grant_type: "refresh_token",
+    }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error("Không làm mới được access token từ Google: " + errText);
+  }
+  const data = await resp.json();
+  cachedToken = data.access_token;
+  cachedTokenExpiry = Date.now() + data.expires_in * 1000;
+  return cachedToken;
+}
 
 export default async function handler(req, res) {
-  const API_KEY = process.env.GOOGLE_DRIVE_API_KEY;
-
-  if (!API_KEY) {
-    res.status(500).json({ error: "Thiếu GOOGLE_DRIVE_API_KEY trong Environment Variables" });
+  if (!SHEETS.length) {
+    res.status(500).json({ error: "Chưa cấu hình GOOGLE_SHEET_ID_20xx nào trong Environment Variables" });
     return;
   }
 
-  // Xác định năm cần lấy: từ query ?year=..., nếu không có/không hợp lệ thì mặc định năm mới nhất trong SHEETS
   const requestedYear = parseInt(req.query.year, 10);
   const matchedSheets = SHEETS.filter(s => s.year === requestedYear);
   const activeSheets = matchedSheets.length ? matchedSheets : [SHEETS[SHEETS.length - 1]];
@@ -41,9 +81,9 @@ export default async function handler(req, res) {
     return s;
   }
 
-  async function getSheetTitleByGid(spreadsheetId, gid) {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties&key=${API_KEY}`;
-    const r = await fetch(url);
+  async function getSheetTitleByGid(spreadsheetId, gid, token) {
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!r.ok) throw new Error(`Không lấy được thông tin sheet ${spreadsheetId} (HTTP ${r.status})`);
     const data = await r.json();
     const sheet = (data.sheets || []).find(s => s.properties.sheetId === gid);
@@ -51,19 +91,21 @@ export default async function handler(req, res) {
     return sheet.properties.title;
   }
 
-  async function getValues(spreadsheetId, gid) {
-    const title = await getSheetTitleByGid(spreadsheetId, gid);
+  async function getValues(spreadsheetId, gid, token) {
+    const title = await getSheetTitleByGid(spreadsheetId, gid, token);
     const range = encodeURIComponent(`'${title}'`);
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${API_KEY}`;
-    const r = await fetch(url);
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}`;
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
     if (!r.ok) throw new Error(`Không lấy được dữ liệu từ sheet ${spreadsheetId} (HTTP ${r.status})`);
     const data = await r.json();
     return data.values || [];
   }
 
-  async function getModifiedTime(spreadsheetId) {
+  async function getModifiedTime(spreadsheetId, token) {
     try {
-      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=modifiedTime&key=${API_KEY}`);
+      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=modifiedTime`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!r.ok) return null;
       const data = await r.json();
       return data.modifiedTime || null;
@@ -73,12 +115,13 @@ export default async function handler(req, res) {
   }
 
   try {
+    const token = await getAccessToken();
+
     const [valuesResults, modifiedTimes] = await Promise.all([
-      Promise.all(activeSheets.map(s => getValues(s.spreadsheetId, s.gid))),
-      Promise.all(activeSheets.map(s => getModifiedTime(s.spreadsheetId))),
+      Promise.all(activeSheets.map(s => getValues(s.spreadsheetId, s.gid, token))),
+      Promise.all(activeSheets.map(s => getModifiedTime(s.spreadsheetId, token))),
     ]);
 
-    // Gộp các sheet CÙNG NĂM lại (thường chỉ có 1), giữ 1 header duy nhất
     let header = null;
     let allRows = [];
     valuesResults.forEach(rows => {
@@ -95,10 +138,6 @@ export default async function handler(req, res) {
       .sort((a, b) => new Date(b) - new Date(a))[0] || "";
 
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    // Cache ngắn hạn ở tầng CDN của Vercel (không phải trình duyệt) để giảm tải khi nhiều người
-    // cùng xem trong vài phút liên tiếp — data có thể trễ tối đa ~2 phút, đổi lại tốc độ tải nhanh hơn
-    // hẳn khi Sheet đã phình to. stale-while-revalidate cho phép vẫn trả bản cũ tức thời trong lúc
-    // âm thầm lấy bản mới ở nền, tránh người dùng phải chờ.
     res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=600");
     res.setHeader("Access-Control-Expose-Headers", "X-Data-Last-Modified");
     res.setHeader("X-Data-Last-Modified", latestModified);
