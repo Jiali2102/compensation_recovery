@@ -15,6 +15,8 @@
 // 6. Commit lên GitHub, Vercel tự deploy lại
 // ============================================================
 
+import { verifySession } from "../lib/session.js";
+
 const SHEETS = [
   { year: 2025, spreadsheetId: process.env.GOOGLE_SHEET_ID_2025, gid: 0 },
   { year: 2026, spreadsheetId: process.env.GOOGLE_SHEET_ID_2026, gid: 0 },
@@ -22,6 +24,13 @@ const SHEETS = [
 ].filter(s => s.spreadsheetId); // bỏ qua năm nào chưa cấu hình biến môi trường tương ứng
 
 export default async function handler(req, res) {
+  const SESSION_SECRET = process.env.SESSION_SECRET;
+  const session = verifySession(req.headers.cookie, SESSION_SECRET);
+  if (!session) {
+    res.status(401).json({ error: "Chưa đăng nhập hoặc phiên đã hết hạn" });
+    return;
+  }
+
   const API_KEY = process.env.GOOGLE_API_KEY;
 
   if (!API_KEY) {
