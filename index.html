@@ -218,7 +218,8 @@
   .pivot-table thead th.label-col{background:#F6F7FA;z-index:3;}
   .pivot-table .current-col{background:#FFF3EA;}
   .pivot-table thead th.current-col{background:#FFE0C2;}
-  .pivot-table .prod-detail td{background:#FAFAFA;text-align:left;}
+  .pivot-table .prod-detail td{background:#E4E9F2;text-align:left;border-top:2px solid var(--orange);}
+  .pivot-table-nested thead th{background:#D6DEEB;}
   .pivot-table-nested{margin-top:8px;font-size:12.5px;width:100%;}
   .pivot-table-nested th, .pivot-table-nested td{padding:6px 8px;}
   .pivot-table-nested td.label-col, .pivot-table-nested th.label-col{position:static;background:transparent;}
@@ -509,6 +510,7 @@ function loadYear(year){
         showLoginOverlay();
         throw new Error('__UNAUTHORIZED__');
       }
+      hideLoginOverlay();
       const lastModifiedHeader = r.headers.get('X-Data-Last-Modified');
       if(lastModifiedHeader){
         const d = new Date(lastModifiedHeader);
@@ -588,6 +590,11 @@ function handleLogout(){
     .finally(() => {
       shellReady = false;
       showLoginOverlay();
+      // Bỏ chọn tài khoản Google đã đăng nhập trước đó, để lần đăng nhập kế tiếp
+      // hiện lại màn chọn tài khoản thay vì tự động chọn lại đúng người vừa đăng xuất
+      if(window.google && google.accounts && google.accounts.id){
+        google.accounts.id.disableAutoSelect();
+      }
     });
 }
 
@@ -1122,9 +1129,13 @@ function render(){
       return `<td class="${m===currentMonth6?'current-col':''}"><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>`;
     }).join('');
 
+    // Xếp Top 5 kho theo đúng giá trị đền bù CỦA THÁNG HIỆN TẠI (không phải tổng toàn thời gian)
+    // để khớp đúng với con số đang hiển thị ở cột tháng hiện tại của bảng chính
     const topHubsForSp = Object.entries(hubBySanPham[sp] || {})
-      .sort((a,b)=>b[1].den_bu - a[1].den_bu)
-      .slice(0,5);
+      .map(([kho, v]) => [kho, v, (v.byMonth[currentMonth6] && v.byMonth[currentMonth6].den_bu) || 0])
+      .sort((a,b) => b[2] - a[2])
+      .slice(0,5)
+      .map(([kho, v]) => [kho, v]);
     const detailHtml = topHubsForSp.length
       ? `<table class="pivot-table pivot-table-nested">
           <colgroup>
