@@ -494,14 +494,14 @@ let currentSubClient = 'all';
 let currentRegion = 'all';
 let charts = {};
 let shellReady = false;
+let isLoadingYear = false;
 
 function loadYear(year){
+  if(isLoadingYear) return;
+  isLoadingYear = true;
   currentYear = year;
   document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active', b.dataset.year == year));
   document.getElementById('statusText').textContent = 'Đang tải dữ liệu...';
-  if(shellReady){
-    document.getElementById('app').innerHTML = '<div class="loading">Đang tải dữ liệu từ nguồn (có thể mất vài giây)...</div>';
-  }
 
   fetch('/api/data?year=' + year)
     .then(r => {
@@ -542,6 +542,9 @@ function loadYear(year){
       document.getElementById('app').innerHTML =
         '<div class="loading">Không tải được dữ liệu.<br><small>'+err+'</small></div>';
       console.error(err);
+    })
+    .finally(() => {
+      isLoadingYear = false;
     });
 }
 
