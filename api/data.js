@@ -1,20 +1,3 @@
-// Vercel Serverless Function — lấy dữ liệu qua Google Sheets API bằng API KEY
-// (dùng cho Sheet cá nhân đã bật "Anyone with the link" — không bị chặn domain như Sheet công ty)
-// Toàn bộ ID Sheet và API Key đều nằm trong Environment Variables, KHÔNG hardcode trong code.
-//
-// ============================================================
-// HƯỚNG DẪN THÊM SHEET NĂM MỚI (2027, 2028...) — CHỈ CẦN SỬA Ở ĐÂY, KHÔNG SỬA GÌ KHÁC:
-// 1. Mở sheet năm mới trên trình duyệt, copy ID từ URL:
-//      https://docs.google.com/spreadsheets/d/{ID_NẰM_Ở_ĐÂY}/edit#gid={GID_NẰM_Ở_ĐÂY}
-// 2. Đảm bảo sheet đó đã Share -> "Anyone with the link" -> Viewer
-// 3. Vào Vercel → Settings → Environment Variables → thêm biến mới, ví dụ:
-//      GOOGLE_SHEET_ID_2027 = <ID vừa copy>
-// 4. Thêm 1 dòng vào mảng SHEETS bên dưới, copy đúng mẫu dòng có sẵn (đọc từ biến môi trường)
-// 5. Mở file index.html, tìm div id="yearbar", thêm 1 button năm mới tương ứng
-//    (dòng comment "Thêm năm mới:" đã ghi rõ ngay tại đó), và cập nhật AVAILABLE_YEARS
-// 6. Commit lên GitHub, Vercel tự deploy lại
-// ============================================================
-
 const SHEETS = [
   { year: 2025, spreadsheetId: process.env.GOOGLE_SHEET_ID_2025, gid: 0 },
   { year: 2026, spreadsheetId: process.env.GOOGLE_SHEET_ID_2026, gid: 0 },
