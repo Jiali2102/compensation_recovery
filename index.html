@@ -710,9 +710,9 @@ function buildAppSkeleton(){
     </section>
 
     <section>
-      <h2>Đền bù theo sản phẩm</h2>
+      <h2>Đền bù theo nhóm ngành hàng</h2>
       <div class="underline"></div>
-      <p class="desc">Top sản phẩm theo tổng giá trị đền bù 6 tháng gần nhất · bấm (+) xem top 5 kho gây đền bù cho từng sản phẩm</p>
+      <p class="desc">Top nhóm ngành hàng (san_pham_vn_group) theo tổng giá trị đền bù 6 tháng gần nhất · bấm (+) xem top 5 kho gây đền bù cho từng nhóm</p>
       <div class="table-wrap">
         <table class="pivot-table" id="pivotTable">
           <colgroup id="pivotColgroup"></colgroup>
@@ -1078,7 +1078,7 @@ function render(){
 
   const bySanPhamMonth = {};
   prodRows.forEach(r=>{
-    const sp = r.san_pham || '(Không rõ)';
+    const sp = r.san_pham_vn_group || '(Không rõ nhóm)';
     const m = String(r.ngay_duyet_eform||'').slice(0,7);
     if(!last7.includes(m)) return;
     if(!bySanPhamMonth[sp]) bySanPhamMonth[sp] = {};
@@ -1086,7 +1086,7 @@ function render(){
     bySanPhamMonth[sp][m].den_bu += (+r.gia_tri_den_bu||0);
     bySanPhamMonth[sp][m].truy_thu += (+r.so_tien_da_truy_thu||0);
   });
-  delete bySanPhamMonth['(Không rõ)'];
+  delete bySanPhamMonth['(Không rõ nhóm)'];
 
   const sanPhamRanked = Object.entries(bySanPhamMonth).map(([sp, byMonth])=>{
     const total6 = last6.reduce((s,m)=> s + ((byMonth[m]&&byMonth[m].den_bu)||0), 0);
@@ -1111,7 +1111,7 @@ function render(){
 
   const hubBySanPham = {};
   prodRows.forEach(r=>{
-    const sp = r.san_pham || '(Không rõ)';
+    const sp = r.san_pham_vn_group || '(Không rõ nhóm)';
     const kho = r.kho_chiu_trach_nhiem;
     const m = String(r.ngay_duyet_eform||'').slice(0,7);
     if(!kho) return;
@@ -1189,12 +1189,12 @@ function render(){
     const totalCols = 1 + monthsDesc.length*2;
     return `
       <tr>
-        <td class="label-col"><button class="warn-toggle" type="button" data-target="${rowId}" style="margin-right:8px;">+</button>${translateSanPham(sp)}</td>
+        <td class="label-col"><button class="warn-toggle" type="button" data-target="${rowId}" style="margin-right:8px;">+</button>${sp}</td>
         ${valMomCells}${rateCells}
       </tr>
       <tr class="prod-detail" id="${rowId}" style="display:none;">
         <td colspan="${totalCols}">
-          <strong style="font-size:13px;color:var(--muted);">Top 5 kho gây đền bù cho "${translateSanPham(sp)}":</strong>
+          <strong style="font-size:13px;color:var(--muted);">Top 5 kho gây đền bù cho "${sp}":</strong>
           ${detailHtml}
         </td>
       </tr>
