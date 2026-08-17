@@ -13,6 +13,11 @@ function normKey(v) {
   return String(v).replace(/\s+/g, " ").trim();
 }
 
+function findColIndex(headerRow, targetName) {
+  const normTarget = normKey(targetName).toLowerCase();
+  return headerRow.findIndex(h => normKey(h).toLowerCase() === normTarget);
+}
+
 export default async function handler(req, res) {
   const SESSION_SECRET = process.env.SESSION_SECRET;
   const session = SESSION_SECRET ? verifySession(req.headers.cookie, SESSION_SECRET) : null;
@@ -99,8 +104,8 @@ export default async function handler(req, res) {
     const sanPhamMapLower = {};
     if (sanPhamRows.length > 1) {
       const spHeader = sanPhamRows[0];
-      const spIdx = spHeader.indexOf("san_pham");
-      const spGroupIdx = spHeader.indexOf("san_pham_vn_group");
+      const spIdx = findColIndex(spHeader, "san_pham");
+      const spGroupIdx = findColIndex(spHeader, "san_pham_vn_group");
       if (spIdx !== -1 && spGroupIdx !== -1) {
         sanPhamRows.slice(1).forEach(row => {
           const key = normKey(row[spIdx]);
@@ -122,7 +127,7 @@ export default async function handler(req, res) {
       return "";
     }
 
-    const sanPhamColIdx = header.indexOf("san_pham");
+    const sanPhamColIdx = findColIndex(header, "san_pham");
 
     if (debugMode) {
       const unmatchedCounts = {};
@@ -137,6 +142,15 @@ export default async function handler(req, res) {
         .sort((a, b) => b[1] - a[1])
         .map(([code, count]) => ({ san_pham_raw: code, so_don: count }));
       res.status(200).json({
+        nam_dang_xem: requestedYear,
+        chan_doan_cot_header: {
+          header_goc_cua_sheet: header,
+          da_tim_thay_cot_san_pham: sanPhamColIdx !== -1,
+          vi_tri_cot_san_pham: sanPhamColIdx,
+          da_tim_thay_cot_san_pham_trong_bang_mapping: findColIndex(sanPhamRows[0] || [], "san_pham") !== -1,
+          da_tim_thay_cot_san_pham_vn_group_trong_bang_mapping: findColIndex(sanPhamRows[0] || [], "san_pham_vn_group") !== -1,
+          header_goc_cua_bang_mapping: sanPhamRows[0] || [],
+        },
         tong_so_dong: allRows.length,
         so_dong_thieu_san_pham: allRows.filter(row => !normKey(sanPhamColIdx !== -1 ? row[sanPhamColIdx] : "")).length,
         so_ma_san_pham_khong_khop: unmatchedList.length,
