@@ -6,6 +6,11 @@ const SHEETS = [
 const SAN_PHAM_MAP_SPREADSHEET_ID = process.env.DATA_SRC_A;
 const SAN_PHAM_MAP_RANGE = "san_pham";
 
+function normKey(v) {
+  if (v === null || v === undefined) return "";
+  return String(v).replace(/\s+/g, " ").trim();
+}
+
 export default async function handler(req, res) {
   const API_KEY = process.env.DATA_KEY_1;
   if (!API_KEY || !SHEETS.length) {
@@ -16,6 +21,7 @@ export default async function handler(req, res) {
   const requestedYear = parseInt(req.query.year, 10);
   const matchedSheets = SHEETS.filter(s => s.year === requestedYear);
   const activeSheets = matchedSheets.length ? matchedSheets : [SHEETS[SHEETS.length - 1]];
+  const debugMode = req.query.debug === "sanpham";
 
   function csvEscape(val) {
     const s = val === null || val === undefined ? "" : String(val);
@@ -81,23 +87,61 @@ export default async function handler(req, res) {
     if (!header) header = [];
 
     const sanPhamMap = {};
+    const sanPhamMapLower = {};
     if (sanPhamRows.length > 1) {
       const spHeader = sanPhamRows[0];
       const spIdx = spHeader.indexOf("san_pham");
       const spGroupIdx = spHeader.indexOf("san_pham_vn_group");
       if (spIdx !== -1 && spGroupIdx !== -1) {
         sanPhamRows.slice(1).forEach(row => {
-          const key = row[spIdx];
-          if (key) sanPhamMap[key] = row[spGroupIdx] || "";
+          const key = normKey(row[spIdx]);
+          const val = row[spGroupIdx] ? normKey(row[spGroupIdx]) : "";
+          if (key) {
+            sanPhamMap[key] = val;
+            sanPhamMapLower[key.toLowerCase()] = val;
+          }
         });
       }
     }
 
+    function lookupGroup(rawCode) {
+      const key = normKey(rawCode);
+      if (!key) return "";
+      if (sanPhamMap.hasOwnProperty(key)) return sanPhamMap[key];
+      const lowerHit = sanPhamMapLower[key.toLowerCase()];
+      if (lowerHit !== undefined) return lowerHit;
+      return "";
+    }
+
     const sanPhamColIdx = header.indexOf("san_pham");
+
+    if (debugMode) {
+      const unmatchedCounts = {};
+      allRows.forEach(row => {
+        const rawCode = sanPhamColIdx !== -1 ? row[sanPhamColIdx] : undefined;
+        const key = normKey(rawCode);
+        if (!key) return;
+        const group = lookupGroup(rawCode);
+        if (!group) unmatchedCounts[key] = (unmatchedCounts[key] || 0) + 1;
+      });
+      const unmatchedList = Object.entries(unmatchedCounts)
+        .sort((a, b) => b[1] - a[1])
+        .map(([code, count]) => ({ san_pham_raw: code, so_don: count }));
+      res.status(200).json({
+        tong_so_dong: allRows.length,
+        so_dong_thieu_san_pham: allRows.filter(row => !normKey(sanPhamColIdx !== -1 ? row[sanPhamColIdx] : "")).length,
+        so_ma_san_pham_khong_khop: unmatchedList.length,
+        so_dong_bi_anh_huong: unmatchedList.reduce((s, x) => s + x.so_don, 0),
+        so_ma_trong_bang_mapping: Object.keys(sanPhamMap).length,
+        chi_tiet_khong_khop: unmatchedList.slice(0, 100),
+      });
+      return;
+    }
+
     const headerWithGroup = [...header, "san_pham_vn_group"];
     const allRowsWithGroup = allRows.map(row => {
-      const spCode = sanPhamColIdx !== -1 ? row[sanPhamColIdx] : undefined;
-      const group = spCode !== undefined ? (sanPhamMap[spCode] || "") : "";
+      const rawCode = sanPhamColIdx !== -1 ? row[sanPhamColIdx] : undefined;
+      const group = lookupGroup(rawCode);
       return [...row, group];
     });
 
