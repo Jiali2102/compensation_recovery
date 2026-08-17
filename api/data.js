@@ -6,12 +6,21 @@ const SHEETS = [
 const SAN_PHAM_MAP_SPREADSHEET_ID = process.env.DATA_SRC_A;
 const SAN_PHAM_MAP_RANGE = "san_pham";
 
+import { verifySession } from "../lib/session.js";
+
 function normKey(v) {
   if (v === null || v === undefined) return "";
   return String(v).replace(/\s+/g, " ").trim();
 }
 
 export default async function handler(req, res) {
+  const SESSION_SECRET = process.env.SESSION_SECRET;
+  const session = SESSION_SECRET ? verifySession(req.headers.cookie, SESSION_SECRET) : null;
+  if (!session) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   const API_KEY = process.env.DATA_KEY_1;
   if (!API_KEY || !SHEETS.length) {
     console.error("data.js: thiếu cấu hình Environment Variables (DATA_KEY_1 / DATA_SRC_A / DATA_SRC_B)");
