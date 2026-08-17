@@ -1,7 +1,3 @@
-// Vercel Serverless Function — nhận Google ID token từ nút "Sign in with Google" ở client,
-// xác minh chữ ký + audience qua endpoint tokeninfo của Google, rồi kiểm tra email có đúng
-// domain @ghn.vn không. Nếu hợp lệ, cấp 1 session cookie (HttpOnly) để các request sau
-// (bao gồm /api/data) biết người dùng đã đăng nhập hợp lệ.
 import { createSessionCookie, ALLOWED_DOMAIN } from "../lib/session.js";
 
 export default async function handler(req, res) {
@@ -10,10 +6,11 @@ export default async function handler(req, res) {
     return;
   }
 
-  const CLIENT_ID = process.env.GOOGLE_SSO_CLIENT_ID;
+  const CLIENT_ID = process.env.AUTH_ID_1;
   const SESSION_SECRET = process.env.SESSION_SECRET;
   if (!CLIENT_ID || !SESSION_SECRET) {
-    res.status(500).json({ error: "Thiếu GOOGLE_SSO_CLIENT_ID hoặc SESSION_SECRET trong Environment Variables" });
+    console.error("verify.js: thiếu cấu hình Environment Variables (AUTH_ID_1 / SESSION_SECRET)");
+    res.status(500).json({ error: "Lỗi cấu hình máy chủ" });
     return;
   }
 
@@ -66,6 +63,7 @@ export default async function handler(req, res) {
     res.setHeader("Set-Cookie", createSessionCookie(email, SESSION_SECRET));
     res.status(200).json({ ok: true, email });
   } catch (err) {
-    res.status(500).json({ error: "Lỗi xác thực: " + err.message });
+    console.error("verify.js error:", err.message);
+    res.status(500).json({ error: "Lỗi xác thực" });
   }
 }
