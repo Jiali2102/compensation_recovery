@@ -129,9 +129,17 @@ export default async function handler(req, res) {
 
     const sanPhamColIdx = findColIndex(header, "san_pham");
 
+    function padRow(row, len) {
+      if (row.length >= len) return row;
+      const padded = row.slice();
+      while (padded.length < len) padded.push("");
+      return padded;
+    }
+
     if (debugMode) {
       const unmatchedCounts = {};
-      allRows.forEach(row => {
+      allRows.forEach(rawRow => {
+        const row = padRow(rawRow, header.length);
         const rawCode = sanPhamColIdx !== -1 ? row[sanPhamColIdx] : undefined;
         const key = normKey(rawCode);
         if (!key) return;
@@ -151,8 +159,11 @@ export default async function handler(req, res) {
           da_tim_thay_cot_san_pham_vn_group_trong_bang_mapping: findColIndex(sanPhamRows[0] || [], "san_pham_vn_group") !== -1,
           header_goc_cua_bang_mapping: sanPhamRows[0] || [],
         },
+        chan_doan_do_dai_dong: {
+          so_dong_bi_thieu_cot_cuoi: allRows.filter(r => r.length < header.length).length,
+        },
         tong_so_dong: allRows.length,
-        so_dong_thieu_san_pham: allRows.filter(row => !normKey(sanPhamColIdx !== -1 ? row[sanPhamColIdx] : "")).length,
+        so_dong_thieu_san_pham: allRows.filter(row => !normKey(sanPhamColIdx !== -1 ? padRow(row, header.length)[sanPhamColIdx] : "")).length,
         so_ma_san_pham_khong_khop: unmatchedList.length,
         so_dong_bi_anh_huong: unmatchedList.reduce((s, x) => s + x.so_don, 0),
         so_ma_trong_bang_mapping: Object.keys(sanPhamMap).length,
@@ -163,9 +174,10 @@ export default async function handler(req, res) {
 
     const headerWithGroup = [...header, "san_pham_vn_group"];
     const allRowsWithGroup = allRows.map(row => {
-      const rawCode = sanPhamColIdx !== -1 ? row[sanPhamColIdx] : undefined;
+      const paddedRow = padRow(row, header.length);
+      const rawCode = sanPhamColIdx !== -1 ? paddedRow[sanPhamColIdx] : undefined;
       const group = lookupGroup(rawCode);
-      return [...row, group];
+      return [...paddedRow, group];
     });
 
     const csvText = [headerWithGroup, ...allRowsWithGroup].map(row => row.map(csvEscape).join(",")).join("\n");
