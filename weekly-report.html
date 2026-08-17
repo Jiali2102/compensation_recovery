@@ -24,6 +24,7 @@
   #loginError{color:var(--bad);font-size:13px;margin-top:10px;}
   #appShellWrap{display:none;}
 
+  .sticky-top{position:sticky;top:0;z-index:100;}
   .top-line{height:3px;background:var(--orange);}
   header{background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);color:#fff;padding:18px clamp(20px,4vw,48px);}
   .header-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
@@ -104,6 +105,7 @@
 </div>
 
 <div id="appShellWrap">
+<div class="sticky-top">
 <div class="top-line"></div>
 <header>
   <div class="header-top">
@@ -120,6 +122,8 @@
   <button class="subtab-btn" data-subtab="spb">Chi tiết SPB</button>
   <button class="subtab-btn" data-subtab="spe">Chi tiết SPE</button>
   <button class="subtab-btn" data-subtab="chuyensau">Chuyên sâu &amp; Đề xuất</button>
+  <button class="subtab-btn" data-subtab="thang">Báo cáo tháng</button>
+</div>
 </div>
 <main id="app"><div class="loading">Đang tải dữ liệu...</div></main>
 </div>
@@ -185,6 +189,7 @@ const ACC_COLOR = { SPB:'var(--spb)', SPE:'var(--spe)' };
 
 let RAW = [];
 let WEEKS = [];
+let MONTHS = [];
 let REPORT = {};
 let currentSubtab = 'tongquan';
 
@@ -210,6 +215,12 @@ function loadAll(){
     const weekMap = {};
     RAW.forEach(r=>{ weekMap[r._weekKey] = r._weekLabel; });
     WEEKS = Object.keys(weekMap).sort().map(k=>({key:k, label:weekMap[k]}));
+    const monthSet = {};
+    RAW.forEach(r=>{ monthSet[r._month] = true; });
+    MONTHS = Object.keys(monthSet).sort().map(k=>{
+      const [y,m] = k.split('-');
+      return {key:k, label:'Th'+m+'/'+y};
+    });
     document.getElementById('statusText').textContent = 'Dữ liệu SPB+SPE: ' + fmtNum(RAW.length) + ' đơn';
     render();
   }).catch(err=>{
@@ -219,19 +230,20 @@ function loadAll(){
   });
 }
 
-function aggByGroupWeek(rows, groupFn){
-  const byGroupWeek = {}, totalByGroup = {};
+function aggByGroupPeriod(rows, groupFn, periodField){
+  const byGroupPeriod = {}, totalByGroup = {};
   rows.forEach(r=>{
     const g = groupFn(r);
     if(g === null || g === undefined || g === '') return;
-    if(!byGroupWeek[g]) byGroupWeek[g] = {};
-    if(!byGroupWeek[g][r._weekKey]) byGroupWeek[g][r._weekKey] = {den_bu:0, truy_thu:0, so_don:0};
-    byGroupWeek[g][r._weekKey].den_bu += (+r.gia_tri_den_bu||0);
-    byGroupWeek[g][r._weekKey].truy_thu += (+r.so_tien_da_truy_thu||0);
-    byGroupWeek[g][r._weekKey].so_don += 1;
+    const pk = r[periodField];
+    if(!byGroupPeriod[g]) byGroupPeriod[g] = {};
+    if(!byGroupPeriod[g][pk]) byGroupPeriod[g][pk] = {den_bu:0, truy_thu:0, so_don:0};
+    byGroupPeriod[g][pk].den_bu += (+r.gia_tri_den_bu||0);
+    byGroupPeriod[g][pk].truy_thu += (+r.so_tien_da_truy_thu||0);
+    byGroupPeriod[g][pk].so_don += 1;
     totalByGroup[g] = (totalByGroup[g]||0) + (+r.gia_tri_den_bu||0);
   });
-  return {byGroupWeek, totalByGroup};
+  return {byGroupPeriod, totalByGroup};
 }
 
 function computeMTDMoM(rows, groupFn){
@@ -257,11 +269,14 @@ function computeMTDMoM(rows, groupFn){
 
 function renderTrendTable(rows, groupFn, opts){
   opts = opts || {};
-  const nWeeks = opts.nWeeks || 6;
+  const periodType = opts.periodType || 'week';
+  const periodField = periodType === 'month' ? '_month' : '_weekKey';
+  const periodsAll = periodType === 'month' ? MONTHS : WEEKS;
+  const nPeriods = opts.nPeriods || opts.nWeeks || 6;
   const topN = opts.topN || 8;
-  const lastWeeks = WEEKS.slice(-nWeeks);
+  const lastWeeks = periodsAll.slice(-nPeriods);
   const curWeekKey = lastWeeks.length ? lastWeeks[lastWeeks.length-1].key : null;
-  const {byGroupWeek, totalByGroup} = aggByGroupWeek(rows, groupFn);
+  const {byGroupPeriod, totalByGroup} = aggByGroupPeriod(rows, groupFn, periodField);
   const mtdmom = computeMTDMoM(rows, groupFn);
   let groupsSorted = Object.keys(totalByGroup).sort((a,b)=>totalByGroup[b]-totalByGroup[a]);
   let othersTotal = 0, othersByWeek = {};
@@ -269,10 +284,10 @@ function renderTrendTable(rows, groupFn, opts){
     const rest = groupsSorted.slice(topN);
     rest.forEach(g=>{
       othersTotal += totalByGroup[g] || 0;
-      Object.keys(byGroupWeek[g]||{}).forEach(wk=>{
+      Object.keys(byGroupPeriod[g]||{}).forEach(wk=>{
         if(!othersByWeek[wk]) othersByWeek[wk] = {den_bu:0,truy_thu:0,so_don:0};
-        othersByWeek[wk].den_bu += byGroupWeek[g][wk].den_bu;
-        othersByWeek[wk].so_don += byGroupWeek[g][wk].so_don;
+        othersByWeek[wk].den_bu += byGroupPeriod[g][wk].den_bu;
+        othersByWeek[wk].so_don += byGroupPeriod[g][wk].so_don;
       });
     });
     groupsSorted = groupsSorted.slice(0, topN);
@@ -298,7 +313,7 @@ function renderTrendTable(rows, groupFn, opts){
 
   let tbody = '';
   groupsSorted.forEach(g=>{
-    tbody += rowHtml(g, byGroupWeek[g]||{}, mtdmom.byGroup[g]);
+    tbody += rowHtml(g, byGroupPeriod[g]||{}, mtdmom.byGroup[g]);
   });
   if(opts.topAndOthers && othersTotal > 0){
     const mtdOthers = {mtd:0, prevComparable:0};
@@ -311,7 +326,7 @@ function renderTrendTable(rows, groupFn, opts){
     tbody += rowHtml('Khác', othersByWeek, mtdOthers);
   }
 
-  return { thead, tbody, groupsSorted, totalByGroup, grandTotal, mtdmom, lastWeeks, curWeekKey };
+  return { thead, tbody, groupsSorted, totalByGroup, grandTotal, mtdmom, lastWeeks, curWeekKey, byGroupWeek: byGroupPeriod };
 }
 
 function tableWrap(title, desc, theadHtml, tbodyHtml, note){
@@ -329,7 +344,7 @@ function renderTongQuan(){
   const topLoaiYC = Object.entries(byLoaiYC).sort((a,b)=>b[1]-a[1])[0];
 
   const byNganh = {};
-  rowsCurWeek.forEach(r=>{ const k=r.san_pham_vn_group||'(Không rõ)'; byNganh[k]=(byNganh[k]||0)+(+r.gia_tri_den_bu||0); });
+  rowsCurWeek.forEach(r=>{ const k=r.san_pham_vn_group||''; if(!k) return; byNganh[k]=(byNganh[k]||0)+(+r.gia_tri_den_bu||0); });
   const topNganh = Object.entries(byNganh).sort((a,b)=>b[1]-a[1])[0];
 
   const mtdAll = computeMTDMoM(RAW, ()=> 'ALL');
@@ -517,12 +532,79 @@ function renderChuyenSau(){
   `;
 }
 
+function renderBaoCaoThang(){
+  const lastMonths = MONTHS.slice(-6);
+  const curMonth = lastMonths[lastMonths.length-1];
+  const rowsCurMonth = RAW.filter(r=>r._month === curMonth.key);
+  const totalDenBuThang = rowsCurMonth.reduce((s,r)=>s+(+r.gia_tri_den_bu||0),0);
+
+  const byLoaiYC = {};
+  rowsCurMonth.forEach(r=>{ const k=r.loai_yeu_cau||'(Không rõ)'; byLoaiYC[k]=(byLoaiYC[k]||0)+(+r.gia_tri_den_bu||0); });
+  const topLoaiYC = Object.entries(byLoaiYC).sort((a,b)=>b[1]-a[1])[0];
+
+  const byNganh = {};
+  rowsCurMonth.forEach(r=>{ const k=r.san_pham_vn_group||''; if(!k) return; byNganh[k]=(byNganh[k]||0)+(+r.gia_tri_den_bu||0); });
+  const topNganh = Object.entries(byNganh).sort((a,b)=>b[1]-a[1])[0];
+
+  const mtdAll = computeMTDMoM(RAW, ()=> 'ALL');
+  const mtdEntry = mtdAll.byGroup['ALL'] || {mtd:0, prevComparable:0};
+  const momAllPct = mtdEntry.prevComparable ? (mtdEntry.mtd-mtdEntry.prevComparable)/mtdEntry.prevComparable*100 : null;
+
+  const accTable = renderTrendTable(RAW, r=>r._acc, {periodType:'month', nPeriods:6});
+  const locTable = renderTrendTable(RAW, r=>r.loai_yeu_cau||'(Không rõ)', {periodType:'month', nPeriods:6, topN:6, topAndOthers:true});
+  const nganhTable = renderTrendTable(RAW, r=>r.san_pham_vn_group||'(Không rõ)', {periodType:'month', nPeriods:6, topN:5, topAndOthers:true});
+  function rootCauseLabelThang(r){ const sp = r.san_pham||''; return sp ? translateSanPham(sp) : '(Không rõ)'; }
+  const rootTable = renderTrendTable(RAW, rootCauseLabelThang, {periodType:'month', nPeriods:6, topN:8, topAndOthers:true});
+
+  const accShare = {};
+  rowsCurMonth.forEach(r=>{ accShare[r._acc] = (accShare[r._acc]||0) + (+r.gia_tri_den_bu||0); });
+  const spbVal = accShare['SPB']||0, speVal = accShare['SPE']||0;
+  const accLeader = spbVal >= speVal ? 'SPB' : 'SPE';
+
+  const nhanxetHtml = `
+    <div class="nhanxet"><b>Tổng đền bù ${curMonth.label}:</b> ${fmtMoney(totalDenBuThang)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}).</div>
+    <div class="nhanxet"><b>Loại yêu cầu lớn nhất trong tháng:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)}.</div>
+    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất trong tháng:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)}.</div>
+    <div class="nhanxet"><b>MTD:</b> ${fmtMoney(mtdEntry.mtd)} — MoM so với cùng kỳ tháng trước: ${momHtml(momAllPct)}</div>
+  `;
+
+  REPORT.thang = { curMonth, totalDenBuThang, topLoaiYC, topNganh, mtdEntry, momAllPct, accTable, locTable, nganhTable, rootTable };
+
+  document.getElementById('app').innerHTML = `
+    <div class="banner">Phạm vi dữ liệu: <b>Shopee Express (SPE)</b> và <b>Shopee Bulky (SPB)</b> · Trend theo tháng (6 tháng gần nhất), mốc thời gian: <code>ngay_duyet_eform</code>.</div>
+    <section><h2>Nhận xét chung — ${curMonth.label}</h2><div class="underline"></div>${nhanxetHtml}</section>
+    <div class="kpis">
+      <div class="kpi accent"><div class="label">Tổng đền bù ${curMonth.label}</div><div class="value">${fmtMoney(totalDenBuThang)}</div></div>
+      <div class="kpi"><div class="label">Loại yêu cầu lớn nhất</div><div class="value" style="font-size:16px;">${topLoaiYC?topLoaiYC[0]:'—'}</div><div class="sub">${fmtMoney(topLoaiYC?topLoaiYC[1]:0)}</div></div>
+      <div class="kpi"><div class="label">Nhóm ngành lớn nhất</div><div class="value" style="font-size:16px;">${topNganh?topNganh[0]:'—'}</div><div class="sub">${fmtMoney(topNganh?topNganh[1]:0)}</div></div>
+      <div class="kpi"><div class="label">MTD</div><div class="value">${fmtMoney(mtdEntry.mtd)}</div><div class="sub">MoM ${momHtml(momAllPct)}</div></div>
+    </div>
+    <section>
+      <h2>Đền bù theo Account — 6 tháng gần nhất</h2><div class="underline"></div>
+      ${tableWrap('','',accTable.thead, accTable.tbody)}
+    </section>
+    <section>
+      <h2>Đền bù theo loại yêu cầu — 6 tháng gần nhất</h2><div class="underline"></div>
+      ${tableWrap('','',locTable.thead, locTable.tbody)}
+    </section>
+    <section>
+      <h2>Đền bù theo nhóm ngành hàng — 6 tháng gần nhất</h2><div class="underline"></div>
+      ${tableWrap('','',nganhTable.thead, nganhTable.tbody)}
+    </section>
+    <section>
+      <h2>Root cause theo tháng</h2><div class="underline"></div>
+      ${tableWrap('','',rootTable.thead, rootTable.tbody)}
+    </section>
+  `;
+}
+
 function render(){
   document.querySelectorAll('.subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.subtab===currentSubtab));
   if(currentSubtab==='tongquan') renderTongQuan();
   else if(currentSubtab==='spb') renderChiTiet('SPB');
   else if(currentSubtab==='spe') renderChiTiet('SPE');
   else if(currentSubtab==='chuyensau') renderChuyenSau();
+  else if(currentSubtab==='thang') renderBaoCaoThang();
 }
 document.getElementById('subtabbar').addEventListener('click', e=>{
   if(e.target.tagName !== 'BUTTON') return;
@@ -592,6 +674,19 @@ function exportMarkdown(){
     REPORT.chuyensau.suggestions.forEach(s=>{
       md += `- **[${s.level==='cao'?'Cao':s.level==='tb'?'Trung bình':'Thấp'}]** ${s.text}\n`;
     });
+  }
+
+  if(REPORT.thang){
+    const th = REPORT.thang;
+    md += `## Báo cáo tháng — ${th.curMonth.label}\n\n`;
+    md += `- **Tổng đền bù ${th.curMonth.label}:** ${fmtMoney(th.totalDenBuThang)}\n`;
+    md += `- **Loại yêu cầu lớn nhất:** ${th.topLoaiYC?th.topLoaiYC[0]:'—'} (${fmtMoney(th.topLoaiYC?th.topLoaiYC[1]:0)})\n`;
+    md += `- **Nhóm ngành lớn nhất:** ${th.topNganh?th.topNganh[0]:'—'} (${fmtMoney(th.topNganh?th.topNganh[1]:0)})\n`;
+    md += `- **MTD:** ${fmtMoney(th.mtdEntry.mtd)} · **MoM:** ${th.momAllPct===null?'—':(th.momAllPct>0?'▲ ':'▼ ')+Math.abs(th.momAllPct).toFixed(2)+'%'}\n\n`;
+    md += trendTableToMd('Đền bù theo Account (tháng)', th.accTable);
+    md += trendTableToMd('Đền bù theo loại yêu cầu (tháng)', th.locTable);
+    md += trendTableToMd('Đền bù theo nhóm ngành hàng (tháng)', th.nganhTable);
+    md += trendTableToMd('Root cause theo tháng', th.rootTable);
   }
 
   const blob = new Blob([md], {type:'text/markdown;charset=utf-8'});
