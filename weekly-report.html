@@ -42,6 +42,11 @@
   .export-menu.show{display:block;}
   .export-menu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--ink);font-family:inherit;font-size:13.5px;padding:10px 14px;cursor:pointer;}
   .export-menu button:hover{background:#F6F7FA;}
+  .warn-toggle{font-family:inherit;background:var(--bg);border:1px solid var(--border);border-radius:4px;width:20px;height:20px;line-height:1;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;margin-right:6px;}
+  .warn-toggle:hover{background:#EAEDF3;}
+  .expand-row td{background:#FAFBFD;padding:10px 9px 14px 28px;}
+  table.subtable{width:auto;min-width:60%;font-size:12.5px;}
+  table.subtable th,table.subtable td{padding:5px 8px;}
 
   .subtabbar{display:flex;gap:2px;background:var(--navy);padding:0 clamp(20px,4vw,48px);flex-wrap:wrap;}
   .subtabbar button{font-family:inherit;background:transparent;border:none;color:#B9CBE0;padding:12px 18px;font-size:14.5px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;}
@@ -275,8 +280,8 @@ function renderYearSwitcher(){
   });
 }
 
-function aggByGroupPeriod(rows, groupFn, periodField){
-  const byGroupPeriod = {}, totalByGroup = {};
+function aggByGroupPeriod(rows, groupFn, periodField, collectRows){
+  const byGroupPeriod = {}, totalByGroup = {}, rowsByGroup = collectRows ? {} : null;
   rows.forEach(r=>{
     const g = groupFn(r);
     if(g === null || g === undefined || g === '') return;
@@ -287,8 +292,12 @@ function aggByGroupPeriod(rows, groupFn, periodField){
     byGroupPeriod[g][pk].truy_thu += (+r.so_tien_da_truy_thu||0);
     byGroupPeriod[g][pk].so_don += 1;
     totalByGroup[g] = (totalByGroup[g]||0) + (+r.gia_tri_den_bu||0);
+    if(collectRows){
+      if(!rowsByGroup[g]) rowsByGroup[g] = [];
+      rowsByGroup[g].push(r);
+    }
   });
-  return {byGroupPeriod, totalByGroup};
+  return {byGroupPeriod, totalByGroup, rowsByGroup};
 }
 
 function computeMTDMoM(rows, groupFn){
@@ -312,6 +321,8 @@ function computeMTDMoM(rows, groupFn){
   return {byGroup, currentMonth, prevMonth, cutoffDay};
 }
 
+let EXPAND_ID_SEQ = 0;
+
 function renderTrendTable(rows, groupFn, opts){
   opts = opts || {};
   const periodType = opts.periodType || 'week';
@@ -321,7 +332,7 @@ function renderTrendTable(rows, groupFn, opts){
   const topN = opts.topN || 8;
   const lastWeeks = periodsAll.slice(-nPeriods);
   const curWeekKey = lastWeeks.length ? lastWeeks[lastWeeks.length-1].key : null;
-  const {byGroupPeriod, totalByGroup} = aggByGroupPeriod(rows, groupFn, periodField);
+  const {byGroupPeriod, totalByGroup, rowsByGroup} = aggByGroupPeriod(rows, groupFn, periodField, !!opts.expandable);
   const mtdmom = computeMTDMoM(rows, groupFn);
   let groupsSorted = Object.keys(totalByGroup).sort((a,b)=>totalByGroup[b]-totalByGroup[a]);
   let othersTotal = 0, othersByWeek = {};
@@ -338,13 +349,26 @@ function renderTrendTable(rows, groupFn, opts){
     groupsSorted = groupsSorted.slice(0, topN);
   }
   const grandTotal = Object.values(totalByGroup).reduce((s,v)=>s+v,0) || 1;
+  const colCount = lastWeeks.length + 3;
 
   let thead = '<tr><th>Nhóm</th>';
   lastWeeks.forEach(w=> thead += `<th class="${w.key===curWeekKey?'cur':''}">${w.label}</th>`);
   thead += `<th>MTD</th><th>MoM</th></tr>`;
 
-  function rowHtml(label, byWeek, mtdEntry){
-    let html = `<tr><td>${label}</td>`;
+  function subChannelTableHtml(groupRows){
+    const sub = renderTrendTable(groupRows||[], classifyChannel, {periodType, nPeriods});
+    return `<table class="subtable"><thead>${sub.thead}</thead><tbody>${sub.tbody}</tbody></table>`;
+  }
+
+  function rowHtml(label, byWeek, mtdEntry, groupRows){
+    let expandBtn = '';
+    let expandRow = '';
+    if(opts.expandable && groupRows && groupRows.length){
+      const rowId = `exp-${opts.idPrefix||'g'}-${EXPAND_ID_SEQ++}`;
+      expandBtn = `<button class="warn-toggle" type="button" data-target="${rowId}">+</button>`;
+      expandRow = `<tr id="${rowId}" class="expand-row" style="display:none;"><td colspan="${colCount}">${subChannelTableHtml(groupRows)}</td></tr>`;
+    }
+    let html = `<tr><td>${expandBtn}${label}</td>`;
     lastWeeks.forEach(w=>{
       const v = (byWeek[w.key] && byWeek[w.key].den_bu) || 0;
       html += `<td class="${w.key===curWeekKey?'cur':''}">${fmtMoney(v)}</td>`;
@@ -352,13 +376,13 @@ function renderTrendTable(rows, groupFn, opts){
     const mtd = mtdEntry ? mtdEntry.mtd : 0;
     const prev = mtdEntry ? mtdEntry.prevComparable : 0;
     const momPct = prev ? (mtd-prev)/prev*100 : null;
-    html += `<td>${fmtMoney(mtd)}</td><td>${momHtml(momPct)}</td></tr>`;
+    html += `<td>${fmtMoney(mtd)}</td><td>${momHtml(momPct)}</td></tr>${expandRow}`;
     return html;
   }
 
   let tbody = '';
   groupsSorted.forEach(g=>{
-    tbody += rowHtml(g, byGroupPeriod[g]||{}, mtdmom.byGroup[g]);
+    tbody += rowHtml(g, byGroupPeriod[g]||{}, mtdmom.byGroup[g], rowsByGroup ? rowsByGroup[g] : null);
   });
   if(opts.topAndOthers && othersTotal > 0){
     const mtdOthers = {mtd:0, prevComparable:0};
@@ -368,7 +392,7 @@ function renderTrendTable(rows, groupFn, opts){
         mtdOthers.prevComparable += mtdmom.byGroup[g].prevComparable;
       }
     });
-    tbody += rowHtml('Khác', othersByWeek, mtdOthers);
+    tbody += rowHtml('Khác', othersByWeek, mtdOthers, null);
   }
 
   return { thead, tbody, groupsSorted, totalByGroup, grandTotal, mtdmom, lastWeeks, curWeekKey, byGroupWeek: byGroupPeriod };
@@ -474,14 +498,12 @@ function renderChiTiet(acc){
   const locTable = renderTrendTable(rowsAcc, r=>r.loai_yeu_cau||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true});
 
   const rowsTop1 = top1 ? rowsAcc.filter(r=>(r.loai_yeu_cau||'(Không rõ)')===top1[0]) : [];
-  const bTable = renderTrendTable(rowsTop1, r=>r.san_pham_vn_group||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true});
+  const bTable = renderTrendTable(rowsTop1, r=>r.san_pham_vn_group||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true, expandable:true, idPrefix:`b-${acc}`});
 
   const rowsTop2 = top2 ? rowsAcc.filter(r=>(r.loai_yeu_cau||'(Không rõ)')===top2[0]) : [];
-  const cTable = renderTrendTable(rowsTop2, r=>r.tuyen||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true});
+  const cTable = renderTrendTable(rowsTop2, r=>r.tuyen||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true, expandable:true, idPrefix:`c-${acc}`});
 
-  const dTable = renderTrendTable(rowsTop1, classifyChannel, {nWeeks:5});
-
-  REPORT[acc.toLowerCase()] = { totalDenBu, totalTruyThu, soDon, giaTriTB, tyLeThuHoi, top1, top2, locTable, bTable, cTable, dTable };
+  REPORT[acc.toLowerCase()] = { totalDenBu, totalTruyThu, soDon, giaTriTB, tyLeThuHoi, top1, top2, locTable, bTable, cTable };
 
   document.getElementById('app').innerHTML = `
     <div class="banner"><span class="badge-${acc.toLowerCase()}">${acc}</span> ${acc==='SPB'?'Shopee Bulky':'Shopee Express'} · nhom_kh = ${acc==='SPB'?'3892833':'18692'} · Năm: <b>${selectedYear}</b></div>
@@ -500,18 +522,13 @@ function renderChiTiet(acc){
     </section>
     <section>
       <h2>B. Đào sâu: "${top1?top1[0]:'—'}" theo nhóm ngành hàng</h2><div class="underline"></div>
-      <p class="desc">Loại yêu cầu lớn nhất của ${acc}, breakdown theo san_pham_vn_group</p>
+      <p class="desc">Loại yêu cầu lớn nhất của ${acc}, breakdown theo san_pham_vn_group · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
       ${tableWrap('','',bTable.thead, bTable.tbody)}
     </section>
     <section>
       <h2>C. Đào sâu: "${top2?top2[0]:'—'}" theo tuyến</h2><div class="underline"></div>
-      <p class="desc">Loại yêu cầu lớn thứ 2 của ${acc}, breakdown theo tuyến</p>
+      <p class="desc">Loại yêu cầu lớn thứ 2 của ${acc}, breakdown theo tuyến · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
       ${tableWrap('','',cTable.thead, cTable.tbody)}
-    </section>
-    <section>
-      <h2>D. Đào sâu: "${top1?top1[0]:'—'}" theo kênh (WH/MP)</h2><div class="underline"></div>
-      <p class="desc">Loại yêu cầu lớn nhất của ${acc}, phân loại theo cột channel: chứa "wh" → nhóm WH, còn lại → nhóm MP</p>
-      ${tableWrap('','',dTable.thead, dTable.tbody)}
     </section>
   `;
 }
@@ -519,8 +536,8 @@ function renderChiTiet(acc){
 function renderChuyenSau(){
   const lastWeeks = WEEKS.slice(-5);
   function rootCauseLabel(r){ const sp = r.san_pham||''; return sp ? translateSanPham(sp) : '(Không rõ)'; }
-  const rootTable = renderTrendTable(RAW, rootCauseLabel, {nWeeks:5, topN:8, topAndOthers:true});
-  const tuyenTable = renderTrendTable(RAW, r=>r.tuyen||'(Không rõ)', {nWeeks:5, topN:8, topAndOthers:true});
+  const rootTable = renderTrendTable(RAW, rootCauseLabel, {nWeeks:5, topN:8, topAndOthers:true, expandable:true, idPrefix:'root'});
+  const tuyenTable = renderTrendTable(RAW, r=>r.tuyen||'(Không rõ)', {nWeeks:5, topN:8, topAndOthers:true, expandable:true, idPrefix:'tuyen'});
 
   const ahamoveRows = RAW.filter(r=> /intra|n[ộo]i th[àa]nh/i.test(r.tuyen||''));
   const ahaByNganh = {};
@@ -563,7 +580,7 @@ function renderChuyenSau(){
     <div class="banner">Gộp SPB+SPE · Năm: <b>${selectedYear}</b> · Mốc thời gian: <code>ngay_duyet_eform</code></div>
     <section>
       <h2>Root cause (theo san_pham / cat_level3)</h2><div class="underline"></div>
-      <p class="desc">Gộp SPB+SPE, top 8 + "Khác", trend 5 tuần + MTD/MoM</p>
+      <p class="desc">Gộp SPB+SPE, top 8 + "Khác", trend 5 tuần + MTD/MoM · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
       ${tableWrap('','',rootTable.thead, rootTable.tbody)}
     </section>
     <section>
@@ -669,6 +686,15 @@ document.getElementById('subtabbar').addEventListener('click', e=>{
   currentSubtab = e.target.dataset.subtab;
   render();
 });
+document.getElementById('app').addEventListener('click', e=>{
+  const btn = e.target.closest('.warn-toggle');
+  if(!btn) return;
+  const el = document.getElementById(btn.dataset.target);
+  if(!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'table-row' : 'none';
+  btn.textContent = isHidden ? '−' : '+';
+});
 
 function trendTableToMd(title, tbl){
   let md = `### ${title}\n\n`;
@@ -742,7 +768,6 @@ function buildMarkdown(){
     md += trendTableToMd(`${acc.toUpperCase()} — Cơ cấu loại yêu cầu`, d.locTable);
     md += trendTableToMd(`${acc.toUpperCase()} — Đào sâu "${d.top1?d.top1[0]:''}" theo nhóm ngành`, d.bTable);
     md += trendTableToMd(`${acc.toUpperCase()} — Đào sâu "${d.top2?d.top2[0]:''}" theo tuyến`, d.cTable);
-    md += trendTableToMd(`${acc.toUpperCase()} — Đào sâu "${d.top1?d.top1[0]:''}" theo kênh (WH/MP)`, d.dTable);
   });
 
   if(REPORT.chuyensau){
@@ -783,12 +808,50 @@ function buildMarkdown(){
 function buildHtmlDocument(captured, order, weekLabel){
   const styleEl = document.querySelector('style');
   const styleTag = styleEl ? styleEl.outerHTML : '';
-  let body = `<h1 style="font-family:Cambria,Georgia,serif;color:var(--navy,#0E4174);">BÁO CÁO TUẦN - ĐỀN BÙ (SPB / SPE) — ${weekLabel}</h1>`;
-  order.forEach(o=>{
-    const c = captured[o.key];
-    body += `<h1 style="margin-top:40px;font-family:Cambria,Georgia,serif;color:var(--orange,#FE5F00);border-bottom:3px solid var(--orange,#FE5F00);padding-bottom:8px;">${c.title}</h1>${c.html}`;
-  });
-  return `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Báo cáo tuần đền bù — ${weekLabel}</title>${styleTag}</head><body style="max-width:1300px;margin:0 auto;padding:24px;background:var(--bg,#F6F7FA);">${body}</body></html>`;
+  const navButtons = order.map((o,i)=>
+    `<button class="subtab-btn${i===0?' active':''}" data-idx="${i}">${o.title}</button>`
+  ).join('');
+  const panels = order.map((o,i)=>
+    `<div class="export-panel" data-idx="${i}"${i===0?'':' style="display:none;"'}>${captured[o.key].html}</div>`
+  ).join('');
+  return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Báo cáo tuần đền bù — ${weekLabel}</title>
+${styleTag}
+<style>@media print{ .export-panel{display:block !important;} .sticky-top{position:static;} #exportSubtabbar{display:none;} }</style>
+</head>
+<body>
+<div class="sticky-top">
+<div class="top-line"></div>
+<header>
+  <div class="header-top">
+    <h1>BÁO CÁO TUẦN - ĐỀN BÙ (SPB / SPE) — ${weekLabel}</h1>
+  </div>
+</header>
+<div class="subtabbar" id="exportSubtabbar">${navButtons}</div>
+</div>
+<main>${panels}</main>
+<script>
+document.getElementById('exportSubtabbar').addEventListener('click', function(e){
+  if(e.target.tagName !== 'BUTTON') return;
+  var idx = e.target.dataset.idx;
+  document.querySelectorAll('#exportSubtabbar .subtab-btn').forEach(function(b){ b.classList.toggle('active', b===e.target); });
+  document.querySelectorAll('.export-panel').forEach(function(p){ p.style.display = (p.dataset.idx===idx) ? '' : 'none'; });
+});
+document.body.addEventListener('click', function(e){
+  var btn = e.target.closest('.warn-toggle');
+  if(!btn) return;
+  var el = document.getElementById(btn.dataset.target);
+  if(!el) return;
+  var isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'table-row' : 'none';
+  btn.textContent = isHidden ? '−' : '+';
+});
+</script>
+</body>
+</html>`;
 }
 
 function doExport(format){
