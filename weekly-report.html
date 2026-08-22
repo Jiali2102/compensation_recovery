@@ -37,6 +37,11 @@
   #yearSwitcher{display:inline-flex;gap:2px;background:rgba(255,255,255,.2);border-radius:6px;padding:2px;}
   .year-btn{font-family:inherit;background:transparent;border:none;color:#fff;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;border-radius:5px;}
   .year-btn.active{background:#fff;color:var(--orange-dark);}
+  .export-wrap{position:relative;display:inline-block;}
+  .export-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);overflow:hidden;min-width:170px;z-index:200;}
+  .export-menu.show{display:block;}
+  .export-menu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--ink);font-family:inherit;font-size:13.5px;padding:10px 14px;cursor:pointer;}
+  .export-menu button:hover{background:#F6F7FA;}
 
   .subtabbar{display:flex;gap:2px;background:var(--navy);padding:0 clamp(20px,4vw,48px);flex-wrap:wrap;}
   .subtabbar button{font-family:inherit;background:transparent;border:none;color:#B9CBE0;padding:12px 18px;font-size:14.5px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;}
@@ -116,7 +121,14 @@
     <div style="display:flex;align-items:center;gap:10px;">
       <span id="statusText"></span>
       <span id="yearSwitcher"></span>
-      <button id="exportBtn" type="button">⬇ Xuất Markdown</button>
+      <div class="export-wrap">
+        <button id="exportBtn" type="button">⬇ Xuất ▾</button>
+        <div class="export-menu" id="exportMenu">
+          <button type="button" data-format="md">Markdown (.md)</button>
+          <button type="button" data-format="html">HTML (.html)</button>
+          <button type="button" data-format="pdf">In / Lưu PDF</button>
+        </div>
+      </div>
       <a class="backlink" href="index.html">← Về Dashboard</a>
     </div>
   </div>
@@ -429,6 +441,11 @@ function renderTongQuan(){
   `;
 }
 
+function classifyChannel(r){
+  const c = String(r.channel||'').toLowerCase();
+  return c.includes('wh') ? 'WH' : 'MP';
+}
+
 function renderChiTiet(acc){
   const rowsAcc = RAW.filter(r=>r._acc===acc);
   const lastWeeks = WEEKS.slice(-6);
@@ -462,7 +479,9 @@ function renderChiTiet(acc){
   const rowsTop2 = top2 ? rowsAcc.filter(r=>(r.loai_yeu_cau||'(Không rõ)')===top2[0]) : [];
   const cTable = renderTrendTable(rowsTop2, r=>r.tuyen||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true});
 
-  REPORT[acc.toLowerCase()] = { totalDenBu, totalTruyThu, soDon, giaTriTB, tyLeThuHoi, top1, top2, locTable, bTable, cTable };
+  const dTable = renderTrendTable(rowsTop1, classifyChannel, {nWeeks:5});
+
+  REPORT[acc.toLowerCase()] = { totalDenBu, totalTruyThu, soDon, giaTriTB, tyLeThuHoi, top1, top2, locTable, bTable, cTable, dTable };
 
   document.getElementById('app').innerHTML = `
     <div class="banner"><span class="badge-${acc.toLowerCase()}">${acc}</span> ${acc==='SPB'?'Shopee Bulky':'Shopee Express'} · nhom_kh = ${acc==='SPB'?'3892833':'18692'} · Năm: <b>${selectedYear}</b></div>
@@ -488,6 +507,11 @@ function renderChiTiet(acc){
       <h2>C. Đào sâu: "${top2?top2[0]:'—'}" theo tuyến</h2><div class="underline"></div>
       <p class="desc">Loại yêu cầu lớn thứ 2 của ${acc}, breakdown theo tuyến</p>
       ${tableWrap('','',cTable.thead, cTable.tbody)}
+    </section>
+    <section>
+      <h2>D. Đào sâu: "${top1?top1[0]:'—'}" theo kênh (WH/MP)</h2><div class="underline"></div>
+      <p class="desc">Loại yêu cầu lớn nhất của ${acc}, phân loại theo cột channel: chứa "wh" → nhóm WH, còn lại → nhóm MP</p>
+      ${tableWrap('','',dTable.thead, dTable.tbody)}
     </section>
   `;
 }
@@ -666,17 +690,37 @@ function trendTableToMd(title, tbl){
   return md + '\n';
 }
 
-function exportMarkdown(){
-  if(!RAW_ALL.length){ alert('Dữ liệu chưa tải xong, vui lòng đợi rồi thử lại.'); return; }
+function triggerDownload(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function captureAllTabsHtml(){
   const savedTab = currentSubtab;
-  renderTongQuan();
-  renderChiTiet('SPB');
-  renderChiTiet('SPE');
-  renderChuyenSau();
-  renderBaoCaoThang();
+  const order = [
+    {key:'tongquan', title:'Tổng quan', fn:renderTongQuan},
+    {key:'spb', title:'Chi tiết SPB', fn:()=>renderChiTiet('SPB')},
+    {key:'spe', title:'Chi tiết SPE', fn:()=>renderChiTiet('SPE')},
+    {key:'chuyensau', title:'Chuyên sâu & Đề xuất', fn:renderChuyenSau},
+    {key:'thang', title:'Báo cáo tháng', fn:renderBaoCaoThang},
+  ];
+  const captured = {};
+  order.forEach(o=>{
+    o.fn();
+    captured[o.key] = { title:o.title, html: document.getElementById('app').innerHTML };
+  });
   currentSubtab = savedTab;
   render();
+  return { captured, order };
+}
 
+function buildMarkdown(){
   const tq = REPORT.tongquan;
   let md = `# BÁO CÁO TUẦN ĐỀN BÙ — ${tq.curWeek.label} (Năm ${selectedYear})\n\n`;
   md += `_Phạm vi: Shopee Express (SPE) và Shopee Bulky (SPB) · Mốc thời gian: ngay_duyet_eform · Số liệu THẬT, không ước tính._\n\n`;
@@ -698,6 +742,7 @@ function exportMarkdown(){
     md += trendTableToMd(`${acc.toUpperCase()} — Cơ cấu loại yêu cầu`, d.locTable);
     md += trendTableToMd(`${acc.toUpperCase()} — Đào sâu "${d.top1?d.top1[0]:''}" theo nhóm ngành`, d.bTable);
     md += trendTableToMd(`${acc.toUpperCase()} — Đào sâu "${d.top2?d.top2[0]:''}" theo tuyến`, d.cTable);
+    md += trendTableToMd(`${acc.toUpperCase()} — Đào sâu "${d.top1?d.top1[0]:''}" theo kênh (WH/MP)`, d.dTable);
   });
 
   if(REPORT.chuyensau){
@@ -732,17 +777,52 @@ function exportMarkdown(){
     md += trendTableToMd('Root cause theo tháng', th.rootTable);
   }
 
-  const blob = new Blob([md], {type:'text/markdown;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `Compensation_${tq.curWeek.label}_Report.md`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  return md;
 }
-document.getElementById('exportBtn').addEventListener('click', exportMarkdown);
+
+function buildHtmlDocument(captured, order, weekLabel){
+  const styleEl = document.querySelector('style');
+  const styleTag = styleEl ? styleEl.outerHTML : '';
+  let body = `<h1 style="font-family:Cambria,Georgia,serif;color:var(--navy,#0E4174);">BÁO CÁO TUẦN - ĐỀN BÙ (SPB / SPE) — ${weekLabel}</h1>`;
+  order.forEach(o=>{
+    const c = captured[o.key];
+    body += `<h1 style="margin-top:40px;font-family:Cambria,Georgia,serif;color:var(--orange,#FE5F00);border-bottom:3px solid var(--orange,#FE5F00);padding-bottom:8px;">${c.title}</h1>${c.html}`;
+  });
+  return `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Báo cáo tuần đền bù — ${weekLabel}</title>${styleTag}</head><body style="max-width:1300px;margin:0 auto;padding:24px;background:var(--bg,#F6F7FA);">${body}</body></html>`;
+}
+
+function doExport(format){
+  if(!RAW_ALL.length){ alert('Dữ liệu chưa tải xong, vui lòng đợi rồi thử lại.'); return; }
+  const { captured, order } = captureAllTabsHtml();
+  const weekLabel = REPORT.tongquan.curWeek.label;
+
+  if(format === 'md'){
+    const md = buildMarkdown();
+    triggerDownload(new Blob([md], {type:'text/markdown;charset=utf-8'}), `Compensation_${weekLabel}_Report.md`);
+  } else if(format === 'html'){
+    const htmlDoc = buildHtmlDocument(captured, order, weekLabel);
+    triggerDownload(new Blob([htmlDoc], {type:'text/html;charset=utf-8'}), `Compensation_${weekLabel}_Report.html`);
+  } else if(format === 'pdf'){
+    const htmlDoc = buildHtmlDocument(captured, order, weekLabel);
+    const win = window.open('', '_blank');
+    if(!win){ alert('Trình duyệt đang chặn cửa sổ mới, vui lòng cho phép popup rồi thử lại.'); return; }
+    win.document.write(htmlDoc);
+    win.document.close();
+    win.addEventListener('load', ()=> win.print());
+  }
+}
+
+document.getElementById('exportBtn').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  document.getElementById('exportMenu').classList.toggle('show');
+});
+document.getElementById('exportMenu').addEventListener('click', (e)=>{
+  if(e.target.tagName !== 'BUTTON') return;
+  document.getElementById('exportMenu').classList.remove('show');
+  doExport(e.target.dataset.format);
+});
+document.addEventListener('click', ()=> document.getElementById('exportMenu').classList.remove('show'));
+
 
 loadAll();
 </script>
