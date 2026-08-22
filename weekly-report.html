@@ -44,9 +44,12 @@
   .export-menu button:hover{background:#F6F7FA;}
   .warn-toggle{font-family:inherit;background:var(--bg);border:1px solid var(--border);border-radius:4px;width:20px;height:20px;line-height:1;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;margin-right:6px;}
   .warn-toggle:hover{background:#EAEDF3;}
-  .expand-row td{background:#FAFBFD;padding:10px 9px 14px 28px;}
-  table.subtable{width:auto;min-width:60%;font-size:12.5px;}
-  table.subtable th,table.subtable td{padding:5px 8px;}
+  .expand-row td{background:#FFF3EA;padding:8px 9px;border-left:4px solid var(--orange);}
+  table.subtable{width:100%;font-size:12.5px;background:#FFF3EA;}
+  table.subtable th{background:#FDE4CC;color:var(--orange-dark);}
+  table.subtable td{background:#FFF3EA;}
+  table.subtable th,table.subtable td{padding:6px 9px;}
+  table.subtable td.cur,table.subtable th.cur{background:#FFE0B8;}
 
   .subtabbar{display:flex;gap:2px;background:var(--navy);padding:0 clamp(20px,4vw,48px);flex-wrap:wrap;}
   .subtabbar button{font-family:inherit;background:transparent;border:none;color:#B9CBE0;padding:12px 18px;font-size:14.5px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;}
@@ -323,6 +326,16 @@ function computeMTDMoM(rows, groupFn){
 
 let EXPAND_ID_SEQ = 0;
 
+function buildColgroup(periodCount){
+  const labelWidth = 22, mtdWidth = 12, momWidth = 11;
+  const remaining = 100 - labelWidth - mtdWidth - momWidth;
+  const perPeriod = periodCount ? (remaining/periodCount) : remaining;
+  let html = `<col style="width:${labelWidth}%">`;
+  for(let i=0;i<periodCount;i++) html += `<col style="width:${perPeriod}%">`;
+  html += `<col style="width:${mtdWidth}%"><col style="width:${momWidth}%">`;
+  return `<colgroup>${html}</colgroup>`;
+}
+
 function renderTrendTable(rows, groupFn, opts){
   opts = opts || {};
   const periodType = opts.periodType || 'week';
@@ -350,6 +363,7 @@ function renderTrendTable(rows, groupFn, opts){
   }
   const grandTotal = Object.values(totalByGroup).reduce((s,v)=>s+v,0) || 1;
   const colCount = lastWeeks.length + 3;
+  const colgroup = buildColgroup(lastWeeks.length);
 
   let thead = '<tr><th>Nhóm</th>';
   lastWeeks.forEach(w=> thead += `<th class="${w.key===curWeekKey?'cur':''}">${w.label}</th>`);
@@ -357,7 +371,7 @@ function renderTrendTable(rows, groupFn, opts){
 
   function subChannelTableHtml(groupRows){
     const sub = renderTrendTable(groupRows||[], classifyChannel, {periodType, nPeriods});
-    return `<table class="subtable"><thead>${sub.thead}</thead><tbody>${sub.tbody}</tbody></table>`;
+    return `<table class="subtable" style="table-layout:fixed;">${sub.colgroup}<thead>${sub.thead}</thead><tbody>${sub.tbody}</tbody></table>`;
   }
 
   function rowHtml(label, byWeek, mtdEntry, groupRows){
@@ -395,11 +409,11 @@ function renderTrendTable(rows, groupFn, opts){
     tbody += rowHtml('Khác', othersByWeek, mtdOthers, null);
   }
 
-  return { thead, tbody, groupsSorted, totalByGroup, grandTotal, mtdmom, lastWeeks, curWeekKey, byGroupWeek: byGroupPeriod };
+  return { thead, tbody, colgroup, groupsSorted, totalByGroup, grandTotal, mtdmom, lastWeeks, curWeekKey, byGroupWeek: byGroupPeriod };
 }
 
-function tableWrap(title, desc, theadHtml, tbodyHtml, note){
-  return `<div class="table-wrap"><table><thead>${theadHtml}</thead><tbody>${tbodyHtml}</tbody></table></div>${note?`<div class="note">${note}</div>`:''}`;
+function tableWrap(tbl, note){
+  return `<div class="table-wrap"><table style="table-layout:fixed;">${tbl.colgroup||''}<thead>${tbl.thead}</thead><tbody>${tbl.tbody}</tbody></table></div>${note?`<div class="note">${note}</div>`:''}`;
 }
 
 function renderTongQuan(){
@@ -450,17 +464,17 @@ function renderTongQuan(){
     <section>
       <h2>Phân tích đền bù theo Account</h2><div class="underline"></div>
       <p class="desc">SPB / SPE theo từng tuần (6 tuần gần nhất), kèm MTD/MoM</p>
-      ${tableWrap('','',accTable.thead, accTable.tbody)}
+      ${tableWrap(accTable)}
     </section>
     <section>
       <h2>Phân tích đền bù theo loại yêu cầu</h2><div class="underline"></div>
       <p class="desc">Top 6 loại yêu cầu + "Khác" (gộp SPB+SPE), 6 tuần gần nhất, MTD/MoM</p>
-      ${tableWrap('','',locTable.thead, locTable.tbody)}
+      ${tableWrap(locTable)}
     </section>
     <section>
       <h2>Phân tích đền bù theo nhóm ngành hàng</h2><div class="underline"></div>
       <p class="desc">Top 5 nhóm ngành (san_pham_vn_group) + "Khác", luôn = 100% tổng đền bù, MTD/MoM</p>
-      ${tableWrap('','',nganhTable.thead, nganhTable.tbody)}
+      ${tableWrap(nganhTable)}
     </section>
   `;
 }
@@ -518,17 +532,17 @@ function renderChiTiet(acc){
       <h3>A.1 — Giá trị theo loại yêu cầu, tuần ${curWeek.label}</h3>
       ${barHtml}
       <h3>A.2 — Cơ cấu loại yêu cầu, trend 5 tuần + MTD/MoM</h3>
-      ${tableWrap('','',locTable.thead, locTable.tbody)}
+      ${tableWrap(locTable)}
     </section>
     <section>
       <h2>B. Đào sâu: "${top1?top1[0]:'—'}" theo nhóm ngành hàng</h2><div class="underline"></div>
       <p class="desc">Loại yêu cầu lớn nhất của ${acc}, breakdown theo san_pham_vn_group · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
-      ${tableWrap('','',bTable.thead, bTable.tbody)}
+      ${tableWrap(bTable)}
     </section>
     <section>
       <h2>C. Đào sâu: "${top2?top2[0]:'—'}" theo tuyến</h2><div class="underline"></div>
       <p class="desc">Loại yêu cầu lớn thứ 2 của ${acc}, breakdown theo tuyến · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
-      ${tableWrap('','',cTable.thead, cTable.tbody)}
+      ${tableWrap(cTable)}
     </section>
   `;
 }
@@ -581,11 +595,11 @@ function renderChuyenSau(){
     <section>
       <h2>Root cause (theo san_pham / cat_level3)</h2><div class="underline"></div>
       <p class="desc">Gộp SPB+SPE, top 8 + "Khác", trend 5 tuần + MTD/MoM · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
-      ${tableWrap('','',rootTable.thead, rootTable.tbody)}
+      ${tableWrap(rootTable)}
     </section>
     <section>
       <h2>Tổng giá trị theo Tuyến</h2><div class="underline"></div>
-      ${tableWrap('','',tuyenTable.thead, tuyenTable.tbody)}
+      ${tableWrap(tuyenTable)}
     </section>
     <section>
       <h2>Cơ hội Ahamove (tuyến nội thành theo nhóm ngành)</h2><div class="underline"></div>
@@ -627,9 +641,9 @@ function renderBaoCaoThang(){
 
   const accTable = renderTrendTable(RAW_ALL, r=>r._acc, {periodType:'month', nPeriods:6});
   const locTable = renderTrendTable(RAW_ALL, r=>r.loai_yeu_cau||'(Không rõ)', {periodType:'month', nPeriods:6, topN:6, topAndOthers:true});
-  const nganhTable = renderTrendTable(RAW_ALL, r=>r.san_pham_vn_group||'(Không rõ)', {periodType:'month', nPeriods:6, topN:5, topAndOthers:true});
+  const nganhTable = renderTrendTable(RAW_ALL, r=>r.san_pham_vn_group||'(Không rõ)', {periodType:'month', nPeriods:6, topN:5, topAndOthers:true, expandable:true, idPrefix:'thang-nganh'});
   function rootCauseLabelThang(r){ const sp = r.san_pham||''; return sp ? translateSanPham(sp) : '(Không rõ)'; }
-  const rootTable = renderTrendTable(RAW_ALL, rootCauseLabelThang, {periodType:'month', nPeriods:6, topN:8, topAndOthers:true});
+  const rootTable = renderTrendTable(RAW_ALL, rootCauseLabelThang, {periodType:'month', nPeriods:6, topN:8, topAndOthers:true, expandable:true, idPrefix:'thang-root'});
 
   const accShare = {};
   rowsCurMonth.forEach(r=>{ accShare[r._acc] = (accShare[r._acc]||0) + (+r.gia_tri_den_bu||0); });
@@ -656,19 +670,21 @@ function renderBaoCaoThang(){
     </div>
     <section>
       <h2>Đền bù theo Account — 6 tháng gần nhất</h2><div class="underline"></div>
-      ${tableWrap('','',accTable.thead, accTable.tbody)}
+      ${tableWrap(accTable)}
     </section>
     <section>
       <h2>Đền bù theo loại yêu cầu — 6 tháng gần nhất</h2><div class="underline"></div>
-      ${tableWrap('','',locTable.thead, locTable.tbody)}
+      ${tableWrap(locTable)}
     </section>
     <section>
       <h2>Đền bù theo nhóm ngành hàng — 6 tháng gần nhất</h2><div class="underline"></div>
-      ${tableWrap('','',nganhTable.thead, nganhTable.tbody)}
+      <p class="desc">Bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
+      ${tableWrap(nganhTable)}
     </section>
     <section>
       <h2>Root cause theo tháng</h2><div class="underline"></div>
-      ${tableWrap('','',rootTable.thead, rootTable.tbody)}
+      <p class="desc">Bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
+      ${tableWrap(rootTable)}
     </section>
   `;
 }
