@@ -3,293 +3,101 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</title>
+<title>BÁO CÁO TUẦN - ĐỀN BÙ</title>
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
   :root{
-    --orange:#FE5F00;
-    --orange-dark:#E04F00;
-    --orange-light:#FF9E64;
-    --orange-tint:#FFE4D2;
-    --navy:#0E4174;
-    --navy-deep:#0A2F54;
-    --bg:#F6F7FA;
-    --card:#FFFFFF;
-    --ink:#383838;
-    --muted:#6B6B6B;
-    --border:#E4E8F0;
-    --good:#4CAF50;
-    --warn:#FFC107;
-    --bad:#F44336;
+    --orange:#FE5F00; --orange-dark:#E04F00; --navy:#0E4174; --navy-deep:#0A2F54;
+    --bg:#F6F7FA; --card:#FFFFFF; --ink:#383838; --muted:#6B6B6B; --border:#E4E8F0;
+    --good:#4CAF50; --warn:#FFC107; --bad:#F44336; --cur-bg:#FFF3CD;
+    --spb:#FE5F00; --spe:#0E4174;
   }
   *{box-sizing:border-box;}
-  html,body{width:100%;}
-  body{
-    margin:0;
-    font-family:"Cambria","Times New Roman",Georgia,serif;
-    background:var(--bg);
-    color:var(--ink);
-    line-height:1.6;
-  }
-  .top-line{height:3px;background:var(--orange);width:100%;}
-  .bottom-bar{height:6px;background:var(--orange);width:100%;}
-  #stickyTop{position:sticky;top:0;z-index:200;box-shadow:0 2px 10px rgba(0,0,0,0.08);}
+  body{margin:0;font-family:"Cambria","Times New Roman",Georgia,serif;background:var(--bg);color:var(--ink);line-height:1.6;}
+  #loginOverlay{position:fixed;inset:0;background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);display:flex;align-items:center;justify-content:center;z-index:999;}
+  #loginBox{background:#fff;padding:40px 36px;border-radius:12px;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);}
+  .login-orange-bar{height:5px;background:var(--orange);width:60px;margin:0 auto 18px;border-radius:3px;}
+  #loginBox h1{font-size:19px;color:var(--navy);margin:0 0 10px;}
+  #loginBox p{font-size:14px;color:var(--muted);margin-bottom:20px;}
+  #loginError{color:var(--bad);font-size:13px;margin-top:10px;}
+  #appShellWrap{display:none;}
 
-  .yearbar{
-    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-    background:var(--navy);
-    padding:10px clamp(20px,4vw,48px);
-  }
-  .yearbar span{font-size:13px;color:#CFE0F2;font-weight:700;margin-right:6px;}
-  .yearbar button{
-    font-family:inherit;font-size:15px;font-weight:800;padding:7px 18px;
-    border:1.5px solid rgba(255,255,255,0.4);border-radius:20px;
-    background:transparent;color:#fff;cursor:pointer;
-  }
-  .yearbar button.active{background:var(--orange);border-color:var(--orange);}
-  .yearbar-sep{width:1px;height:22px;background:rgba(255,255,255,0.25);margin:0 4px;}
-  .yearbar select{
-    font-family:inherit;font-size:14px;padding:6px 10px;border:1px solid rgba(255,255,255,0.4);
-    border-radius:6px;background:#fff;color:var(--ink);
-  }
-  #shopeeSubWrap{display:none;align-items:center;gap:8px;}
+  .sticky-top{position:sticky;top:0;z-index:100;}
+  .top-line{height:3px;background:var(--orange);}
+  header{background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);color:#fff;padding:18px clamp(20px,4vw,48px);}
+  .header-top{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;}
+  header h1{margin:0;font-size:22px;font-weight:800;}
+  header .backlink{color:#fff;text-decoration:none;font-size:13px;border:1px solid rgba(255,255,255,.5);border-radius:14px;padding:5px 12px;}
+  header .backlink:hover{background:rgba(255,255,255,.15);}
+  #statusText{font-size:13px;color:#FFE4D2;font-style:italic;}
+  #exportBtn{font-family:inherit;background:var(--navy);color:#fff;border:none;border-radius:6px;padding:8px 16px;font-weight:700;font-size:13.5px;cursor:pointer;}
+  #exportBtn:hover{background:var(--navy-deep);}
+  #yearSwitcher{display:inline-flex;gap:2px;background:rgba(255,255,255,.2);border-radius:6px;padding:2px;}
+  .year-btn{font-family:inherit;background:transparent;border:none;color:#fff;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;border-radius:5px;}
+  .year-btn.active{background:#fff;color:var(--orange-dark);}
+  .export-wrap{position:relative;display:inline-block;}
+  .export-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);overflow:hidden;min-width:170px;z-index:200;}
+  .export-menu.show{display:block;}
+  .export-menu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--ink);font-family:inherit;font-size:13.5px;padding:10px 14px;cursor:pointer;}
+  .export-menu button:hover{background:#F6F7FA;}
+  .warn-toggle{font-family:inherit;background:var(--bg);border:1px solid var(--border);border-radius:4px;width:20px;height:20px;line-height:1;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;margin-right:6px;}
+  .warn-toggle:hover{background:#EAEDF3;}
+  .expand-row td{background:#FAFBFD;padding:10px 9px 14px 28px;}
+  table.subtable{width:auto;min-width:60%;font-size:12.5px;}
+  table.subtable th,table.subtable td{padding:5px 8px;}
 
-  header{
-    background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);
-    color:#fff;
-    padding:22px clamp(20px,4vw,48px) 18px;
-  }
-  .header-top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;}
-  header h1{margin:0;font-size:27px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 3px rgba(0,0,0,0.15);}
-  header p{margin:0;color:#FFE4D2;font-size:16px;}
+  .subtabbar{display:flex;gap:2px;background:var(--navy);padding:0 clamp(20px,4vw,48px);flex-wrap:wrap;}
+  .subtabbar button{font-family:inherit;background:transparent;border:none;color:#B9CBE0;padding:12px 18px;font-size:14.5px;font-weight:700;cursor:pointer;border-bottom:3px solid transparent;}
+  .subtabbar button.active{color:#fff;border-bottom-color:var(--orange);background:rgba(255,255,255,.06);}
 
-  .tabbar{
-    display:flex;align-items:center;gap:4px;flex-wrap:wrap;
-    margin-left:auto;padding:0;
-  }
-  .tabbar button{
-    font-family:inherit;
-    background:transparent;border:none;color:#B9CBE0;
-    padding:8px 16px;font-size:15px;font-weight:700;cursor:pointer;
-    border-bottom:3px solid transparent;
-  }
-  .tabbar button.active{color:#fff;border-bottom-color:var(--orange);}
-  .tabbar button:hover{color:#fff;}
-  .status{font-size:14px;color:#FFE4D2;font-style:italic;white-space:nowrap;}
-
-  .granularity{display:flex;gap:4px;margin-left:auto;}
-  .granularity button{
-    font-family:inherit;font-size:15.5px;padding:6px 14px;border:1px solid var(--border);
-    background:#fff;color:var(--muted);border-radius:6px;cursor:pointer;font-weight:700;
-  }
-  .granularity button.active{background:var(--orange);border-color:var(--orange);color:#fff;}
-
-  .region-cluster{
-    background:#FFF3EA;border:1px solid #FFD9BB;border-radius:10px;
-    padding:18px clamp(14px,2vw,22px) 4px;margin-bottom:20px;
-  }
-  .region-cluster-filter{
-    display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px;
-  }
-  .region-cluster-filter label{font-size:15px;color:var(--orange-dark);font-weight:800;}
-  .region-cluster-filter select{
-    font-family:inherit;font-size:15px;padding:6px 10px;border:1px solid #FFD9BB;
-    border-radius:6px;background:#fff;color:var(--ink);
-  }
-  .region-cluster > .grid2, .region-cluster > section{margin-bottom:18px;}
-
-  main{width:100%;max-width:1800px;margin:0 auto;padding:24px clamp(20px,4vw,48px) 60px;}
-  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:26px;}
-  .kpi{
-    container-type:inline-size;
-    background:var(--card);border:1px solid var(--border);border-left:4px solid var(--navy);
-    border-radius:8px;padding:20px 18px;box-shadow:0 2px 8px rgba(0,0,0,0.06);
-  }
+  main{max-width:1500px;margin:0 auto;padding:22px clamp(20px,4vw,48px) 60px;}
+  .banner{background:#FFF3EA;border:1px solid #FFD9BB;border-radius:8px;padding:12px 18px;font-size:14px;color:var(--orange-dark);margin-bottom:18px;}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--navy);border-radius:8px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.05);}
   .kpi.accent{border-left-color:var(--orange);}
-  .kpi .label{font-size:clamp(14px,5.5cqw,16px);color:var(--muted);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
-  .kpi .value{font-size:clamp(23px,11.5cqw,43px);font-weight:800;margin-top:6px;color:var(--navy);line-height:1.15;}
+  .kpi .label{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+  .kpi .value{font-size:24px;font-weight:800;margin-top:4px;color:var(--navy);}
   .kpi.accent .value{color:var(--orange);}
-  .kpi .sub{font-size:clamp(14px,4.5cqw,16px);color:var(--muted);margin-top:4px;}
+  .kpi .sub{font-size:12.5px;color:var(--muted);margin-top:3px;}
 
-  section{
-    background:var(--card);border:1px solid var(--border);border-radius:8px;
-    padding:24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(0,0,0,0.05);
-  }
-  section h2{font-size:19px;font-weight:800;margin:0 0 4px;color:var(--orange);text-transform:uppercase;letter-spacing:.5px;}
-  section .underline{width:70px;height:3px;background:var(--orange);margin:6px 0 12px;border-radius:2px;}
-  section .desc{font-size:15.5px;color:var(--muted);margin:0 0 14px;}
+  section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+  section h2{font-size:16.5px;font-weight:800;margin:0 0 4px;color:var(--orange);text-transform:uppercase;letter-spacing:.4px;}
+  section h3{font-size:14.5px;font-weight:800;margin:16px 0 8px;color:var(--navy);}
+  section .underline{width:60px;height:3px;background:var(--orange);margin:6px 0 10px;border-radius:2px;}
+  section .desc{font-size:13.5px;color:var(--muted);margin:0 0 12px;}
+  .note{font-size:12px;color:var(--muted);font-style:italic;margin-top:6px;}
 
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  .grid2 > section, .grid2 > div{min-width:0;}
-  @media(max-width:900px){.grid2{grid-template-columns:1fr;}}
-  canvas{max-height:360px;max-width:100%;}
-  .chart-box{position:relative;height:340px;width:100%;}
-  .chart-box-tuyen{position:relative;height:400px;width:100%;}
+  .nhanxet{background:#F8FAFD;border-left:4px solid var(--navy);border-radius:6px;padding:12px 16px;margin-bottom:10px;font-size:14px;}
+  .nhanxet b{color:var(--navy);}
 
   .table-wrap{overflow-x:auto;}
-  table{width:100%;border-collapse:collapse;font-size:16.5px;table-layout:fixed;}
-  th,td{padding:10px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;overflow:hidden;}
-  th:first-child,td:first-child{text-align:left;width:36%;text-overflow:ellipsis;}
-  th{color:var(--muted);font-weight:700;font-size:14px;text-transform:uppercase;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;}
+  th:first-child,td:first-child{text-align:left;}
+  th{color:var(--muted);font-weight:700;font-size:11.5px;text-transform:uppercase;background:#FAFBFD;}
+  td.cur,th.cur{background:var(--cur-bg);}
+  .mom-up{color:var(--bad);font-weight:700;font-size:11.5px;}
+  .mom-down{color:#2E7D32;font-weight:700;font-size:11.5px;}
+  .mom-flat{color:var(--muted);font-size:11.5px;}
 
-  .pill{display:inline-block;padding:3px 10px;border-radius:20px;font-size:14px;font-weight:700;}
-  .pill.good{background:#E8F5E9;color:#2E7D32;}
-  .pill.warn{background:#FFF8E1;color:#B98900;}
-  .pill.bad{background:#FDECEA;color:#C62828;}
+  .barrow{display:flex;align-items:center;gap:10px;padding:6px 0;}
+  .barrow .blabel{flex:0 0 150px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .barrow .btrack{position:relative;flex:1;height:20px;background:#F0F2F6;border-radius:4px;overflow:hidden;}
+  .barrow .bfill{height:100%;background:var(--orange);}
+  .barrow .bval{flex:0 0 90px;text-align:right;font-size:12.5px;font-weight:700;}
 
-  .battery-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);}
-  .battery-row:last-child{border-bottom:none;}
-  .battery-label{flex:0 0 200px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .battery{position:relative;flex:1;height:22px;border:2px solid #A9A9A9;border-radius:4px;background:#F2F2F2;}
-  .battery::after{
-    content:'';position:absolute;top:5px;right:-6px;width:4px;height:10px;
-    background:#A9A9A9;border-radius:0 2px 2px 0;
-  }
-  .battery-fill{height:100%;border-radius:1px;transition:width .3s;}
-  .fill-red{background:#F44336;}
-  .fill-yellow{background:#FFC107;}
-  .fill-green{background:#4CAF50;}
-  .fill-purple{background:#8E44AD;}
-  .battery-pct{flex:0 0 60px;text-align:right;font-size:16px;font-weight:700;}
-  .rate-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px;vertical-align:middle;}
-  .warning-item{
-    background:#FDECEA;border-left:4px solid #C62828;padding:10px 14px;border-radius:6px;
-    margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:15px;
-  }
-  .warning-item .wname{font-weight:700;}
-  .warning-item .wval{white-space:nowrap;color:#C62828;font-weight:700;}
-  .warning-empty{color:var(--muted);font-size:14px;padding:8px 0;}
-  .warning-group{margin-bottom:14px;}
-  .warning-parent{
-    display:flex;justify-content:space-between;align-items:center;gap:10px;
-    padding:10px 14px;border-radius:6px;font-weight:800;margin-bottom:6px;font-size:15.5px;
-  }
-  .warning-parent.bad{background:#FDECEA;border-left:4px solid #C62828;color:#C62828;}
-  .warning-parent.warn{background:#FFF8E1;border-left:4px solid #B98900;color:#B98900;}
-  .warning-child{
-    margin-left:24px;padding:8px 12px;border-radius:6px;margin-bottom:4px;
-    display:flex;justify-content:space-between;gap:10px;font-size:14px;
-  }
-  .warning-child.bad{background:#FDECEA;border-left:3px solid #F44336;}
-  .warning-child.warn{background:#FFF8E1;border-left:3px solid #FFC107;}
-  .warning-child-empty{margin-left:24px;color:var(--muted);font-size:13px;padding:4px 0;}
-  .warn-toggle{
-    background:transparent;border:1.5px solid currentColor;color:inherit;
-    width:24px;height:24px;border-radius:50%;font-size:15px;font-weight:800;
-    cursor:pointer;line-height:1;display:flex;align-items:center;justify-content:center;
-    flex:0 0 auto;font-family:inherit;
-  }
-  .warn-toggle:hover{opacity:0.65;}
-  #shopeeSubSelect{font-family:inherit;font-size:16px;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);}
+  .badge-spb{display:inline-block;background:#FFE4D2;color:var(--orange-dark);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
+  .badge-spe{display:inline-block;background:#DCE8F5;color:var(--navy);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
 
-  .cluster-group{margin-bottom:12px;}
-  .cluster-parent{
-    display:flex;justify-content:space-between;align-items:center;gap:10px;
-    padding:10px 14px;border-radius:6px;font-weight:800;margin-bottom:6px;font-size:15.5px;
-  }
-  .cluster-child{
-    margin-left:24px;padding:8px 12px;border-radius:6px;margin-bottom:4px;
-    display:flex;justify-content:space-between;gap:10px;font-size:14px;
-  }
-  .c-red{background:#FDECEA;border-left:4px solid #F44336;color:#C62828;}
-  .c-yellow{background:#FFF8E1;border-left:4px solid #FFC107;color:#B98900;}
-  .c-green{background:#E8F5E9;border-left:4px solid #4CAF50;color:#2E7D32;}
-  .c-purple{background:#F3E5F5;border-left:4px solid #8E44AD;color:#6A1B78;}
-  .cluster-child.c-red{border-left-width:3px;}
-  .cluster-child.c-yellow{border-left-width:3px;}
-  .cluster-child.c-green{border-left-width:3px;}
-  .cluster-child.c-purple{border-left-width:3px;}
-
-  .pivot-table{border-collapse:collapse;font-size:14px;table-layout:fixed;}
-  .pivot-table th, .pivot-table td{padding:8px 10px;border:1px solid var(--border);text-align:right;white-space:nowrap;line-height:1.6;min-width:92px;}
-  .pivot-table thead th{background:#F6F7FA;font-weight:800;text-transform:uppercase;font-size:11px;color:var(--muted);text-align:center;}
-  .pivot-table td.label-col, .pivot-table th.label-col{
-    position:sticky;left:0;background:#fff;z-index:2;min-width:160px;
-  }
-  .pivot-table td.label-col{text-align:left;}
-  .pivot-table th.label-col{text-align:center;}
-  .pivot-table thead th.label-col{background:#F6F7FA;z-index:3;}
-  .pivot-table .current-col{background:#FFF3EA;}
-  .pivot-table thead th.current-col{background:#FFE0C2;}
-  .pivot-table .prod-detail td{background:#E4E9F2;text-align:left;border-top:2px solid var(--orange);}
-  .pivot-table-nested thead th{background:#D6DEEB;}
-  .pivot-table-nested{margin-top:8px;font-size:12.5px;width:100%;}
-  .pivot-table-nested th, .pivot-table-nested td{padding:6px 8px;}
-  .pivot-table-nested td.label-col, .pivot-table-nested th.label-col{position:static;background:transparent;}
-  .mom-up{color:#F44336;font-weight:700;}
-  .mom-down{color:#1E88E5;font-weight:700;}
-  .mom-flat{color:var(--muted);}
-  .untranslated-tag{color:var(--orange-dark);font-weight:700;}
-
-  .loading{padding:60px;text-align:center;color:var(--muted);}
-  footer{text-align:center;font-size:14.5px;color:var(--muted);padding:20px;}
-
-  @media(max-width:640px){
-    .yearbar{padding:8px 12px;}
-    .yearbar button{font-size:13px;padding:5px 14px;}
-
-    header{padding:16px 16px 12px;}
-    header h1{font-size:18px;letter-spacing:.1px;}
-
-    .tabbar{overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;width:100%;margin-left:0;padding:6px 0 0;}
-    .tabbar::-webkit-scrollbar{display:none;}
-    .tabbar button{padding:8px 12px;font-size:14px;white-space:nowrap;flex:0 0 auto;}
-    .status{font-size:11px;}
-
-    .yearbar{flex-wrap:wrap;}
-    .yearbar select{width:100%;}
-    #shopeeSubWrap{width:100%;}
-
-    main{padding:16px 12px 40px;}
-    .kpis{grid-template-columns:repeat(2,1fr);gap:10px;}
-    .kpi{padding:14px 12px;}
-    .kpi .value{font-size:clamp(18px,9.5cqw,26px);}
-
-    section{padding:16px;}
-    section h2{font-size:14.5px;}
-    section .desc{font-size:12.5px;}
-
-    .granularity{margin-left:0;width:100%;flex-wrap:wrap;}
-    .granularity button{font-size:12.5px;padding:5px 10px;}
-
-    .battery-row{gap:8px;}
-    .battery-label{flex-basis:100px;font-size:12.5px;}
-    .battery-pct{flex-basis:44px;font-size:12.5px;}
-
-    table{font-size:13px;}
-    th,td{padding:7px 6px;}
-
-    canvas{max-height:260px;}
-  }
-
-  #loginOverlay{
-    position:fixed;inset:0;z-index:1000;
-    background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);
-    display:flex;align-items:center;justify-content:center;
-  }
-  #loginBox{
-    background:#fff;border-radius:14px;padding:40px 36px;max-width:380px;width:90%;
-    text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.3);
-  }
-  #loginBox h1{font-size:20px;color:var(--navy);margin:0 0 6px;font-weight:800;}
-  #loginBox p{font-size:14px;color:var(--muted);margin:0 0 24px;}
-  #loginBox .login-orange-bar{width:60px;height:4px;background:var(--orange);margin:0 auto 20px;border-radius:2px;}
-  #googleSignInBtn{display:flex;justify-content:center;margin:0 auto;}
-  #loginError{
-    margin-top:16px;font-size:13px;color:#C62828;background:#FDECEA;
-    border-radius:6px;padding:10px;display:none;
-  }
-  #appShellWrap{display:none;}
-  #logoutBtn{
-    background:transparent;border:1px solid rgba(255,255,255,0.4);color:#fff;
-    font-family:inherit;font-size:12px;padding:5px 12px;border-radius:14px;cursor:pointer;
-    margin-left:10px;
-  }
-  #logoutBtn:hover{background:rgba(255,255,255,0.15);}
+  .warn-row{background:#FDECEA;}
+  .prop-list li{margin-bottom:8px;font-size:13.5px;}
+  .prop-tag{display:inline-block;font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;margin-right:6px;}
+  .prop-cao{background:#FDECEA;color:#C62828;}
+  .prop-tb{background:#FFF8E1;color:#B98900;}
+  .prop-thap{background:#E8F5E9;color:#2E7D32;}
+  .loading{text-align:center;padding:60px 20px;color:var(--muted);font-size:15px;}
 </style>
 </head>
 <body>
@@ -297,895 +105,792 @@
 <div id="loginOverlay">
   <div id="loginBox">
     <div class="login-orange-bar"></div>
-    <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
+    <h1>BÁO CÁO TUẦN - ĐỀN BÙ</h1>
     <p>Đăng nhập tài khoản <br><strong>Giao Hàng Nhanh</strong></p>
     <div id="g_id_onload"
       data-client_id="382454937501-ab4u4m13r827lbm3gup5qqmq6eimcavt.apps.googleusercontent.com"
       data-callback="handleGoogleLogin"
-      data-auto_prompt="false">
-    </div>
+      data-auto_prompt="false"></div>
     <div id="googleSignInBtn" class="g_id_signin"
-      data-type="standard"
-      data-shape="pill"
-      data-theme="outline"
-      data-text="signin_with"
-      data-size="large"
-      data-locale="vi">
-    </div>
+      data-type="standard" data-shape="pill" data-theme="outline" data-text="signin_with" data-size="large" data-locale="vi"></div>
     <div id="loginError"></div>
   </div>
 </div>
 
 <div id="appShellWrap">
-<div id="stickyTop">
+<div class="sticky-top">
 <div class="top-line"></div>
-
 <header>
   <div class="header-top">
-    <h1>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</h1>
-    <div style="display:flex;align-items:center;">
-      <div class="status" id="statusText">Đang tải dữ liệu...</div>
-      <a href="weekly-report.html" style="color:#fff;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,.4);border-radius:14px;padding:5px 12px;margin-left:10px;">📊 Báo cáo tuần</a>
-      <button id="logoutBtn" type="button" onclick="handleLogout()">Đăng xuất</button>
+    <h1>BÁO CÁO TUẦN - ĐỀN BÙ (SPB / SPE)</h1>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span id="statusText"></span>
+      <span id="yearSwitcher"></span>
+      <div class="export-wrap">
+        <button id="exportBtn" type="button">⬇ Xuất ▾</button>
+        <div class="export-menu" id="exportMenu">
+          <button type="button" data-format="md">Markdown (.md)</button>
+          <button type="button" data-format="html">HTML (.html)</button>
+          <button type="button" data-format="pdf">In / Lưu PDF</button>
+        </div>
+      </div>
+      <a class="backlink" href="index.html">← Về Dashboard</a>
     </div>
   </div>
 </header>
-
-<div class="yearbar" id="yearbar">
-  <span>Năm báo cáo:</span>
-  <button class="year-btn" data-year="2025">2025</button>
-  <button class="year-btn active" data-year="2026">2026</button>
-  <span class="yearbar-sep"></span>
-  <span>Kỳ xem:</span>
-  <select id="monthSelect"><option value="all">Tất cả</option></select>
-  <div id="shopeeSubWrap">
-    <span class="yearbar-sep"></span>
-    <span>Shopee:</span>
-    <select id="shopeeSubSelect">
-      <option value="all">Shopee - ALL</option>
-    </select>
-  </div>
-  <div class="tabbar" id="tabbar">
-    <button class="tab-btn active" data-tab="all">Tổng quan</button>
-    <button class="tab-btn" data-tab="Shopee">Shopee</button>
-    <button class="tab-btn" data-tab="Lazada">Lazada</button>
-    <button class="tab-btn" data-tab="Tiki">Tiki</button>
-  </div>
+<div class="subtabbar" id="subtabbar">
+  <button class="subtab-btn active" data-subtab="tongquan">Tổng quan</button>
+  <button class="subtab-btn" data-subtab="spb">Chi tiết SPB</button>
+  <button class="subtab-btn" data-subtab="spe">Chi tiết SPE</button>
+  <button class="subtab-btn" data-subtab="chuyensau">Chuyên sâu &amp; Đề xuất</button>
+  <button class="subtab-btn" data-subtab="thang">Báo cáo tháng</button>
 </div>
 </div>
-
-<main id="app">
-  <div class="loading">Đang tải dữ liệu từ nguồn (có thể mất vài giây)...</div>
-</main>
-
-<footer>© 2026 [KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</footer>
-<div class="bottom-bar"></div>
+<main id="app"><div class="loading">Đang tải dữ liệu...</div></main>
 </div>
 
 <script>
-const fmtNum = n => n.toLocaleString('vi-VN');
-const fmtPct = n => n.toFixed(2) + '%';
+function showLoginOverlay(){ document.getElementById('loginOverlay').style.display='flex'; document.getElementById('appShellWrap').style.display='none'; }
+function hideLoginOverlay(){ document.getElementById('loginOverlay').style.display='none'; document.getElementById('appShellWrap').style.display='block'; }
+function handleGoogleLogin(response){
+  fetch('/api/verify', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include',
+    body: JSON.stringify({ credential: response.credential }) })
+    .then(r=>r.json())
+    .then(data=>{
+      if(data && data.ok){ hideLoginOverlay(); loadAll(); }
+      else document.getElementById('loginError').textContent = 'Đăng nhập thất bại. Vui lòng dùng tài khoản @ghn.vn.';
+    })
+    .catch(()=>{ document.getElementById('loginError').textContent = 'Lỗi xác thực. Thử lại sau.'; });
+}
 
+const fmtNum = n => Math.round(n||0).toLocaleString('vi-VN');
+const fmtPct = n => (n||0).toFixed(2) + '%';
 function fmtMoney(n){
-  const abs = Math.abs(n);
+  n = n||0; const abs = Math.abs(n);
   if(abs >= 1e9) return (n/1e9).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' tỷ';
   if(abs >= 1e6) return (n/1e6).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' triệu';
   if(abs >= 1e3) return (n/1e3).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' nghìn';
   return fmtNum(n) + 'đ';
 }
-const fmtVND = fmtMoney;
-const fmtCompact = fmtMoney;
-
-function pillClass(pct){ if(pct<10) return 'bad'; if(pct<20) return 'warn'; return 'good'; }
-const RATE_COLOR = { 'fill-red':'#F44336', 'fill-yellow':'#FFC107', 'fill-green':'#4CAF50', 'fill-purple':'#8E44AD' };
-
-function batteryClass(pct){
-  if(pct < 20) return 'fill-red';
-  if(pct < 30) return 'fill-yellow';
-  if(pct < 50) return 'fill-green';
-  return 'fill-purple';
+function momHtml(pct){
+  if(pct === null || !isFinite(pct)) return '<span class="mom-flat">—</span>';
+  if(pct > 0.005) return `<span class="mom-up">▲ ${pct.toFixed(2)}%</span>`;
+  if(pct < -0.005) return `<span class="mom-down">▼ ${Math.abs(pct).toFixed(2)}%</span>`;
+  return '<span class="mom-flat">0.00%</span>';
 }
-function colorSuffix(cls){ return cls.replace('fill-','c-'); }
-
-function fmtDateTime(d){
-  const p = n => String(n).padStart(2,'0');
-  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+function isoWeekInfo(dateStr){
+  if(!dateStr) return null;
+  const s = String(dateStr).slice(0,10);
+  const parts = s.split('-');
+  if(parts.length < 3) return null;
+  const y = +parts[0], m = +parts[1], day = +parts[2];
+  if(!y || !m || !day) return null;
+  const d = new Date(Date.UTC(y, m-1, day));
+  const dayNum = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dayNum + 3);
+  const firstThursday = new Date(Date.UTC(d.getUTCFullYear(),0,4));
+  const fdn = (firstThursday.getUTCDay()+6)%7;
+  firstThursday.setUTCDate(firstThursday.getUTCDate() - fdn + 3);
+  const week = 1 + Math.round((d - firstThursday)/(7*86400000));
+  const isoYear = d.getUTCFullYear();
+  return { isoYear, week, month: s.slice(0,7), day,
+    key: isoYear + '-W' + String(week).padStart(2,'0'),
+    label: 'W' + String(week).padStart(2,'0') + '-' + isoYear };
 }
-
-const CLIENT_NAMES = {
-  '18692': 'SPE Express',
-  '3892833': 'SPE Bulky',
-  '224845': 'SPE Reverse',
-  '2781603': 'SPX Express',
-  '9794': 'Lazada',
-  '2590595': 'Tiki',
-  '1367': 'Tiki',
-};
-function clientLabel(id){ return CLIENT_NAMES[String(id)] || ('KH ' + id); }
 
 const CAT_LV3_VI = {"3D Printers": "Máy in 3D", "Absence Machines": "Máy chấm công", "Accessories Sets & Packages": "Bộ phụ kiện", "Acne Treatment": "Trị mụn", "Acrylic Paint": "Màu acrylic", "Action Cameras": "Camera hành trình/thể thao", "Action Figurines": "Mô hình nhân vật hành động", "Action, Crime & Thrillers": "Hành động, hình sự & giật gân", "Additive and Lubricant": "Phụ gia & dầu bôi trơn", "Adult Diapers & Incontinence": "Tã người lớn", "After Sun Face Care": "Chăm sóc da sau nắng", "Air Fresheners & Home Fragrance": "Xịt thơm phòng & Nước hoa nhà cửa", "Air Fryers": "Nồi chiên không dầu", "Air Pumps, Parts & Accessories": "Bơm hơi & phụ kiện", "Air Treatment": "Máy lọc/xử lý không khí", "All-in-One Desktops": "Máy tính All-in-One", "Aluminium Foil": "Giấy bạc", "Amplifiers & Mixers": "Ampli & Bàn trộn âm thanh", "Amplifiers, Speakers & Subwoofers": "Ampli, loa & loa siêu trầm", "Anime & Manga Collectibles": "Mô hình Anime & Manga", "Anklets": "Lắc chân", "Antennas": "Ăng-ten", "Anti Fleas & Ticks": "Trị bọ chét & ve", "Antifreezes & Coolants": "Nước làm mát động cơ", "Aprons & Kitchen Gloves": "Tạp dề & găng tay bếp", "Aquarium Needs": "Đồ dùng hồ cá", "Aquarium Pet Food": "Thức ăn cá cảnh", "Art Paper & Boards": "Giấy & bảng vẽ", "Arts, Design & Photography": "Nghệ thuật, thiết kế & nhiếp ảnh", "Audio & Video Cables & Converters": "Cáp & bộ chuyển đổi âm thanh/hình ảnh", "Audio Books": "Sách nói", "Automobile Tires": "Lốp ô tô", "Automobile Wheels": "Mâm xe ô tô", "Automobiles": "Ô tô", "Automotive Fluids": "Dung dịch ô tô", "Automotive Keychains & Key Covers": "Móc khóa & bao khóa ô tô", "Baby & Soft Books": "Sách vải cho bé", "Baby & Toddler Toys": "Đồ chơi trẻ nhỏ", "Baby Carrier": "Địu em bé", "Baby Colognes & Fragrances": "Nước hoa cho bé", "Baby Gates & Doorways": "Cổng chắn an toàn cho bé", "Baby Grooming Tools": "Dụng cụ chăm sóc bé", "Baby Laundry Detergent": "Nước giặt cho bé", "Baby Mittens & Footwear": "Bao tay/chân cho bé", "Baby Oral Care": "Chăm sóc răng miệng cho bé", "Baby Porridge, Puree & Cereal": "Cháo, bột ăn dặm cho bé", "Baby Skincare": "Chăm sóc da cho bé", "Baby Snack": "Bánh ăn dặm cho bé", "Baby Vitamins & Supplements": "Vitamin & thực phẩm bổ sung cho bé", "Backdrops & Banners": "Phông nền & băng rôn", "Backpacks": "Balo", "Badminton": "Cầu lông", "Badminton Shoes": "Giày cầu lông", "Bag Holders": "Móc treo túi", "Bag Organizers": "Túi sắp xếp đồ", "Bag Straps": "Dây đeo túi", "Bags & Luggage": "Túi & vali", "Bakewares & Decorations": "Dụng cụ & trang trí làm bánh", "Baking Decoration": "Trang trí bánh", "Baking Flavoring": "Hương liệu làm bánh", "Baking Powder & Soda": "Bột nở & baking soda", "Baking Premix Flour": "Bột trộn sẵn làm bánh", "Ballet Flats": "Giày búp bê", "Balloons": "Bóng bay", "Baseball & Softball": "Bóng chày & bóng mềm", "Basins, Buckets & Water Dippers": "Chậu, xô & gáo múc nước", "Basketball": "Bóng rổ", "Basketball Shoes": "Giày bóng rổ", "Bath & Body Care": "Chăm sóc cơ thể & tắm gội", "Bath Brushes & Loofahs": "Bàn chải & bông tắm", "Bath Robes, Towels & Wash Cloths": "Áo choàng tắm, khăn tắm", "Bathing Tools & Accessories": "Dụng cụ tắm cho bé", "Bathing Tubs & Seats": "Chậu & ghế tắm cho bé", "Bathroom Racks & Cabinets": "Kệ & tủ nhà tắm", "Bathtubs": "Bồn tắm", "Batteries": "Pin", "Batteries & Accessories": "Pin & phụ kiện", "Batteries & Battery Grips": "Pin & tay cầm pin máy ảnh", "Battery Chargers": "Bộ sạc pin", "Bearing & Seals": "Vòng bi & phớt", "Beauty Sets & Packages": "Bộ mỹ phẩm làm đẹp", "Beauty Supplements": "Thực phẩm chức năng làm đẹp", "Bed Frames & Headboards": "Khung giường/Đầu giường", "Bedsheets, Pillowcases & Bolster Cases": "Ga giường/Vỏ gối", "Beer & Cider": "Bia", "Belts": "Thắt lưng", "Belts, Hoses & Pulleys": "Dây curoa, ống & puli", "Benches, Chairs & Stools": "Ghế/Đôn", "Bibs": "Yếm ăn cho bé", "Bifold & Trifold Wallets": "Ví gấp đôi/ba", "Billiards": "Bida", "Biography & Memoirs": "Tiểu sử & hồi ký", "Bird Feed": "Thức ăn cho chim", "Biscuits, Cookies & Wafers": "Bánh quy & bánh xốp", "Blankets, Comforters & Quilts": "Chăn/Mền", "Blazers": "Áo blazer", "Block Toys": "Đồ chơi xếp hình", "Blotting Paper": "Giấy thấm dầu", "Blowers": "Máy thổi khí", "Boardsports": "Ván trượt/Lướt ván", "Boating": "Đồ chèo thuyền", "Body": "Thân xe", "Body & Frame": "Thân/Khung xe", "Body Cream, Lotion & Butter": "Kem & sữa dưỡng thể", "Body Deodorants": "Khử mùi cơ thể", "Body Masks": "Mặt nạ dưỡng thể", "Body Oil": "Dầu dưỡng thể", "Body Scrub & Peel": "Tẩy tế bào chết body", "Body Slimming Tools": "Dụng cụ giảm béo", "Body Wash & Soap": "Sữa tắm & xà phòng", "Body, Frame & Bumpers": "Thân xe, khung & cản xe", "Bodysuits": "Bodysuit", "Bodysuits & Jumpsuits": "Bodysuit & jumpsuit", "Bolsters": "Gối ôm dài", "Book Covers": "Bìa bọc sách", "Bookmarks": "Đánh dấu trang", "Boots": "Giày boot", "Boots, Socks & Paw Protectors": "Giày, vớ & bảo vệ chân thú cưng", "Bottle-feeding": "Dụng cụ cho bé bú bình", "Bottoms": "Đồ mặc dưới", "Bouncers, Rockers & Jumpers": "Ghế rung, nôi đưa cho bé", "Bowls": "Bát/tô", "Bowls & Feeders": "Bát & máng ăn thú cưng", "Boxes": "Hộp đựng", "Boxes & Cases": "Hộp & vỏ đựng", "Boxing & Martial Arts": "Boxing & võ thuật", "Bra Accessories": "Phụ kiện áo ngực", "Bracelets & Bangles": "Vòng tay/Lắc tay", "Brake System": "Hệ thống phanh", "Brakes": "Phanh xe", "Bras": "Áo ngực", "Breads": "Bánh mì", "Breakfast Bar": "Thanh ăn sáng", "Breast Care": "Chăm sóc ngực", "Breastfeeding": "Đồ cho con bú", "Breastfeeding Wear": "Trang phục cho con bú", "Briefcases": "Cặp táp", "Brighteners": "Sản phẩm làm sáng da", "Brooches & Pins": "Trâm cài & ghim cài áo", "Brooms": "Chổi quét", "Bubble Wraps": "Màng bọc bong bóng khí", "Buckles": "Khóa thắt lưng", "Bumpers, Rails & Guards": "Cản, thanh chắn & bảo vệ nôi/xe", "Business & Investment": "Kinh doanh & đầu tư", "Butter & Margarine": "Bơ & margarine", "CCTV Security Cameras": "Camera an ninh", "CD, DVD & Bluray": "Đĩa CD, DVD & Bluray", "CD, DVD, & Blu-ray Players": "Đầu đĩa CD/DVD/Bluray", "Cables & Tubes": "Dây cáp & ống dẫn", "Cables, Chargers & Converters": "Dây cáp/Sạc/Bộ chuyển đổi", "Cakes & Pies": "Bánh ngọt & bánh pie", "Calculators": "Máy tính cầm tay", "Calendars": "Lịch", "Camcorders & Parking Cameras": "Camera hành trình/đỗ xe", "Camera Cases & Bags": "Túi & hộp đựng máy ảnh", "Camping & Hiking": "Đồ cắm trại/leo núi", "Can & Bottle Openers": "Đồ khui hộp & chai", "Candles & Candleholders": "Nến & chân nến", "Canned Food": "Đồ hộp", "Canvas": "Vải canvas", "Canvases & Easels": "Khung tranh & giá vẽ", "Capes": "Áo choàng", "Capsule Toys": "Đồ chơi vỏ trứng (gacha)", "Car & Motorbike Seats": "Ghế/Yên xe", "Car & Motorbike Seats Accessories": "Phụ kiện ghế ô tô/xe máy", "Car Audio System": "Hệ thống âm thanh ô tô", "Car Mat": "Thảm lót sàn ô tô", "Car Mattresses": "Nệm ô tô", "Carbonated Drinks & Tonics": "Nước ngọt có gas & tonic", "Card Holders": "Ví đựng thẻ", "Cards": "Thiệp", "Careers, Self Help & Personal Development": "Hướng nghiệp & phát triển bản thân", "Cargo": "Quần cargo", "Carpets": "Thảm trải sàn", "Carpets & Mats": "Thảm/Tấm lót sàn", "Carpets & Rugs": "Thảm trải sàn", "Carton Boxes": "Thùng carton", "Cases": "Ốp/vỏ đựng", "Cases, Covers, & Skins": "Ốp lưng, bao & dán skin", "Casting Devices": "Thiết bị phát wifi/màn hình", "Cat Food": "Thức ăn cho mèo", "Cat Litter & Boxes": "Cát vệ sinh & Khay cho mèo", "Cat Treats": "Snack cho mèo", "Cereal, Granola & Oats": "Ngũ cốc & yến mạch", "Changing Pads & Kits": "Nệm & bộ thay tã", "Charms & Twillies": "Móc/dây charm túi", "Charms, Pendants & Ornaments": "Charm, mặt dây chuyền & phụ kiện", "Chassis": "Khung gầm", "Cheese & Cheese Powder": "Phô mai & bột phô mai", "Child Harnesses & Leashes": "Đai & dây dắt an toàn cho bé", "Children's Books": "Sách thiếu nhi", "Chips & Crisps": "Snack khoai tây", "Chocolate": "Sô cô la", "Chocolate Drinks": "Sữa/Bột ca cao", "Chopping Boards": "Thớt", "Classic Literature": "Văn học kinh điển", "Claw Care": "Chăm sóc móng thú cưng", "Cleaning & Care Equipment": "Dụng cụ vệ sinh & chăm sóc", "Cleaning Agents": "Hóa chất tẩy rửa", "Cleaning Brushes": "Bàn chải vệ sinh", "Cleaning Cloths": "Khăn lau vệ sinh", "Cleaning Kit": "Bộ dụng cụ vệ sinh", "Cling Wrap": "Màng bọc thực phẩm", "Clips, Pins & Tacks": "Kẹp, ghim & đinh bấm", "Clocks": "Đồng hồ treo/để bàn", "Cloth Diapers & Accessories": "Tã vải & phụ kiện", "Clotheslines & Drying Racks": "Giàn/Dây phơi đồ", "Clothing and Boots": "Quần áo & giày cho thú cưng", "Clutches": "Túi cầm tay", "Clutches & Wristlets": "Túi cầm tay & túi đeo cổ tay", "Coffee": "Cà phê", "Coffee Machines & Accessories": "Máy pha cà phê & phụ kiện", "Coin Banks": "Ống heo/hộp đựng tiền xu", "Coin Holders & Purses": "Ví đựng tiền xu", "Coins": "Tiền xu", "Color Pencils": "Bút chì màu", "Comics & Manga": "Truyện tranh & manga", "Compact Discs": "Đĩa CD", "Computers & Technology": "Máy tính & công nghệ", "Condoms": "Bao cao su", "Console Accessories": "Phụ kiện máy chơi game", "Construction Materials": "Vật liệu xây dựng", "Cooked Food": "Đồ ăn chế biến sẵn", "Cooking Paste & Kit": "Sốt & bộ gia vị nấu ăn", "Cooling": "Thiết bị làm mát (quạt/điều hòa)", "Cooling Mats": "Nệm/Thảm làm mát", "Cooling Pads": "Đế tản nhiệt laptop", "Cordial & Syrups": "Siro & nước cốt trái cây", "Costumes": "Trang phục hóa trang", "Cotton": "Bông gòn", "Couple Sets": "Bộ đồ đôi", "Covers": "Bao/vỏ bọc", "Crayons & Pastels": "Bút sáp & phấn màu", "Creamers": "Bột kem/creamer", "Cribs & Cradles & Beds": "Nôi, cũi & giường cho bé", "Crossbody & Shoulder Bags": "Túi đeo chéo/vai", "Cufflinks": "Khuy măng sét", "Cup Holder and Organizers": "Giá đỡ ly & hộp sắp xếp ô tô", "Cupboards & Cabinets": "Tủ chén/Tủ đựng đồ", "Cups, Mugs & Glasses": "Cốc/Ly/Ca", "Curtains & Blinds": "Rèm cửa", "Cushions": "Nệm/đệm ngồi", "Cutleries": "Dao muỗng nĩa", "Cycling": "Xe đạp & Phụ kiện", "DVRs": "Đầu ghi hình", "Darts": "Phi tiêu", "Deep Fryers": "Nồi chiên", "Deflectors": "Tấm chắn gió/mưa xe", "Degreasers": "Dung dịch tẩy dầu mỡ", "Desk Organizers": "Hộp sắp xếp bàn làm việc", "Desks & Tables": "Bàn", "Desktop PC": "Máy tính để bàn", "Dessert Drink": "Nước tráng miệng", "Diaper Bags": "Túi đựng tã", "Diapers": "Tã em bé", "Dice, Board & Card Games": "Xúc xắc, cờ & bài", "Diffusers, Humidifiers & Oil Burners": "Máy khuếch tán tinh dầu & tạo ẩm", "Dishwashers": "Máy rửa chén", "Disposable Diapers": "Tã giấy", "Disposable Tableware": "Chén dĩa dùng 1 lần", "Dog Food": "Thức ăn cho chó", "Dog Training Pads & Trays": "Tấm lót & khay huấn luyện chó", "Dog Treats": "Snack cho chó", "Dolls & Stuffed Toys": "Búp bê & thú nhồi bông", "Door Hardware & Locks": "Khóa & phụ kiện cửa", "Doorbells": "Chuông cửa", "Doors & Windows": "Cửa ra vào & Cửa sổ", "Doorstoppers": "Chặn cửa", "Drawing Tablets": "Bảng vẽ điện tử", "Drawstring Bags": "Túi rút dây", "Dresses": "Váy đầm", "Dried Goods": "Thực phẩm khô", "Dried Snacks": "Đồ ăn vặt sấy khô", "Drink Toppings": "Topping pha chế", "Drivetrain, Transmission & Clutches": "Hệ truyền động & ly hợp", "Drone Accessories": "Phụ kiện Flycam", "Drones": "Flycam", "Dry Bags": "Túi chống nước", "Dry Boxes & Cabinets": "Tủ/hộp chống ẩm", "Duffel & Weekender Bags": "Túi du lịch", "Dummy Cameras": "Camera giả", "Dusters": "Chổi phất trần", "Ear Care": "Chăm sóc tai", "Earmuffs": "Bịt tai giữ ấm", "Earphones, Headphones & Headsets": "Tai nghe", "Earrings": "Bông tai", "Edge & Corner Guards": "Miếng bọc góc cạnh an toàn", "Education & School": "Giáo dục & học đường", "Educational Toys": "Đồ chơi giáo dục", "Electric Sockets & Extension Cords": "Ổ cắm điện & Dây nối", "Electrical Safety": "An toàn điện", "Electrical System": "Hệ thống điện xe", "Electronics": "Đồ điện tử", "Energy & Isotonic Drinks": "Nước tăng lực & bù điện giải", "Engine": "Động cơ", "Engine Parts": "Phụ tùng động cơ", "Envelopes & Angpao": "Bao thư & bao lì xì", "Eraser & Correction Supplies": "Gôm tẩy & bút xóa", "Essential Oils": "Tinh dầu", "Exhaust": "Ống xả", "Exhaust & Emissions": "Hệ thống xả khí thải", "Exhaust and Muffler": "Ống xả & pô xe", "External Parts": "Phụ tùng ngoại thất", "Eye Care": "Chăm sóc mắt", "Eye Treatment": "Trị liệu vùng mắt", "Eyes": "Vùng mắt", "Eyewear": "Kính mắt", "Eyewear Cases & Accessories": "Hộp & phụ kiện kính mắt", "Face": "Chăm sóc da mặt", "Face Mask & Packs": "Mặt nạ dưỡng da", "Face Scrub & Peel": "Tẩy tế bào chết mặt", "Face Sunscreen": "Kem chống nắng cho mặt", "Facial Care Tools": "Dụng cụ chăm sóc da mặt", "Facial Cleanser": "Sữa rửa mặt", "Facial Mist": "Xịt khoáng", "Facial Moisturizer": "Kem dưỡng ẩm da mặt", "Facial Oil": "Dầu dưỡng da mặt", "Facial Serum & Essence": "Serum/Tinh chất dưỡng da", "Family Sets": "Bộ đồ gia đình", "Fans & Heatsinks": "Quạt & tản nhiệt máy tính", "Fantasy": "Tiểu thuyết giả tưởng", "Fashion Boots": "Giày boot thời trang", "Feminine Care": "Chăm sóc phụ nữ", "Fender Flares": "Ốp vè bánh xe", "Fengshui & Religious Supplies": "Đồ phong thủy & thờ cúng", "Fertilizer": "Phân bón", "Filters": "Bộ lọc", "First Aid Supplies": "Dụng cụ sơ cứu", "Fishing": "Dụng cụ câu cá", "Fitness": "Thể hình", "Fitness Equipment": "Thiết bị tập gym/fitness", "Flash Accessories": "Phụ kiện đèn flash", "Flash Drives & OTG": "USB & OTG", "Flashes": "Đèn flash máy ảnh", "Flat Sandals": "Dép/sandal bệt", "Flats": "Giày bệt", "Flavour Enhancers": "Gia vị tạo hương vị", "Flip Flops": "Dép xỏ ngón", "Floor Mats": "Thảm lót sàn xe", "Flour": "Bột mì", "Flour Coating": "Bột chiên xù/áo", "Flowers": "Hoa", "Foldable Bags": "Túi gấp gọn", "Folders, Paper Organizers & Accessories": "Bìa hồ sơ & phụ kiện văn phòng", "Food Coloring": "Màu thực phẩm", "Food Covers": "Lồng bàn/nắp đậy thức ăn", "Food Processors": "Máy xay đa năng", "Food Processors & Meat Grinders": "Máy xay thực phẩm/thịt", "Food Storage": "Hộp/Đồ đựng thực phẩm", "Foot Baths & Spas": "Bồn ngâm & spa chân", "Foot Care": "Chăm sóc bàn chân", "Formal Shoes": "Giày tây", "Fragrances": "Nước hoa", "Frames & Glasses": "Khung & mắt kính", "Freezers": "Tủ đông", "Fridge Magnets": "Nam châm tủ lạnh", "Frozen Processed Food": "Thực phẩm chế biến đông lạnh", "Fruits": "Trái cây", "Fuel Additives & Savers": "Phụ gia & tiết kiệm xăng", "Fuel System": "Hệ thống nhiên liệu", "Furniture & Appliance Covers": "Bao che nội thất & thiết bị", "Futon & Shoe Dryers": "Máy sấy futon & giày", "Futsal Shoes": "Giày futsal", "GPS Trackers": "Thiết bị định vị GPS", "Gameboy": "Máy chơi game Gameboy", "Garden Decorations": "Đồ trang trí sân vườn", "Garden Soils & Growing Media": "Đất & giá thể trồng cây", "Gardening Tools": "Dụng cụ làm vườn", "Garnish": "Nguyên liệu trang trí món ăn", "Gift Bags": "Túi quà tặng", "Gift Boxes": "Hộp quà tặng", "Gift Set & Hampers": "Bộ quà tặng", "Gift Sets & Packages": "Bộ quà tặng", "Gift Wrappers": "Giấy gói quà", "Gimbals & Stabilizers": "Gimbal & chống rung", "Glass Care & Water Repellents": "Chăm sóc kính & chống bám nước", "Gloves": "Găng tay", "Glues": "Keo dán", "Golf": "Golf", "Graphics Cards": "Card đồ họa", "Graters, Peelers & Cutters": "Dụng cụ bào, gọt & cắt", "Greases & Lubricants": "Mỡ bôi trơn", "Grills & Accessories": "Vỉ nướng & phụ kiện", "Gutters": "Máng xối", "Gym Protective Gears": "Đồ bảo hộ tập gym", "HUD, Speedometers & Gauges": "Đồng hồ HUD & đồng hồ đo xe", "Hair Accessories": "Phụ kiện tóc", "Hair Care": "Chăm sóc tóc", "Hair Care & Body Wash": "Chăm sóc tóc & sữa tắm cho bé", "Hair Clips & Hair Pins": "Kẹp tóc", "Hair Colour": "Thuốc nhuộm tóc", "Hair Removal Cream & Wax": "Kem & sáp tẩy lông", "Hair Removal Tools": "Dụng cụ tẩy/wax lông", "Hair Styling": "Tạo kiểu tóc", "Hair Ties, Ribbons & Scrunchies": "Dây buộc tóc & ruy băng", "Hair Tools": "Dụng cụ tạo kiểu tóc", "Hair Treatment": "Ủ & trị liệu tóc", "Hair and Scalp Conditioner": "Dầu xả & dưỡng da đầu", "Hand Care": "Chăm sóc tay", "Hand Fans": "Quạt cầm tay", "Hand Sanitizers": "Nước rửa tay khô", "Hand Warmers, Hot Water Bags & Ice Bags": "Túi sưởi ấm & túi chườm", "Handkerchiefs": "Khăn tay", "Hangers & Pegs": "Móc & kẹp phơi đồ", "Hard Disk Casings & Dockings": "Hộp & docking ổ cứng", "Hard Drives": "Ổ cứng", "Hats": "Nón", "Hats & Caps": "Nón/Mũ", "Headbands": "Băng đô", "Headpieces, Tiaras & Flower Crowns": "Vương miện & vòng hoa cài đầu", "Health Monitors & Tests": "Thiết bị theo dõi sức khỏe", "Health Slippers": "Dép massage sức khỏe", "Health, Fitness & Dieting": "Sức khỏe, thể hình & ăn kiêng", "Heaters": "Máy sưởi", "Heels": "Giày cao gót", "Helmet Visor Shields": "Kính chắn mũ bảo hiểm", "Helmets": "Mũ bảo hiểm", "Highchairs & Booster Seats": "Ghế ăn dặm cho bé", "Highlighters": "Bút dạ quang", "Hiking Shoes": "Giày leo núi", "History & Cultures": "Lịch sử & văn hóa", "Hobbies": "Sách sở thích", "Hole Punchers": "Dụng cụ đục lỗ", "Home Theater Systems": "Dàn âm thanh gia đình", "Honey & Maple Syrups": "Mật ong & siro", "Hoodies": "Áo hoodie", "Hoods": "Máy hút mùi", "Hooks": "Móc treo", "Horns & Accessories": "Còi & phụ kiện xe", "Horoscopes": "Sách tử vi", "House Alarms": "Chuông báo động nhà", "Ice cream": "Kem", "Idol Collectibles": "Vật phẩm sưu tầm thần tượng", "Ignition": "Hệ thống đánh lửa", "Ignition & Engine Parts": "Đánh lửa & phụ tùng động cơ", "Individual Sets": "Bộ combo cá nhân", "Indoor Slippers": "Dép đi trong nhà", "Industrial Adhesives & Tapes": "Keo & băng keo công nghiệp", "Injection": "Hệ thống phun xăng", "Injury & Disability Support": "Hỗ trợ chấn thương/khuyết tật", "Ink Stamps & Pads": "Con dấu & mực dấu", "Insect Repellents": "Chống côn trùng", "Insoles & Heel Liners": "Miếng lót giày", "Instant Cameras": "Máy ảnh lấy liền", "Instant Hotpot": "Lẩu ăn liền", "Instant Noodles": "Mì ăn liền", "Instant Rice & Porridge": "Cơm & cháo ăn liền", "Interior Care": "Chăm sóc nội thất xe", "Internal Parts": "Phụ tùng nội thất", "Irons & Steamers": "Bàn ủi/Máy hấp", "Irrigation Systems": "Hệ thống tưới cây", "Jackets": "Áo khoác", "Jam & Spread": "Mứt & Sốt phết", "Jeans": "Quần jean", "Jerseys": "Áo đấu thể thao", "Jewelry": "Trang sức", "Jewelry Organizers": "Hộp đựng trang sức", "Joggers": "Quần jogger", "Jugs, Pitchers & Accessories": "Bình đựng nước & phụ kiện", "Juice & Juice Vinegar": "Nước ép & giấm trái cây", "Juicers, Blenders & Soya Bean Machines": "Máy ép/Máy xay/Máy làm sữa đậu", "Jumpsuits": "Jumpsuit", "Kendamas": "Đồ chơi Kendama", "Kettles": "Ấm đun nước", "Keyboard & Trackpad Covers": "Miếng dán bàn phím & touchpad", "Keyboards": "Bàn phím", "Keyboards & Pianos": "Đàn phím/Piano", "Keychain and Key Covers": "Móc khóa & bao khóa", "Keychains": "Móc khóa", "Kid's Sport Shoes": "Giày thể thao trẻ em", "Kid's Sports Apparel": "Trang phục thể thao trẻ em", "Kimonos & Robes": "Kimono & áo choàng", "Kitchen Racks": "Kệ bếp", "Kitchen Weighing Scales": "Cân nhà bếp", "Knives & Kitchen Scissors": "Dao & kéo bếp", "LGBTQ+ Literature": "Văn học LGBTQ+", "Label Printers": "Máy in tem nhãn", "Labels & Stickers": "Tem nhãn & sticker", "Laboratory Tools": "Dụng cụ thí nghiệm", "Ladders": "Thang", "Language Learning & Dictionaries": "Sách học ngoại ngữ & từ điển", "Lanyards & Name Tags": "Dây đeo thẻ & bảng tên", "Laptop Backpacks": "Balo laptop", "Laptop Bags & Cases": "Túi & hộp đựng laptop", "Laptop Batteries": "Pin laptop", "Laptop Chargers & Adaptors": "Sạc & adapter laptop", "Laptop Skins & Covers": "Dán skin & vỏ laptop", "Laptop Sleeves": "Túi chống sốc laptop", "Laptop Stands & Foldable Laptop Desks": "Giá đỡ & bàn kê laptop", "Laptops": "Laptop", "Laundry Bags & Baskets": "Túi & giỏ đựng đồ giặt", "Laundry Care": "Chăm sóc giặt ủi (bột giặt, nước xả)", "Lawn Mowers": "Máy cắt cỏ", "Leashes, Collars, Harnesses & Muzzles": "Dây dắt, vòng cổ & rọ mõm thú cưng", "Leather": "Da thuộc", "Leggings & Treggings": "Quần legging", "Lens Caps": "Nắp đậy ống kính", "Lens Hoods": "Loa che nắng ống kính", "Lens Mount & Adaptors": "Ngàm & adapter ống kính", "Lenses": "Ống kính", "Lenspens & Brushes": "Bút & cọ vệ sinh ống kính", "License Plate Accessories": "Phụ kiện biển số xe", "Lift": "Kích nâng xe", "Light Novels": "Light Novel", "Lighting": "Đèn chiếu sáng", "Lighting & Studio Equipments": "Thiết bị chiếu sáng studio", "Lightning Protection": "Chống sét", "Lip Treatment": "Trị liệu môi", "Lips": "Vùng môi", "Loafers": "Giày lười", "Loafers & Boat Shoes": "Giày lười & giày thuyền", "Locks & Security": "Khóa & an ninh", "Long Wallets": "Ví dài", "Loose Leaf": "Giấy rời/refill", "Lubricants": "Dầu bôi trơn", "Luggage": "Vali", "Luggage Locks": "Khóa vali", "Luggage Protectors & Covers": "Bao bọc bảo vệ vali", "Luggage Scales": "Cân hành lý", "Luggage Straps": "Dây đai vali", "Luggage Tags": "Thẻ treo vali", "MP3 & MP4 Players": "Máy nghe nhạc MP3/MP4", "Magic Toys": "Đồ chơi ảo thuật", "Makeup Accessories": "Phụ kiện trang điểm", "Makeup Removers": "Nước tẩy trang", "Markers": "Bút lông/marker", "Masks": "Khẩu trang", "Massage & Therapy Devices": "Máy massage/trị liệu", "Massage Oil": "Dầu massage", "Maternity Bottoms": "Quần bầu", "Maternity Dresses": "Váy bầu", "Maternity Milk": "Sữa bầu", "Maternity Pillows": "Gối bầu", "Maternity Sets": "Bộ đồ bầu", "Maternity Tops": "Áo bầu", "Maternity Vitamins & Supplement": "Vitamin & thực phẩm bổ sung cho bà bầu", "Mattress Protectors & Toppers": "Tấm bảo vệ/Lót nệm", "Mattresses": "Nệm", "Mattresses & Bedding": "Nệm & chăn ga gối", "Measurement": "Dụng cụ đo lường", "Measuring Glasses & Spoons": "Cốc & muỗng đong", "Meat": "Thịt", "Mecha Models & Diecast": "Mô hình robot & xe khuôn kim loại", "Medical": "Y tế", "Medical Gloves & Masks": "Găng tay & khẩu trang y tế", "Memo & Sticky Notes": "Giấy nhớ & note", "Memory Cards": "Thẻ nhớ", "Men Watches": "Đồng hồ nam", "Mice": "Chuột máy tính", "Microphones": "Micro", "Microwaves": "Lò vi sóng", "Milk": "Sữa nước", "Milk Formula": "Sữa bột", "Mini PC": "Máy tính mini", "Mirrorless Cameras": "Máy ảnh Mirrorless", "Mirrors": "Gương", "Mirrors & Accessories": "Gương & phụ kiện xe", "Mixers": "Máy trộn/đánh trứng", "Mobile Flashes & Selfie Lights": "Đèn flash & đèn selfie", "Mobile Lens": "Ống kính điện thoại", "Mobile Phones": "Điện thoại di động", "Mobile Pouches": "Túi đựng điện thoại", "Modems & Wireless Routers": "Modem & router wifi", "Moisturizers & Creams": "Kem dưỡng ẩm", "Money Counters": "Máy đếm tiền", "Monitors": "Màn hình máy tính", "Mops": "Cây lau nhà", "Mosquito Nets": "Màn/Lưới chống muỗi", "Mosquito Netting": "Màn/lưới chống muỗi", "Motherboards": "Bo mạch chủ", "Motorcycle Helmets & Accessories": "Mũ bảo hiểm & Phụ kiện xe máy", "Motorcycle Tires": "Lốp xe máy", "Motorcycle Wheels": "Mâm xe máy", "Motorcycles": "Xe máy", "Mouse Pads": "Lót chuột", "Mouthguards & Sport Tapes": "Bảo vệ hàm & băng keo thể thao", "Mud Flaps & Splash Guards": "Chắn bùn xe", "Multi-function Cookers": "Nồi nấu đa năng", "Mushroom": "Nấm", "Music Accessories": "Phụ kiện nhạc cụ", "Nail Care": "Chăm sóc móng", "Nasal Care": "Chăm sóc mũi", "Navigation & AV Receivers": "Màn hình định vị & đầu AV ô tô", "Neck Accessories": "Phụ kiện đeo cổ", "Necklaces": "Dây chuyền", "Neckties, Bow Ties & Cravats": "Cà vạt & nơ", "Needlework": "Đồ thêu may", "Network Attached Storage (NAS)": "Ổ lưu trữ mạng NAS", "Network Cables & Connectors": "Cáp & đầu nối mạng", "Network Switches & PoE": "Switch mạng & PoE", "Night Dresses": "Váy ngủ", "Nintendo DS": "Máy chơi game Nintendo DS", "Non-dairy Milk": "Sữa hạt (không từ sữa động vật)", "Noodles": "Mì/bún khô", "Notebooks & Notepads": "Sổ tay & tập ghi chú", "Nursing Bras": "Áo ngực cho con bú", "Nuts": "Hạt các loại", "Occupational Attire": "Đồng phục nghề nghiệp", "Oil": "Dầu ăn", "Oil Paint": "Màu vẽ dầu", "Oils": "Dầu ăn", "Optical Drives": "Ổ đĩa quang", "Oral Care": "Chăm sóc răng miệng", "Organizers & Compartments": "Hộp & ngăn sắp xếp đồ", "Other tire & wheel care": "Chăm sóc lốp & bánh xe khác", "Others": "Khác", "Outerwear": "Áo khoác ngoài", "Ovens": "Lò nướng", "Over-the-counter Medicine": "Thuốc không kê đơn", "Overalls": "Quần yếm", "Oxfords & Lace-Ups": "Giày Oxford & giày buộc dây", "PC Cases": "Vỏ case máy tính", "PC Game": "Game PC", "Pacifiers": "Núm ti giả", "Pain Relievers": "Thuốc giảm đau", "Paint Brushes": "Cọ vẽ", "Paint Palettes": "Bảng pha màu", "Pajamas": "Đồ ngủ", "Panel and Speedometer": "Bảng đồng hồ táp lô", "Pans": "Chảo", "Panties": "Quần lót nữ", "Pants": "Quần dài", "Pantyhose": "Quần tất", "Paper Shredders": "Máy hủy giấy", "Parenting & Family": "Nuôi dạy con & gia đình", "Party Hats & Masks": "Nón & mặt nạ tiệc", "Passport Holders & Covers": "Ví & bao đựng hộ chiếu", "Pasta": "Mì Ý", "Pastry": "Bánh ngọt (pastry)", "Patches": "Miếng vá/ủi hình", "Pedals & Gear Sticks": "Bàn đạp & cần số", "Pen Knives & Paper Cutters": "Dao rọc giấy", "Pencil Cases": "Hộp bút", "Pencils": "Bút chì", "Pens & Inks": "Bút & mực viết", "Percussion Instruments": "Nhạc cụ gõ", "Performance Enhancement": "Tăng cường hiệu suất động cơ", "Perfumes & Fragrances": "Nước hoa", "Perfumes, Air Fresheners & Purifiers": "Nước hoa & xịt thơm ô tô", "Pest & Weed Control": "Diệt côn trùng & cỏ dại", "Pet Clothing": "Quần áo thú cưng", "Pet Furniture": "Nội thất cho thú cưng", "Phone & Key Wallets": "Ví đựng điện thoại & chìa khóa", "Phone Chargers and Holders": "Sạc & giá đỡ điện thoại", "Phone Grips": "Giá đỡ ngón tay điện thoại", "Phone Holders": "Giá đỡ điện thoại", "Phone Straps & Keychains": "Dây đeo & móc khóa điện thoại", "Photo Albums": "Album ảnh", "Photo Films & Papers": "Phim & giấy ảnh", "Photo Frames & Wall Decoration": "Khung ảnh & Trang trí tường", "Photography & Printing": "Nhiếp ảnh & in ấn", "Pillows": "Gối", "Placemats & Coasters": "Tấm lót bàn ăn & lót ly", "Plants": "Cây cảnh", "Plastic Bags & Trash Bags": "Túi nilon/Túi rác", "Plates": "Đĩa ăn", "Playstation": "Máy chơi game Playstation", "Playsuits": "Đồ liền thân dạo phố", "Pocket Wifi": "Wifi di động", "Point & Shoot": "Máy ảnh compact", "Pointers": "Bút chỉ laser", "Polish, Coating & Sealants": "Đánh bóng & phủ bảo vệ xe", "Politics, Law & Social Sciences": "Chính trị, pháp luật & xã hội học", "Polo Shirts": "Áo polo", "Poop Bags & Scoopers": "Túi & xẻng dọn phân thú cưng", "Popcorn": "Bắp rang", "Post Cards": "Bưu thiếp", "Postage Stamps & Duty Stamps": "Tem thư & tem thuế", "Pots": "Nồi/Xoong", "Pots & Planters": "Chậu cây", "Potty Training & Commode Chairs": "Ghế tập ngồi bô cho bé", "Powdered Drink Mixes": "Bột pha nước uống", "Power Supply Units": "Bộ nguồn máy tính", "Powerbanks & Batteries": "Pin sạc dự phòng", "Powerline Adapters": "Bộ chuyển đổi mạng điện", "Prank Toys": "Đồ chơi trêu ghẹo", "Preserved Vegetables": "Rau củ muối/sấy", "Pressure Cookers": "Nồi áp suất", "Pretend Play": "Đồ chơi nhập vai", "Printers, Scanners & Photocopy Machines": "Máy in/Scan/Photocopy", "Printing & Photocopy Paper": "Giấy in & photocopy", "Processors": "Bộ vi xử lý CPU", "Projectors & Projector Screens": "Máy chiếu & màn chiếu", "Protective Gloves, Goggles & Masks": "Găng tay, kính & khẩu trang bảo hộ", "Psychology & Relationships": "Tâm lý học & các mối quan hệ", "Pudding, Jellies & Marshmallow": "Bánh pudding, thạch & kẹo dẻo", "RAM": "RAM máy tính", "Racks and Cargo Carrier": "Giá đỡ & khung chở hàng xe", "Radiators, Engine Cooling & Climate Control": "Két nước & hệ thống làm mát động cơ", "Radio & Cassette Players": "Đầu radio & băng cassette", "Rain Boots": "Ủng đi mưa", "Rain Coats": "Áo mưa", "Rain Gear": "Đồ dùng đi mưa", "Ready-to-Drink Milk": "Sữa uống liền", "Recipes & Cooking": "Sách công thức nấu ăn", "Refrigerators": "Tủ lạnh", "Regular Outerwear": "Áo khoác thường ngày", "Religion & Philosophy": "Tôn giáo & triết học", "Remote Control Toys & Accessories": "Đồ chơi điều khiển từ xa", "Remote Controls": "Điều khiển từ xa", "Repeaters": "Bộ kích sóng wifi", "Reptile Food": "Thức ăn cho bò sát", "Ribbons": "Ruy băng", "Rice": "Gạo", "Rice Cookers": "Nồi cơm điện", "Rings": "Nhẫn", "Robot Toys": "Đồ chơi robot", "Rock Climbing": "Leo núi đá", "Romance": "Tiểu thuyết ngôn tình", "Rompers, Jumpsuits & Overalls": "Đồ liền thân & yếm cho bé", "Roofing & Flooring": "Vật liệu mái & sàn", "Rubik's Cubes": "Rubik", "Rulers, Protractors & Stencils": "Thước kẻ & thước đo góc", "Running Shoes": "Giày chạy bộ", "SSD": "Ổ cứng SSD", "Safes": "Két sắt", "Safety Boots": "Giày bảo hộ", "Safety Handles": "Tay vịn an toàn", "Safety Locks & Straps": "Khóa & dây an toàn cho bé", "Safety Pants": "Quần bảo hộ lao động", "Sandals": "Sandal", "Sashes": "Dây choàng/sash", "Scale & Body Fat Analyzers": "Cân sức khỏe & đo mỡ", "Scarves": "Khăn quàng cổ", "Scarves & Shawls": "Khăn quàng & khăn choàng", "Science & Maths": "Khoa học & toán học", "Scissors": "Kéo", "Screen Protectors": "Miếng dán màn hình", "Sealers": "Máy hàn miệng túi", "Seasonings & Condiments": "Gia vị", "Seat Cover": "Bọc ghế", "Seat Headrests & Back Supports": "Gối tựa đầu & lưng ghế xe", "Seats & Seat Covers": "Ghế & bọc ghế xe", "Seaweed": "Rong biển", "Seeds": "Hạt giống", "Seeds & Bulbs": "Hạt giống & Củ giống", "Selfie Accessories": "Phụ kiện chụp ảnh selfie", "Server PC": "Máy chủ (server)", "Service Tools": "Dụng cụ sửa chữa xe", "Set & Couple Watches": "Đồng hồ cặp đôi", "Sets": "Bộ sản phẩm", "Sewing Machines & Accessories": "Máy may & phụ kiện", "Sexy Lingerie": "Đồ lót gợi cảm", "Shades, Awnings & Tarpaulins": "Bạt/Mái che", "Shampoo": "Dầu gội", "Shapewear": "Đồ định hình cơ thể", "Sharpeners": "Đồ gọt bút chì", "Shaving & Grooming": "Cạo râu & chăm sóc nam giới", "Shelves & Racks": "Kệ để đồ", "Shirts": "Áo sơ mi", "Shirts & Blouses": "Áo sơ mi & áo kiểu", "Shocks, Struts & Suspension": "Giảm xóc & hệ thống treo", "Shoe Bags": "Túi đựng giày", "Shoe Care & Cleaning Tools": "Dụng cụ vệ sinh giày", "Shoe Deodorizers": "Khử mùi giày", "Shoe Horns & Trees": "Cây xỏ & giữ form giày", "Shoe Insoles": "Lót giày", "Shoe Laces": "Dây giày", "Shoe Storage Boxes": "Tủ/Hộp đựng giày", "Shooting & Survival Games": "Đồ chơi súng & trò chơi sinh tồn", "Shorts": "Quần short", "Shower Caps": "Mũ chụp tắm", "Shower Curtains": "Rèm phòng tắm", "Shower Seats & Commodes": "Ghế tắm & ghế bô cho người lớn tuổi", "Showerheads & Bidet Sprays": "Vòi sen & vòi xịt vệ sinh", "Side Mirrors": "Gương chiếu hậu", "Silica Gel": "Hạt hút ẩm silica gel", "Sill Plates": "Ốp bậc lên xuống xe", "Silver": "Bạc", "Sim Cards": "Sim điện thoại", "Sinks & Water Taps": "Bồn rửa & Vòi nước", "Sketch Books": "Sổ vẽ phác thảo", "Skincare": "Chăm sóc da", "Skirts": "Chân váy", "Skorts": "Chân váy quần", "Sleepwear": "Đồ ngủ", "Slime & Squishy Toys": "Đồ chơi Slime & bóp bóp", "Slip Ons & Mules": "Giày lười & giày sục", "Slip Ons, Mary Janes & Mules": "Giày lười, giày búp bê & giày sục", "Slow Cookers & Sous Vide Machines": "Nồi hầm chậm & sous vide", "Small Pet Bedding & Litter": "Lót chuồng & cát vệ sinh thú nhỏ", "Small Pet Food": "Thức ăn thú cưng nhỏ", "Small Pet Treats": "Snack cho thú cưng nhỏ", "Smartwatches & Fitness Trackers": "Đồng hồ/Vòng đeo thông minh", "Sneakers": "Giày sneaker", "Soap Dispensers, Holders & Boxes": "Hộp & giá đựng xà phòng", "Soccer Shoes": "Giày đá bóng", "Soccer, Futsal & Sepak Takraw": "Bóng đá, futsal & cầu mây", "Socks": "Vớ/tất", "Sofas": "Sofa", "Softwares": "Phần mềm", "Sound Cards": "Card âm thanh", "Spatulas & Cooking Tweezers": "Xẻng & kẹp gắp nấu ăn", "Speakers": "Loa", "Specialty Cookware": "Dụng cụ nấu ăn chuyên dụng", "Speedometers, Odometers & Gauges": "Đồng hồ tốc độ & đo quãng đường", "Spinning Tops": "Con quay", "Sponges & Scouring Pads": "Bọt biển & miếng chà nồi", "Sports & Outdoor Hats": "Nón thể thao & dã ngoại", "Sports & Outdoor Play": "Đồ chơi vận động ngoài trời", "Sports Bras": "Áo ngực thể thao", "Sports Collectibles": "Vật phẩm sưu tầm thể thao", "Sports Headbands": "Băng đô thể thao", "Sports Wristbands": "Băng cổ tay thể thao", "Squash": "Squash", "Staplers & Staples": "Dập ghim & kim bấm", "Statues & Sculptures": "Tượng & điêu khắc", "Steering Wheel Cover": "Bọc vô lăng", "Steering Wheels & Covers": "Vô lăng & bọc vô lăng", "Stethoscopes": "Ống nghe y tế", "Sticker & Colouring Books": "Sách dán hình & tô màu", "Stickers and Emblems": "Sticker & huy hiệu", "Stickers, Logos & Emblems": "Sticker, logo & huy hiệu xe", "Stock, Gravy & Instant Soup": "Nước dùng & súp ăn liền", "Stopwatches & Pedometers": "Đồng hồ bấm giờ & máy đếm bước", "Storage & Organization": "Đồ lưu trữ & sắp xếp (phòng trẻ em)", "Storage Boxes, Bags & Baskets": "Hộp/Túi/Giỏ đựng đồ", "Stoves, Hobs & Gas Regulators": "Bếp & Van gas", "Strainers": "Rây/dụng cụ lọc", "Straps": "Dây đeo", "Straws": "Ống hút", "String Instruments": "Nhạc cụ dây", "Strings & Tapes": "Dây & băng dán", "Stroller Accessories": "Phụ kiện xe đẩy em bé", "Strollers & Travel Systems": "Xe đẩy em bé", "Stylus": "Bút cảm ứng", "Sugar": "Đường", "Suit Jackets & Blazers": "Áo vest & blazer", "Suit Pants": "Quần âu", "Suit Sets": "Bộ vest", "Suit Vests & Waistcoats": "Áo gile vest", "Suits & Sets": "Vest & bộ đồ", "Sun Care": "Chống nắng", "Sun Shade": "Rèm/tấm che nắng xe", "Sun Shields & Dash Covers": "Tấm che nắng táp lô", "Sunglasses": "Kính râm", "Supporting Belts": "Đai hỗ trợ/nẹp lưng", "Surfing & Wakeboarding": "Lướt sóng & lướt ván nước", "Suspension and Steering": "Hệ thống treo & lái", "Sweaters & Cardigans": "Áo len/Cardigan", "Sweatshirts": "Áo nỉ sweatshirt", "Sweetener": "Chất tạo ngọt", "Sweets & Candy": "Bánh kẹo ngọt", "Swimming & Diving": "Bơi lội & lặn biển", "Swimming Attire": "Trang phục bơi", "Swimwear": "Đồ bơi", "Switch": "Máy chơi game Switch", "Switches": "Công tắc điện", "T-Shirts": "Áo thun", "T-shirts": "Áo thun", "TV Antennas": "Ăng-ten Tivi", "TV Boxes & Receivers": "Đầu thu & TV Box", "TV Brackets": "Giá treo Tivi", "TVs": "Tivi", "Table Cloths": "Khăn trải bàn", "Table Tennis": "Bóng bàn", "Tablets": "Máy tính bảng", "Tailgate Accessories": "Phụ kiện cốp sau xe", "Tanks": "Áo hai dây", "Tanks & Camisoles": "Áo hai dây & áo lót trong", "Tattoos": "Hình xăm dán", "Tea & Tea Bags": "Trà/Trà túi lọc", "Tea Pots & Sets": "Bộ ấm trà", "Tea, Coffee & Bartending Equipments": "Dụng cụ pha trà, cà phê & pha chế", "Telephones": "Điện thoại bàn", "Tennis": "Quần vợt", "Tennis Shoes": "Giày tennis", "Test, Diagnostic & Repair Tools": "Dụng cụ kiểm tra & sửa chữa xe", "Thermal & Barcode Printers": "Máy in nhiệt & mã vạch", "Thermal Innerwear": "Đồ lót giữ nhiệt", "Thermal Paper & Continuous Paper": "Giấy in nhiệt & giấy liên tục", "Thermal Paste": "Keo tản nhiệt", "Tire & Wheel Care": "Chăm sóc lốp & bánh xe", "Tire Changer Machine": "Máy ra vào lốp", "Tire Pressure Detectors": "Máy đo áp suất lốp", "Tires & Accessories": "Lốp xe & Phụ kiện", "Tissue & Paper Towels": "Khăn giấy", "Tissue Holders": "Hộp đựng khăn giấy", "Toasters": "Máy nướng bánh mì", "Toilet Bowls, Seats & Covers": "Bồn cầu & Nắp bồn cầu", "Toilet Paper": "Giấy vệ sinh", "Toner": "Nước hoa hồng", "Tools": "Dụng cụ", "Toothbrush Holders & Toothpaste Dispensers": "Giá đựng bàn chải & kem đánh răng", "Top-handle Bags": "Túi xách tay", "Tops": "Áo mặc trên", "Tote Bags": "Túi tote", "Towels & Bathrobes": "Khăn tắm & áo choàng", "Toy Vehicles": "Xe đồ chơi", "Toys": "Đồ chơi", "Traditional & Herbal Drinks": "Nước uống truyền thống & thảo mộc", "Training Equipments": "Dụng cụ tập luyện thể thao", "Training Shoes": "Giày tập luyện", "Transmission": "Hộp số", "Trash & Recycling Bins": "Thùng rác & tái chế", "Travel & Tourism": "Du lịch", "Travel Essentials": "Đồ dùng du lịch cho thú cưng", "Travel Organizers": "Túi sắp xếp đồ du lịch", "Travel Pillows & Eye Covers": "Gối & bịt mắt du lịch", "Travel Size Bottles & Containers": "Chai/lọ chiết du lịch", "Treatments": "Chăm sóc & bảo dưỡng xe", "Tripods, Monopods, & Accessories": "Chân máy & gậy tự sướng", "Trollies": "Xe đẩy hàng", "Tube Tops": "Áo ống", "Tuning": "Độ xe", "UPS & Stabilizers": "Bộ lưu điện & Ổn áp", "USB & Mobile Fans": "Quạt mini USB", "USB & Mobile Lights": "Đèn mini USB", "USB Chargers, FM & Bluetooth Transmitters": "Sạc USB & bộ phát FM/Bluetooth ô tô", "USB Hubs & Card Readers": "Bộ chia USB & đầu đọc thẻ", "Umbrellas": "Ô/Dù", "Undershirts": "Áo lót nam ba lỗ", "Underwear": "Đồ lót", "Underwear & Innerwear": "Đồ lót & đồ mặc trong", "Utensils": "Dụng cụ ăn dặm cho bé", "VR Devices": "Thiết bị thực tế ảo VR", "Vacuum Cleaners & Floor Care Appliances": "Máy hút bụi/vệ sinh sàn", "Vases & Vessels": "Bình hoa & vật trang trí", "Vegetables": "Rau củ", "Vehicle Models & Diecast": "Mô hình xe khuôn kim loại", "Velvet, Silk & Satin": "Vải nhung, lụa & satin", "Vests": "Áo gile", "Video Camcorders": "Máy quay phim", "Vinyl Records": "Đĩa than", "Vitamins & Supplements": "Vitamin & thực phẩm bổ sung cho thú cưng", "Voice Recorders": "Máy ghi âm", "Volleyball": "Bóng chuyền", "Volleyball Shoes": "Giày bóng chuyền", "Waist Bags & Chest Bags": "Túi đeo hông & đeo ngực", "Walkers": "Xe tập đi cho bé", "Walkie Talkies": "Bộ đàm", "Wallpapers & Wall Stickers": "Giấy dán tường", "Wardrobe Organizers": "Hộp/túi sắp xếp tủ đồ", "Wardrobes": "Tủ quần áo", "Wash & Waxes": "Rửa xe & đánh bóng", "Washing Machines & Dryers": "Máy giặt/Máy sấy", "Watches": "Đồng hồ trẻ em", "Water": "Nước uống đóng chai", "Water & Poster Colours": "Màu nước & màu bột", "Water Bottles & Accessories": "Bình nước & Phụ kiện", "Water Filters, Coolers & Dispensers": "Máy lọc/làm nóng lạnh nước", "Water Filters, Coolers \\u0026 Dispensers": "Máy lọc/làm nóng lạnh nước", "Water Flossers": "Máy tăm nước", "Water Heaters": "Máy nước nóng", "Water Pumps, Parts & Accessories": "Máy bơm nước & Phụ kiện", "Wearable Accessories": "Phụ kiện đeo công nghệ", "Webcams": "Webcam", "Wedding Dresses": "Váy cưới", "Wedges": "Giày đế xuồng", "Weight Management": "Sản phẩm kiểm soát cân nặng", "Well Being": "Chăm sóc sức khỏe tinh thần", "Wheels, Rims & Accessories": "Bánh xe, mâm & phụ kiện", "Whisks & Beaters": "Dụng cụ đánh trứng/kem", "Wigs & Extensions": "Tóc giả & nối tóc", "Wind Instruments": "Nhạc cụ hơi", "Windshield Wipers & Washers": "Cần gạt mưa & nước rửa kính", "Wine Fridges": "Tủ mát rượu vang", "Winter Jackets & Coats": "Áo khoác mùa đông", "Winter Outerwear": "Áo khoác mùa đông cho bé", "Wipes": "Khăn ướt", "Wireless Adapters & Network Cards": "Card mạng không dây", "Women Watches": "Đồng hồ nữ", "Wooden Clips": "Kẹp gỗ", "Wool": "Len", "Wrench": "Cờ lê", "Writing Boards & Board Stands": "Bảng viết & Giá đỡ bảng", "Yo-yos": "Yoyo", "Yoga & Pilates": "Yoga & Pilates", "Yogurt & Cultured Milk": "Sữa chua & sữa lên men"};
 function translateSanPham(sp){
   if(!sp) return sp;
   if(CAT_LV3_VI.hasOwnProperty(sp)) return CAT_LV3_VI[sp];
-  return sp + ' <span class="untranslated-tag">⚠️(chưa dịch)</span>';
+  return sp;
 }
 
-const TAB_GROUPS = {
-  Shopee: ['18692','3892833','224845','2781603'],
-  Lazada: ['9794'],
-  Tiki: ['2590595','1367'],
-};
+const CLIENT_ACC = { '18692':'SPE', '3892833':'SPB' };
+const ACC_COLOR = { SPB:'var(--spb)', SPE:'var(--spe)' };
 
-Chart.defaults.font.family = "Cambria, 'Times New Roman', Georgia, serif";
-Chart.defaults.color = '#383838';
-if(typeof ChartDataLabels !== 'undefined'){ Chart.register(ChartDataLabels); }
+let RAW_ALL = [];
+let RAW = [];
+let WEEKS = [];
+let MONTHS = [];
+let YEARS_AVAILABLE = [];
+let selectedYear = null;
+let REPORT = {};
+let currentSubtab = 'tongquan';
 
-const outsideLabelsPlugin = {
-  id: 'outsideLabels',
-  afterDraw(chart){
-    if(chart.config.type !== 'doughnut' && chart.config.type !== 'pie') return;
-    const meta = chart.getDatasetMeta(0);
-    if(!meta || !meta.data || !meta.data.length) return;
-    const dataset = chart.data.datasets[0];
-    const total = dataset.data.reduce((a,b)=>a+b,0);
-    if(!total) return;
-    const {ctx} = chart;
-    ctx.save();
-    ctx.font = "700 12px Cambria, 'Times New Roman', Georgia, serif";
-    ctx.fillStyle = '#383838';
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = '#B0B0B0';
-
-    const items = [];
-    meta.data.forEach((arc, i)=>{
-      const value = dataset.data[i];
-      if(!value) return;
-      const pct = value/total*100;
-      const angle = (arc.startAngle + arc.endAngle) / 2;
-      const outerR = arc.outerRadius;
-      const cx = arc.x, cy = arc.y;
-      const x1 = cx + Math.cos(angle) * outerR;
-      const y1 = cy + Math.sin(angle) * outerR;
-      const x2 = cx + Math.cos(angle) * (outerR + 14);
-      const y2 = cy + Math.sin(angle) * (outerR + 14);
-      const isRight = Math.cos(angle) >= 0;
-      const x3 = x2 + (isRight ? 16 : -16);
-      items.push({ x1, y1, x2, y2, x3, y3: y2, isRight, text: pct.toFixed(1) + '%' });
-    });
-
-    const minGap = 16;
-    ['left', 'right'].forEach(side=>{
-      const group = items
-        .filter(it => side === 'right' ? it.isRight : !it.isRight)
-        .sort((a,b) => a.y3 - b.y3);
-      for(let i=1; i<group.length; i++){
-        if(group[i].y3 - group[i-1].y3 < minGap){
-          group[i].y3 = group[i-1].y3 + minGap;
-        }
-      }
-    });
-
-    items.forEach(it=>{
-      ctx.beginPath();
-      ctx.moveTo(it.x1, it.y1);
-      ctx.lineTo(it.x2, it.y2);
-      ctx.lineTo(it.x3, it.y3);
-      ctx.stroke();
-
-      ctx.textAlign = it.isRight ? 'left' : 'right';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(it.text, it.x3 + (it.isRight ? 4 : -4), it.y3);
-    });
-    ctx.restore();
-  }
-};
-Chart.register(outsideLabelsPlugin);
-
-const AVAILABLE_YEARS = [2025, 2026];
-
-let ALL_ROWS = [];
-let currentYear = 2026;
-let currentTab = 'all';
-let currentMonth = 'all';
-let currentGranularity = 'month';
-let currentSubClient = 'all';
-let currentRegion = 'all';
-let charts = {};
-let shellReady = false;
-let isLoadingYear = false;
-const yearDataCache = {};
-
-function applyLoadedRows(rows){
-  ALL_ROWS = rows;
-  currentTab = 'all';
-  currentMonth = 'all';
-  currentRegion = 'all';
-  currentSubClient = 'all';
-  currentGranularity = 'month';
-  if(!shellReady){
-    buildAppSkeleton();
-    setupOneTimeListeners();
-    shellReady = true;
-  }
-  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab === 'all'));
-  document.getElementById('shopeeSubWrap').style.display = 'none';
-  document.querySelectorAll('#granularity button').forEach(b=>b.classList.toggle('active', b.dataset.g === 'month'));
-  populateFilterDropdowns();
-  render();
+function applyYearFilter(){
+  RAW = RAW_ALL.filter(r=> r._month && r._month.slice(0,4) === String(selectedYear));
+  const weekMap = {};
+  RAW.forEach(r=>{ weekMap[r._weekKey] = r._weekLabel; });
+  WEEKS = Object.keys(weekMap).sort().map(k=>({key:k, label:weekMap[k]}));
 }
 
-function loadYear(year){
-  if(isLoadingYear) return;
-  currentYear = year;
-  document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active', b.dataset.year == year));
-
-  if(yearDataCache[year]){
-    hideLoginOverlay();
-    document.getElementById('statusText').textContent = yearDataCache[year].statusLabel;
-    applyLoadedRows(yearDataCache[year].rows);
-    return;
-  }
-
-  isLoadingYear = true;
+function loadAll(){
   document.getElementById('statusText').textContent = 'Đang tải dữ liệu...';
-
-  let statusLabel = 'Dữ liệu cập nhật';
-
-  fetch('/api/data?year=' + year)
-    .then(r => {
-      if(r.status === 401){
-        showLoginOverlay();
-        throw new Error('__UNAUTHORIZED__');
-      }
-      hideLoginOverlay();
-      const lastModifiedHeader = r.headers.get('X-Data-Last-Modified');
-      if(lastModifiedHeader){
-        const d = new Date(lastModifiedHeader);
-        if(!isNaN(d)){
-          statusLabel = 'Dữ liệu cập nhật lúc ' + fmtDateTime(d);
-        }
-      }
-      document.getElementById('statusText').textContent = statusLabel;
-      return r.text();
-    })
-    .then(csvText => {
-      const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true, dynamicTyping:true});
-      const rows = parsed.data.filter(r => r.ma_dh);
-      yearDataCache[year] = { rows, statusLabel };
-      applyLoadedRows(rows);
-    })
-    .catch(err => {
-      if(err.message === '__UNAUTHORIZED__') return;
-      document.getElementById('app').innerHTML =
-        '<div class="loading">Không tải được dữ liệu.<br><small>'+err+'</small></div>';
-      console.error(err);
-    })
-    .finally(() => {
-      isLoadingYear = false;
+  Promise.all([
+    fetch('/api/data?year=2025', {credentials:'include'}).then(r=> r.status===401 ? Promise.reject('__UNAUTHORIZED__') : r.text()),
+    fetch('/api/data?year=2026', {credentials:'include'}).then(r=> r.status===401 ? Promise.reject('__UNAUTHORIZED__') : r.text()),
+  ]).then(([csv2025, csv2026])=>{
+    hideLoginOverlay();
+    const rows2025 = Papa.parse(csv2025, {header:true, skipEmptyLines:true, dynamicTyping:true}).data;
+    const rows2026 = Papa.parse(csv2026, {header:true, skipEmptyLines:true, dynamicTyping:true}).data;
+    const all = [...rows2025, ...rows2026].filter(r=>r.ma_dh && CLIENT_ACC[String(r.nhom_kh)]);
+    all.forEach(r=>{
+      const wi = isoWeekInfo(r.ngay_duyet_eform);
+      r._acc = CLIENT_ACC[String(r.nhom_kh)];
+      r._weekKey = wi ? wi.key : null;
+      r._weekLabel = wi ? wi.label : null;
+      r._month = wi ? wi.month : null;
+      r._day = wi ? wi.day : null;
     });
-}
-
-function showLoginOverlay(){
-  document.getElementById('loginOverlay').style.display = 'flex';
-  document.getElementById('appShellWrap').style.display = 'none';
-}
-
-function hideLoginOverlay(){
-  document.getElementById('loginOverlay').style.display = 'none';
-  document.getElementById('appShellWrap').style.display = 'block';
-}
-
-function handleGoogleLogin(response){
-  const errBox = document.getElementById('loginError');
-  errBox.style.display = 'none';
-  fetch('/api/verify', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    credentials: 'include',
-    body: JSON.stringify({ credential: response.credential })
-  })
-    .then(r => r.json().then(data => ({ ok: r.ok, data })))
-    .then(({ ok, data }) => {
-      if(ok){
-        hideLoginOverlay();
-        loadYear(currentYear);
-      } else {
-        errBox.textContent = data.error || 'Đăng nhập thất bại';
-        errBox.style.display = 'block';
-      }
-    })
-    .catch(err => {
-      errBox.textContent = 'Lỗi kết nối: ' + err.message;
-      errBox.style.display = 'block';
+    RAW_ALL = all.filter(r=>r._weekKey);
+    const yearSet = {};
+    RAW_ALL.forEach(r=>{ yearSet[r._month.slice(0,4)] = true; });
+    YEARS_AVAILABLE = Object.keys(yearSet).sort();
+    selectedYear = YEARS_AVAILABLE[YEARS_AVAILABLE.length-1];
+    applyYearFilter();
+    const monthSet = {};
+    RAW_ALL.forEach(r=>{ monthSet[r._month] = true; });
+    MONTHS = Object.keys(monthSet).sort().map(k=>{
+      const [y,m] = k.split('-');
+      return {key:k, label:'Th'+m+'/'+y};
     });
+    document.getElementById('statusText').textContent = 'Dữ liệu SPB+SPE: ' + fmtNum(RAW_ALL.length) + ' đơn';
+    renderYearSwitcher();
+    render();
+  }).catch(err=>{
+    if(err === '__UNAUTHORIZED__'){ showLoginOverlay(); return; }
+    document.getElementById('app').innerHTML = '<div class="loading">Không tải được dữ liệu.<br><small>'+err+'</small></div>';
+    console.error(err);
+  });
 }
 
-function handleLogout(){
-  fetch('/api/logout', { method: 'POST', credentials: 'include' })
-    .finally(() => {
-      shellReady = false;
-      showLoginOverlay();
-      if(window.google && google.accounts && google.accounts.id){
-        google.accounts.id.disableAutoSelect();
+function renderYearSwitcher(){
+  const el = document.getElementById('yearSwitcher');
+  if(!el) return;
+  el.innerHTML = YEARS_AVAILABLE.map(y=>
+    `<button type="button" class="year-btn ${String(y)===String(selectedYear)?'active':''}" data-year="${y}">${y}</button>`
+  ).join('');
+  el.querySelectorAll('.year-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      selectedYear = btn.dataset.year;
+      applyYearFilter();
+      renderYearSwitcher();
+      if(currentSubtab !== 'thang') render();
+    });
+  });
+}
+
+function aggByGroupPeriod(rows, groupFn, periodField, collectRows){
+  const byGroupPeriod = {}, totalByGroup = {}, rowsByGroup = collectRows ? {} : null;
+  rows.forEach(r=>{
+    const g = groupFn(r);
+    if(g === null || g === undefined || g === '') return;
+    const pk = r[periodField];
+    if(!byGroupPeriod[g]) byGroupPeriod[g] = {};
+    if(!byGroupPeriod[g][pk]) byGroupPeriod[g][pk] = {den_bu:0, truy_thu:0, so_don:0};
+    byGroupPeriod[g][pk].den_bu += (+r.gia_tri_den_bu||0);
+    byGroupPeriod[g][pk].truy_thu += (+r.so_tien_da_truy_thu||0);
+    byGroupPeriod[g][pk].so_don += 1;
+    totalByGroup[g] = (totalByGroup[g]||0) + (+r.gia_tri_den_bu||0);
+    if(collectRows){
+      if(!rowsByGroup[g]) rowsByGroup[g] = [];
+      rowsByGroup[g].push(r);
+    }
+  });
+  return {byGroupPeriod, totalByGroup, rowsByGroup};
+}
+
+function computeMTDMoM(rows, groupFn){
+  let latestDate = null;
+  rows.forEach(r=>{ const d = r.ngay_duyet_eform; if(d && (!latestDate || String(d) > latestDate)) latestDate = String(d); });
+  if(!latestDate) return {byGroup:{}, currentMonth:null, prevMonth:null, cutoffDay:null};
+  const wi = isoWeekInfo(latestDate);
+  const currentMonth = wi.month;
+  const [cy,cm] = currentMonth.split('-').map(Number);
+  const prevDate = new Date(Date.UTC(cy, cm-2, 1));
+  const prevMonth = prevDate.getUTCFullYear() + '-' + String(prevDate.getUTCMonth()+1).padStart(2,'0');
+  const cutoffDay = wi.day;
+  const byGroup = {};
+  rows.forEach(r=>{
+    const g = groupFn(r);
+    if(g === null || g === undefined || g === '') return;
+    if(!byGroup[g]) byGroup[g] = {mtd:0, prevComparable:0, mtd_don:0};
+    if(r._month === currentMonth){ byGroup[g].mtd += (+r.gia_tri_den_bu||0); byGroup[g].mtd_don += 1; }
+    if(r._month === prevMonth && r._day <= cutoffDay) byGroup[g].prevComparable += (+r.gia_tri_den_bu||0);
+  });
+  return {byGroup, currentMonth, prevMonth, cutoffDay};
+}
+
+let EXPAND_ID_SEQ = 0;
+
+function renderTrendTable(rows, groupFn, opts){
+  opts = opts || {};
+  const periodType = opts.periodType || 'week';
+  const periodField = periodType === 'month' ? '_month' : '_weekKey';
+  const periodsAll = periodType === 'month' ? MONTHS : WEEKS;
+  const nPeriods = opts.nPeriods || opts.nWeeks || 6;
+  const topN = opts.topN || 8;
+  const lastWeeks = periodsAll.slice(-nPeriods);
+  const curWeekKey = lastWeeks.length ? lastWeeks[lastWeeks.length-1].key : null;
+  const {byGroupPeriod, totalByGroup, rowsByGroup} = aggByGroupPeriod(rows, groupFn, periodField, !!opts.expandable);
+  const mtdmom = computeMTDMoM(rows, groupFn);
+  let groupsSorted = Object.keys(totalByGroup).sort((a,b)=>totalByGroup[b]-totalByGroup[a]);
+  let othersTotal = 0, othersByWeek = {};
+  if(opts.topAndOthers && groupsSorted.length > topN){
+    const rest = groupsSorted.slice(topN);
+    rest.forEach(g=>{
+      othersTotal += totalByGroup[g] || 0;
+      Object.keys(byGroupPeriod[g]||{}).forEach(wk=>{
+        if(!othersByWeek[wk]) othersByWeek[wk] = {den_bu:0,truy_thu:0,so_don:0};
+        othersByWeek[wk].den_bu += byGroupPeriod[g][wk].den_bu;
+        othersByWeek[wk].so_don += byGroupPeriod[g][wk].so_don;
+      });
+    });
+    groupsSorted = groupsSorted.slice(0, topN);
+  }
+  const grandTotal = Object.values(totalByGroup).reduce((s,v)=>s+v,0) || 1;
+  const colCount = lastWeeks.length + 3;
+
+  let thead = '<tr><th>Nhóm</th>';
+  lastWeeks.forEach(w=> thead += `<th class="${w.key===curWeekKey?'cur':''}">${w.label}</th>`);
+  thead += `<th>MTD</th><th>MoM</th></tr>`;
+
+  function subChannelTableHtml(groupRows){
+    const sub = renderTrendTable(groupRows||[], classifyChannel, {periodType, nPeriods});
+    return `<table class="subtable"><thead>${sub.thead}</thead><tbody>${sub.tbody}</tbody></table>`;
+  }
+
+  function rowHtml(label, byWeek, mtdEntry, groupRows){
+    let expandBtn = '';
+    let expandRow = '';
+    if(opts.expandable && groupRows && groupRows.length){
+      const rowId = `exp-${opts.idPrefix||'g'}-${EXPAND_ID_SEQ++}`;
+      expandBtn = `<button class="warn-toggle" type="button" data-target="${rowId}">+</button>`;
+      expandRow = `<tr id="${rowId}" class="expand-row" style="display:none;"><td colspan="${colCount}">${subChannelTableHtml(groupRows)}</td></tr>`;
+    }
+    let html = `<tr><td>${expandBtn}${label}</td>`;
+    lastWeeks.forEach(w=>{
+      const v = (byWeek[w.key] && byWeek[w.key].den_bu) || 0;
+      html += `<td class="${w.key===curWeekKey?'cur':''}">${fmtMoney(v)}</td>`;
+    });
+    const mtd = mtdEntry ? mtdEntry.mtd : 0;
+    const prev = mtdEntry ? mtdEntry.prevComparable : 0;
+    const momPct = prev ? (mtd-prev)/prev*100 : null;
+    html += `<td>${fmtMoney(mtd)}</td><td>${momHtml(momPct)}</td></tr>${expandRow}`;
+    return html;
+  }
+
+  let tbody = '';
+  groupsSorted.forEach(g=>{
+    tbody += rowHtml(g, byGroupPeriod[g]||{}, mtdmom.byGroup[g], rowsByGroup ? rowsByGroup[g] : null);
+  });
+  if(opts.topAndOthers && othersTotal > 0){
+    const mtdOthers = {mtd:0, prevComparable:0};
+    Object.keys(mtdmom.byGroup).forEach(g=>{
+      if(!groupsSorted.includes(g)){
+        mtdOthers.mtd += mtdmom.byGroup[g].mtd;
+        mtdOthers.prevComparable += mtdmom.byGroup[g].prevComparable;
       }
     });
+    tbody += rowHtml('Khác', othersByWeek, mtdOthers, null);
+  }
+
+  return { thead, tbody, groupsSorted, totalByGroup, grandTotal, mtdmom, lastWeeks, curWeekKey, byGroupWeek: byGroupPeriod };
 }
 
-function populateFilterDropdowns(){
-  const months = [...new Set(ALL_ROWS.map(r=>String(r.ngay_duyet_eform||'').slice(0,7)).filter(Boolean))].sort().reverse();
-  const sel = document.getElementById('monthSelect');
-  sel.innerHTML = '<option value="all">Tất cả</option>' + months.map(m=>`<option value="${m}">${m}</option>`).join('');
-
-  const regions = [...new Set(ALL_ROWS.map(r=>r.vung_chiu_trach_nhiem).filter(v=>v!==null && v!==undefined && String(v).trim()!==''))].sort();
-  const regionSel = document.getElementById('regionSelect');
-  regionSel.innerHTML = '<option value="all">Tất cả vùng</option>' + regions.map(rg=>`<option value="${rg}">${rg}</option>`).join('');
+function tableWrap(title, desc, theadHtml, tbodyHtml, note){
+  return `<div class="table-wrap"><table><thead>${theadHtml}</thead><tbody>${tbodyHtml}</tbody></table></div>${note?`<div class="note">${note}</div>`:''}`;
 }
 
-document.getElementById('yearbar').addEventListener('click', e=>{
-  if(!e.target.classList.contains('year-btn')) return;
-  const year = +e.target.dataset.year;
-  if(year === currentYear) return;
-  loadYear(year);
-});
+function renderTongQuan(){
+  const lastWeeks = WEEKS.slice(-6);
+  const curWeek = lastWeeks[lastWeeks.length-1];
+  const rowsCurWeek = RAW.filter(r=>r._weekKey === curWeek.key);
+  const totalDenBuTuan = rowsCurWeek.reduce((s,r)=>s+(+r.gia_tri_den_bu||0),0);
 
-loadYear(currentYear);
+  const byLoaiYC = {};
+  rowsCurWeek.forEach(r=>{ const k=r.loai_yeu_cau||'(Không rõ)'; byLoaiYC[k]=(byLoaiYC[k]||0)+(+r.gia_tri_den_bu||0); });
+  const topLoaiYC = Object.entries(byLoaiYC).sort((a,b)=>b[1]-a[1])[0];
 
-function buildAppSkeleton(){
+  const byNganh = {};
+  rowsCurWeek.forEach(r=>{ const k=r.san_pham_vn_group||''; if(!k) return; byNganh[k]=(byNganh[k]||0)+(+r.gia_tri_den_bu||0); });
+  const topNganh = Object.entries(byNganh).sort((a,b)=>b[1]-a[1])[0];
+
+  const mtdAll = computeMTDMoM(RAW, ()=> 'ALL');
+  const mtdEntry = mtdAll.byGroup['ALL'] || {mtd:0, prevComparable:0};
+  const momAllPct = mtdEntry.prevComparable ? (mtdEntry.mtd-mtdEntry.prevComparable)/mtdEntry.prevComparable*100 : null;
+
+  const accTable = renderTrendTable(RAW, r=>r._acc, {nWeeks:6});
+  const locTable = renderTrendTable(RAW, r=>r.loai_yeu_cau||'(Không rõ)', {nWeeks:6, topN:6, topAndOthers:true});
+  const nganhTable = renderTrendTable(RAW, r=>r.san_pham_vn_group||'(Không rõ)', {nWeeks:6, topN:5, topAndOthers:true});
+
+  const accShare = {};
+  RAW.filter(r=>r._weekKey===curWeek.key).forEach(r=>{ accShare[r._acc] = (accShare[r._acc]||0) + (+r.gia_tri_den_bu||0); });
+  const spbVal = accShare['SPB']||0, speVal = accShare['SPE']||0;
+  const accLeader = spbVal >= speVal ? 'SPB' : 'SPE';
+
+  const nhanxetHtml = `
+    <div class="nhanxet"><b>Tổng đền bù ${curWeek.label}:</b> ${fmtMoney(totalDenBuTuan)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}).</div>
+    <div class="nhanxet"><b>Loại yêu cầu lớn nhất:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)} trong tuần.</div>
+    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)} trong tuần.</div>
+    <div class="nhanxet"><b>MTD tháng ${mtdAll.currentMonth||'—'}:</b> ${fmtMoney(mtdEntry.mtd)} — MoM so với cùng kỳ tháng trước: ${momHtml(momAllPct)}</div>
+  `;
+
+  REPORT.tongquan = { curWeek, totalDenBuTuan, topLoaiYC, topNganh, mtdEntry, momAllPct, accTable, locTable, nganhTable };
+
   document.getElementById('app').innerHTML = `
-    <div class="kpis" id="kpis"></div>
-    <div class="grid2">
-      <section>
-        <h2>Đền bù theo nhóm hàng</h2>
-        <div class="underline"></div>
-        <p class="desc">Giá trị đền bù vs. đã truy thu theo từng client (đã gộp client trùng nhóm)</p>
-        <canvas id="chartClient"></canvas>
-      </section>
-      <section>
-        <h2>Đền bù theo tuyến</h2>
-        <div class="underline"></div>
-        <p class="desc">Phân bổ giá trị đền bù theo loại tuyến vận chuyển<br><em>Ghi chú: Từ 2026-05-01 theo tuyến sáp nhập</em></p>
-        <div class="chart-box-tuyen"><canvas id="chartTuyen"></canvas></div>
-      </section>
+    <div class="banner">Phạm vi dữ liệu: <b>Shopee Express (SPE, nhom_kh=18692)</b> và <b>Shopee Bulky (SPB, nhom_kh=3892833)</b> · Năm: <b>${selectedYear}</b> · Mốc thời gian: <code>ngay_duyet_eform</code> · Toàn bộ số liệu là số THẬT tính trực tiếp từ dữ liệu hiện có (không ước tính).</div>
+    <section><h2>Nhận xét chung — ${curWeek.label}</h2><div class="underline"></div>${nhanxetHtml}</section>
+    <div class="kpis">
+      <div class="kpi accent"><div class="label">Tổng đền bù ${curWeek.label}</div><div class="value">${fmtMoney(totalDenBuTuan)}</div></div>
+      <div class="kpi"><div class="label">Loại yêu cầu lớn nhất</div><div class="value" style="font-size:16px;">${topLoaiYC?topLoaiYC[0]:'—'}</div><div class="sub">${fmtMoney(topLoaiYC?topLoaiYC[1]:0)}</div></div>
+      <div class="kpi"><div class="label">Nhóm ngành lớn nhất</div><div class="value" style="font-size:16px;">${topNganh?topNganh[0]:'—'}</div><div class="sub">${fmtMoney(topNganh?topNganh[1]:0)}</div></div>
+      <div class="kpi"><div class="label">MTD tháng ${mtdAll.currentMonth||''}</div><div class="value">${fmtMoney(mtdEntry.mtd)}</div><div class="sub">MoM ${momHtml(momAllPct)}</div></div>
     </div>
-
     <section>
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
-        <div>
-          <h2>Xu hướng theo kỳ</h2>
-          <div class="underline"></div>
-          <p class="desc" style="margin-bottom:0;">Giá trị đền bù và truy thu theo kỳ đã chọn — biểu đồ này luôn hiện toàn bộ dữ liệu của năm đang xem, không phụ thuộc tab/bộ lọc khác</p>
-        </div>
-        <div class="granularity" id="granularity">
-          <button data-g="month" class="active">Tháng</button>
-          <button data-g="quarter">Quý</button>
-          <button data-g="year">Năm</button>
-        </div>
-      </div>
-      <canvas id="chartMonth" style="margin-top:14px;"></canvas>
+      <h2>Phân tích đền bù theo Account</h2><div class="underline"></div>
+      <p class="desc">SPB / SPE theo từng tuần (6 tuần gần nhất), kèm MTD/MoM</p>
+      ${tableWrap('','',accTable.thead, accTable.tbody)}
     </section>
-
-    <div class="region-cluster">
-      <div class="region-cluster-filter">
-        <label>📍 Vùng chịu trách nhiệm:</label>
-        <select id="regionSelect"><option value="all">Tất cả vùng</option></select>
-        <span style="font-size:12.5px;color:var(--orange-dark);">— áp dụng cho 3 mục bên dưới</span>
-      </div>
-      <div class="grid2">
-        <div>
-          <section>
-            <h2>Loại lý do đền bù theo nhóm hàng</h2>
-            <div class="underline"></div>
-            <p class="desc">Top lý do gây đền bù nhiều nhất</p>
-            <canvas id="chartLyDo"></canvas>
-          </section>
-          <section>
-            <h2>Tỷ lệ đã truy thu theo lý do</h2>
-            <div class="underline"></div>
-            <div id="batteryList"></div>
-          </section>
-        </div>
-        <section>
-          <h2>Vùng &amp; kho chịu trách nhiệm</h2>
-          <div class="underline"></div>
-          <p class="desc">Top 15 kho theo tổng giá trị đền bù, nhóm theo vùng<br>🔴 &lt;20% · 🟡 &lt;30% · 🟢 &lt;50% · 🟣 ≥50% (theo tỷ lệ đã truy thu)</p>
-          <div id="hubGroupList"></div>
-        </section>
-      </div>
-    </div>
-
     <section>
-      <h2>Loại lý do đền bù theo vùng</h2>
-      <div class="underline"></div>
-      <p class="desc">Phân bổ giá trị đền bù theo từng lý do, chia theo vùng chịu trách nhiệm</p>
-      <canvas id="chartLyDoVung"></canvas>
+      <h2>Phân tích đền bù theo loại yêu cầu</h2><div class="underline"></div>
+      <p class="desc">Top 6 loại yêu cầu + "Khác" (gộp SPB+SPE), 6 tuần gần nhất, MTD/MoM</p>
+      ${tableWrap('','',locTable.thead, locTable.tbody)}
     </section>
-
     <section>
-      <h2>Đền bù theo nhóm ngành hàng</h2>
-      <div class="underline"></div>
-      <p class="desc">Top nhóm ngành hàng (san_pham_vn_group) theo tổng giá trị đền bù 6 tháng gần nhất · bấm (+) xem top 5 kho gây đền bù cho từng nhóm</p>
-      <div class="table-wrap">
-        <table class="pivot-table" id="pivotTable">
-          <colgroup id="pivotColgroup"></colgroup>
-          <thead id="pivotHead"></thead>
-          <tbody id="pivotBody"></tbody>
-        </table>
-      </div>
+      <h2>Phân tích đền bù theo nhóm ngành hàng</h2><div class="underline"></div>
+      <p class="desc">Top 5 nhóm ngành (san_pham_vn_group) + "Khác", luôn = 100% tổng đền bù, MTD/MoM</p>
+      ${tableWrap('','',nganhTable.thead, nganhTable.tbody)}
     </section>
   `;
 }
 
-function setupOneTimeListeners(){
-  document.getElementById('monthSelect').addEventListener('change', e=>{ currentMonth = e.target.value; render(); });
-  document.getElementById('regionSelect').addEventListener('change', e=>{ currentRegion = e.target.value; render(); });
-
-  document.getElementById('shopeeSubSelect').innerHTML = '<option value="all">Shopee - ALL</option>' +
-    TAB_GROUPS.Shopee.map(id=>`<option value="${id}">${clientLabel(id)}</option>`).join('');
-  document.getElementById('shopeeSubSelect').addEventListener('change', e=>{
-    currentSubClient = e.target.value;
-    render();
-  });
-
-  document.getElementById('tabbar').addEventListener('click', e=>{
-    if(e.target.tagName !== 'BUTTON') return;
-    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-    e.target.classList.add('active');
-    currentTab = e.target.dataset.tab;
-    currentSubClient = 'all';
-    const wrap = document.getElementById('shopeeSubWrap');
-    if(currentTab === 'Shopee'){
-      wrap.style.display = 'flex';
-      document.getElementById('shopeeSubSelect').value = 'all';
-    } else {
-      wrap.style.display = 'none';
-    }
-    render();
-  });
-
-  document.getElementById('granularity').addEventListener('click', e=>{
-    if(e.target.tagName !== 'BUTTON') return;
-    document.querySelectorAll('#granularity button').forEach(b=>b.classList.remove('active'));
-    e.target.classList.add('active');
-    currentGranularity = e.target.dataset.g;
-    render();
-  });
-
-  document.getElementById('app').addEventListener('click', e=>{
-    if(!e.target.classList.contains('warn-toggle')) return;
-    const targetEl = document.getElementById(e.target.dataset.target);
-    if(!targetEl) return;
-    const isOpen = targetEl.style.display !== 'none';
-    targetEl.style.display = isOpen ? 'none' : (targetEl.tagName === 'TR' ? 'table-row' : 'block');
-    e.target.textContent = isOpen ? '+' : '−';
-  });
+function classifyChannel(r){
+  const c = String(r.channel||'').toLowerCase();
+  return c.includes('wh') ? 'WH' : 'MP';
 }
 
-function getFilteredRows(){
-  let rows = ALL_ROWS;
-  if(currentTab !== 'all'){
-    const ids = TAB_GROUPS[currentTab] || [];
-    rows = rows.filter(r => ids.includes(String(r.nhom_kh)));
-    if(currentTab === 'Shopee' && currentSubClient !== 'all'){
-      rows = rows.filter(r => String(r.nhom_kh) === currentSubClient);
-    }
-  }
-  if(currentMonth !== 'all'){
-    rows = rows.filter(r => String(r.ngay_duyet_eform||'').slice(0,7) === currentMonth);
-  }
-  return rows;
+function renderChiTiet(acc){
+  const rowsAcc = RAW.filter(r=>r._acc===acc);
+  const lastWeeks = WEEKS.slice(-6);
+  const curWeek = lastWeeks[lastWeeks.length-1];
+  const rowsCurWeek = rowsAcc.filter(r=>r._weekKey===curWeek.key);
+  const totalDenBu = rowsAcc.reduce((s,r)=>s+(+r.gia_tri_den_bu||0),0);
+  const totalTruyThu = rowsAcc.reduce((s,r)=>s+(+r.so_tien_da_truy_thu||0),0);
+  const soDon = rowsAcc.length;
+  const giaTriTB = soDon ? totalDenBu/soDon : 0;
+  const tyLeThuHoi = totalDenBu ? totalTruyThu/totalDenBu*100 : 0;
+
+  const byLoaiYC = {};
+  rowsAcc.forEach(r=>{ const k=r.loai_yeu_cau||'(Không rõ)'; byLoaiYC[k]=(byLoaiYC[k]||0)+(+r.gia_tri_den_bu||0); });
+  const rankedLoaiYC = Object.entries(byLoaiYC).sort((a,b)=>b[1]-a[1]);
+  const top1 = rankedLoaiYC[0], top2 = rankedLoaiYC[1];
+
+  const byLoaiYCCurWeek = {};
+  rowsCurWeek.forEach(r=>{ const k=r.loai_yeu_cau||'(Không rõ)'; byLoaiYCCurWeek[k]=(byLoaiYCCurWeek[k]||0)+(+r.gia_tri_den_bu||0); });
+  const barRanked = Object.entries(byLoaiYCCurWeek).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const barMax = barRanked.length ? barRanked[0][1] : 1;
+  const barHtml = barRanked.map(([k,v])=>`
+    <div class="barrow"><div class="blabel">${k}</div>
+      <div class="btrack"><div class="bfill" style="width:${Math.max(2,v/barMax*100)}%"></div></div>
+      <div class="bval">${fmtMoney(v)}</div></div>`).join('') || '<div class="note">Không có dữ liệu tuần này</div>';
+
+  const locTable = renderTrendTable(rowsAcc, r=>r.loai_yeu_cau||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true});
+
+  const rowsTop1 = top1 ? rowsAcc.filter(r=>(r.loai_yeu_cau||'(Không rõ)')===top1[0]) : [];
+  const bTable = renderTrendTable(rowsTop1, r=>r.san_pham_vn_group||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true, expandable:true, idPrefix:`b-${acc}`});
+
+  const rowsTop2 = top2 ? rowsAcc.filter(r=>(r.loai_yeu_cau||'(Không rõ)')===top2[0]) : [];
+  const cTable = renderTrendTable(rowsTop2, r=>r.tuyen||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true, expandable:true, idPrefix:`c-${acc}`});
+
+  REPORT[acc.toLowerCase()] = { totalDenBu, totalTruyThu, soDon, giaTriTB, tyLeThuHoi, top1, top2, locTable, bTable, cTable };
+
+  document.getElementById('app').innerHTML = `
+    <div class="banner"><span class="badge-${acc.toLowerCase()}">${acc}</span> ${acc==='SPB'?'Shopee Bulky':'Shopee Express'} · nhom_kh = ${acc==='SPB'?'3892833':'18692'} · Năm: <b>${selectedYear}</b></div>
+    <div class="kpis">
+      <div class="kpi accent"><div class="label">Tổng đền bù (toàn kỳ)</div><div class="value">${fmtMoney(totalDenBu)}</div></div>
+      <div class="kpi"><div class="label">Giá trị TB / đơn</div><div class="value">${fmtMoney(giaTriTB)}</div></div>
+      <div class="kpi"><div class="label">Tỉ lệ thu hồi</div><div class="value">${fmtPct(tyLeThuHoi)}</div></div>
+      <div class="kpi"><div class="label">Top 2 loại yêu cầu</div><div class="value" style="font-size:14px;line-height:1.4;">${top1?top1[0]:'—'}<br>${top2?top2[0]:''}</div></div>
+    </div>
+    <section>
+      <h2>A. Loại yêu cầu</h2><div class="underline"></div>
+      <h3>A.1 — Giá trị theo loại yêu cầu, tuần ${curWeek.label}</h3>
+      ${barHtml}
+      <h3>A.2 — Cơ cấu loại yêu cầu, trend 5 tuần + MTD/MoM</h3>
+      ${tableWrap('','',locTable.thead, locTable.tbody)}
+    </section>
+    <section>
+      <h2>B. Đào sâu: "${top1?top1[0]:'—'}" theo nhóm ngành hàng</h2><div class="underline"></div>
+      <p class="desc">Loại yêu cầu lớn nhất của ${acc}, breakdown theo san_pham_vn_group · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
+      ${tableWrap('','',bTable.thead, bTable.tbody)}
+    </section>
+    <section>
+      <h2>C. Đào sâu: "${top2?top2[0]:'—'}" theo tuyến</h2><div class="underline"></div>
+      <p class="desc">Loại yêu cầu lớn thứ 2 của ${acc}, breakdown theo tuyến · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
+      ${tableWrap('','',cTable.thead, cTable.tbody)}
+    </section>
+  `;
 }
 
-function getTabFilteredRows(){
-  let rows = ALL_ROWS;
-  if(currentTab !== 'all'){
-    const ids = TAB_GROUPS[currentTab] || [];
-    rows = rows.filter(r => ids.includes(String(r.nhom_kh)));
-    if(currentTab === 'Shopee' && currentSubClient !== 'all'){
-      rows = rows.filter(r => String(r.nhom_kh) === currentSubClient);
-    }
-  }
-  return rows;
+function renderChuyenSau(){
+  const lastWeeks = WEEKS.slice(-5);
+  function rootCauseLabel(r){ const sp = r.san_pham||''; return sp ? translateSanPham(sp) : '(Không rõ)'; }
+  const rootTable = renderTrendTable(RAW, rootCauseLabel, {nWeeks:5, topN:8, topAndOthers:true, expandable:true, idPrefix:'root'});
+  const tuyenTable = renderTrendTable(RAW, r=>r.tuyen||'(Không rõ)', {nWeeks:5, topN:8, topAndOthers:true, expandable:true, idPrefix:'tuyen'});
+
+  const ahamoveRows = RAW.filter(r=> /intra|n[ộo]i th[àa]nh/i.test(r.tuyen||''));
+  const ahaByNganh = {};
+  ahamoveRows.forEach(r=>{ const k=r.san_pham_vn_group||'(Không rõ)'; ahaByNganh[k]=(ahaByNganh[k]||0)+(+r.gia_tri_den_bu||0); });
+  const ahaRanked = Object.entries(ahaByNganh).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const ahaHtml = ahaRanked.length
+    ? '<div class="table-wrap"><table><thead><tr><th>Nhóm ngành</th><th>Giá trị đền bù (tuyến nội thành)</th></tr></thead><tbody>' +
+      ahaRanked.map(([k,v])=>`<tr><td>${k}</td><td>${fmtMoney(v)}</td></tr>`).join('') + '</tbody></table></div>'
+    : '<div class="note">Không xác định được tuyến nội thành trong dữ liệu tuyến hiện có (heuristic tìm "Intra"/"Nội thành") — cần xác nhận lại quy ước đặt tên tuyến để tính chính xác.</div>';
+
+  const curWeek = WEEKS[WEEKS.length-1];
+  const rowsCurWeek = RAW.filter(r=>r._weekKey===curWeek.key);
+  const vals = rowsCurWeek.map(r=>+r.gia_tri_den_bu||0);
+  const mean = vals.reduce((s,v)=>s+v,0) / (vals.length||1);
+  const variance = vals.reduce((s,v)=>s+Math.pow(v-mean,2),0) / (vals.length||1);
+  const stdev = Math.sqrt(variance);
+  const threshold = mean + 3*stdev;
+  const outliers = rowsCurWeek.filter(r=>(+r.gia_tri_den_bu||0) > threshold)
+    .sort((a,b)=>(+b.gia_tri_den_bu||0)-(+a.gia_tri_den_bu||0)).slice(0,20);
+  const outlierHtml = outliers.length
+    ? '<div class="table-wrap"><table><thead><tr><th>Mã đơn</th><th>Account</th><th>Seller</th><th>Giá trị đền bù</th><th>Loại yêu cầu</th></tr></thead><tbody>' +
+      outliers.map(r=>`<tr><td>${r.ma_dh}</td><td>${r._acc}</td><td>${r.seller_name||''}</td><td>${fmtMoney(+r.gia_tri_den_bu||0)}</td><td>${r.loai_yeu_cau||''}</td></tr>`).join('') +
+      '</tbody></table></div>'
+    : '<div class="note">Không có đơn nào vượt ngưỡng bất thường (trung bình + 3 độ lệch chuẩn) trong tuần '+curWeek.label+'.</div>';
+
+  const topRoot = rootTable.groupsSorted[0];
+  const topTuyen = tuyenTable.groupsSorted[0];
+  const suggestions = [
+    { level:'cao', text:`Root cause "${topRoot||'—'}" đang chiếm tỉ trọng cao nhất trong ${curWeek.label} — cần rà soát quy trình đóng gói/kiểm hàng liên quan tại các kho phát sinh nhiều nhất.` },
+    { level:'tb', text:`Tuyến "${topTuyen||'—'}" có giá trị đền bù cao nhất — phối hợp vận hành kiểm tra chất lượng vận chuyển trên tuyến này.` },
+    { level:'thap', text:`${outliers.length} đơn có giá trị bất thường trong tuần ${curWeek.label} — đề xuất rà soát riêng từng đơn (danh sách ở bảng trên) trước khi tính vào KPI chung.` },
+  ];
+  const suggestHtml = '<ul class="prop-list">' + suggestions.map(s=>
+    `<li><span class="prop-tag prop-${s.level}">${s.level==='cao'?'Cao':s.level==='tb'?'Trung bình':'Thấp'}</span>${s.text}</li>`
+  ).join('') + '</ul>';
+
+  REPORT.chuyensau = { rootTable, tuyenTable, outliers, suggestions };
+
+  document.getElementById('app').innerHTML = `
+    <div class="banner">Gộp SPB+SPE · Năm: <b>${selectedYear}</b> · Mốc thời gian: <code>ngay_duyet_eform</code></div>
+    <section>
+      <h2>Root cause (theo san_pham / cat_level3)</h2><div class="underline"></div>
+      <p class="desc">Gộp SPB+SPE, top 8 + "Khác", trend 5 tuần + MTD/MoM · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
+      ${tableWrap('','',rootTable.thead, rootTable.tbody)}
+    </section>
+    <section>
+      <h2>Tổng giá trị theo Tuyến</h2><div class="underline"></div>
+      ${tableWrap('','',tuyenTable.thead, tuyenTable.tbody)}
+    </section>
+    <section>
+      <h2>Cơ hội Ahamove (tuyến nội thành theo nhóm ngành)</h2><div class="underline"></div>
+      ${ahaHtml}
+    </section>
+    <section>
+      <h2>Đơn có giá trị bất thường — ${curWeek.label}</h2><div class="underline"></div>
+      <p class="desc">Ngưỡng: giá trị đền bù &gt; trung bình + 3 độ lệch chuẩn của tuần</p>
+      ${outlierHtml}
+    </section>
+    <section>
+      <h2>Đề xuất giải pháp</h2><div class="underline"></div>
+      ${suggestHtml}
+    </section>
+    <section>
+      <h2>Ghi chú chất lượng dữ liệu</h2><div class="underline"></div>
+      <p class="desc">Số liệu tuần gần nhất (${curWeek.label}) có thể còn thấp hơn thực tế nếu <code>ngay_duyet_eform</code> chưa được nhập đầy đủ tại thời điểm xem báo cáo — đây là số thật hiện có tại thời điểm tải trang, không phải số đã chốt cuối kỳ.</p>
+    </section>
+  `;
 }
 
-function groupByFn(rows, keyFn){
-  const m = {};
-  rows.forEach(r=>{
-    const k = keyFn(r) || '(Không rõ)';
-    if(!m[k]) m[k] = {den_bu:0, truy_thu:0, so_don:0};
-    m[k].den_bu += (+r.gia_tri_den_bu||0);
-    m[k].truy_thu += (+r.so_tien_da_truy_thu||0);
-    m[k].so_don += 1;
-  });
-  return m;
-}
+function renderBaoCaoThang(){
+  const lastMonths = MONTHS.slice(-6);
+  const curMonth = lastMonths[lastMonths.length-1];
+  const rowsCurMonth = RAW_ALL.filter(r=>r._month === curMonth.key);
+  const totalDenBuThang = rowsCurMonth.reduce((s,r)=>s+(+r.gia_tri_den_bu||0),0);
 
-function periodKey(dateStr, granularity){
-  if(!dateStr) return null;
-  const s = String(dateStr);
-  if(granularity === 'month') return s.slice(0,7);
-  if(granularity === 'year') return s.slice(0,4);
-  if(granularity === 'quarter'){
-    const y = s.slice(0,4), m = +s.slice(5,7);
-    return y + '-Q' + (Math.floor((m-1)/3)+1);
-  }
-  return s.slice(0,7);
-}
+  const byLoaiYC = {};
+  rowsCurMonth.forEach(r=>{ const k=r.loai_yeu_cau||'(Không rõ)'; byLoaiYC[k]=(byLoaiYC[k]||0)+(+r.gia_tri_den_bu||0); });
+  const topLoaiYC = Object.entries(byLoaiYC).sort((a,b)=>b[1]-a[1])[0];
 
-function destroyChart(key){ if(charts[key]){ charts[key].destroy(); delete charts[key]; } }
+  const byNganh = {};
+  rowsCurMonth.forEach(r=>{ const k=r.san_pham_vn_group||''; if(!k) return; byNganh[k]=(byNganh[k]||0)+(+r.gia_tri_den_bu||0); });
+  const topNganh = Object.entries(byNganh).sort((a,b)=>b[1]-a[1])[0];
+
+  const mtdAll = computeMTDMoM(RAW_ALL, ()=> 'ALL');
+  const mtdEntry = mtdAll.byGroup['ALL'] || {mtd:0, prevComparable:0};
+  const momAllPct = mtdEntry.prevComparable ? (mtdEntry.mtd-mtdEntry.prevComparable)/mtdEntry.prevComparable*100 : null;
+
+  const accTable = renderTrendTable(RAW_ALL, r=>r._acc, {periodType:'month', nPeriods:6});
+  const locTable = renderTrendTable(RAW_ALL, r=>r.loai_yeu_cau||'(Không rõ)', {periodType:'month', nPeriods:6, topN:6, topAndOthers:true});
+  const nganhTable = renderTrendTable(RAW_ALL, r=>r.san_pham_vn_group||'(Không rõ)', {periodType:'month', nPeriods:6, topN:5, topAndOthers:true});
+  function rootCauseLabelThang(r){ const sp = r.san_pham||''; return sp ? translateSanPham(sp) : '(Không rõ)'; }
+  const rootTable = renderTrendTable(RAW_ALL, rootCauseLabelThang, {periodType:'month', nPeriods:6, topN:8, topAndOthers:true});
+
+  const accShare = {};
+  rowsCurMonth.forEach(r=>{ accShare[r._acc] = (accShare[r._acc]||0) + (+r.gia_tri_den_bu||0); });
+  const spbVal = accShare['SPB']||0, speVal = accShare['SPE']||0;
+  const accLeader = spbVal >= speVal ? 'SPB' : 'SPE';
+
+  const nhanxetHtml = `
+    <div class="nhanxet"><b>Tổng đền bù ${curMonth.label}:</b> ${fmtMoney(totalDenBuThang)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}).</div>
+    <div class="nhanxet"><b>Loại yêu cầu lớn nhất trong tháng:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)}.</div>
+    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất trong tháng:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)}.</div>
+    <div class="nhanxet"><b>MTD:</b> ${fmtMoney(mtdEntry.mtd)} — MoM so với cùng kỳ tháng trước: ${momHtml(momAllPct)}</div>
+  `;
+
+  REPORT.thang = { curMonth, totalDenBuThang, topLoaiYC, topNganh, mtdEntry, momAllPct, accTable, locTable, nganhTable, rootTable };
+
+  document.getElementById('app').innerHTML = `
+    <div class="banner">Phạm vi dữ liệu: <b>Shopee Express (SPE)</b> và <b>Shopee Bulky (SPB)</b> · Trend theo tháng (6 tháng gần nhất), mốc thời gian: <code>ngay_duyet_eform</code>.</div>
+    <section><h2>Nhận xét chung — ${curMonth.label}</h2><div class="underline"></div>${nhanxetHtml}</section>
+    <div class="kpis">
+      <div class="kpi accent"><div class="label">Tổng đền bù ${curMonth.label}</div><div class="value">${fmtMoney(totalDenBuThang)}</div></div>
+      <div class="kpi"><div class="label">Loại yêu cầu lớn nhất</div><div class="value" style="font-size:16px;">${topLoaiYC?topLoaiYC[0]:'—'}</div><div class="sub">${fmtMoney(topLoaiYC?topLoaiYC[1]:0)}</div></div>
+      <div class="kpi"><div class="label">Nhóm ngành lớn nhất</div><div class="value" style="font-size:16px;">${topNganh?topNganh[0]:'—'}</div><div class="sub">${fmtMoney(topNganh?topNganh[1]:0)}</div></div>
+      <div class="kpi"><div class="label">MTD</div><div class="value">${fmtMoney(mtdEntry.mtd)}</div><div class="sub">MoM ${momHtml(momAllPct)}</div></div>
+    </div>
+    <section>
+      <h2>Đền bù theo Account — 6 tháng gần nhất</h2><div class="underline"></div>
+      ${tableWrap('','',accTable.thead, accTable.tbody)}
+    </section>
+    <section>
+      <h2>Đền bù theo loại yêu cầu — 6 tháng gần nhất</h2><div class="underline"></div>
+      ${tableWrap('','',locTable.thead, locTable.tbody)}
+    </section>
+    <section>
+      <h2>Đền bù theo nhóm ngành hàng — 6 tháng gần nhất</h2><div class="underline"></div>
+      ${tableWrap('','',nganhTable.thead, nganhTable.tbody)}
+    </section>
+    <section>
+      <h2>Root cause theo tháng</h2><div class="underline"></div>
+      ${tableWrap('','',rootTable.thead, rootTable.tbody)}
+    </section>
+  `;
+}
 
 function render(){
-  const rows = getFilteredRows();
-
-  const totalDenBu = rows.reduce((s,r)=>s+(+r.gia_tri_den_bu||0),0);
-  const totalTruyThu = rows.reduce((s,r)=>s+(+r.so_tien_da_truy_thu||0),0);
-  const soDonTruyThu = rows.filter(r => (+r.so_tien_da_truy_thu||0) > 0).length;
-  const tyLeThuHoi = totalDenBu ? (totalTruyThu/totalDenBu*100) : 0;
-
-  function hasTicket(r){
-    const v = r.kho_chiu_trach_nhiem;
-    return !(v === null || v === undefined || String(v).trim() === '');
-  }
-  const withTicket = rows.filter(hasTicket);
-  const withoutTicket = rows.filter(r => !hasTicket(r));
-
-  document.getElementById('kpis').innerHTML = `
-    <div class="kpi"><div class="label">Tổng đơn đền bù</div><div class="value">${fmtNum(rows.length)}</div></div>
-    <div class="kpi accent"><div class="label">Tổng giá trị đền bù</div><div class="value">${fmtVND(totalDenBu)}</div></div>
-    <div class="kpi"><div class="label">Đã truy thu</div><div class="value">${fmtVND(totalTruyThu)}</div></div>
-    <div class="kpi"><div class="label">Tỷ lệ thu hồi</div><div class="value">${fmtPct(tyLeThuHoi)}<span class="rate-dot" style="background:${RATE_COLOR[batteryClass(tyLeThuHoi)]}"></span></div><div class="sub">${fmtNum(soDonTruyThu)} đơn đã truy thu</div></div>
-    <div class="kpi"><div class="label">Có ticket truy thu</div><div class="value">${fmtNum(withTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
-    <div class="kpi accent"><div class="label">Chưa ticket truy thu</div><div class="value">${fmtNum(withoutTicket.length)}</div><div class="sub">${fmtPct(rows.length ? withoutTicket.length/rows.length*100 : 0)} tổng đơn</div></div>
-  `;
-
-  const orange = '#FE5F00', navy = '#0E4174', orangeLight = '#FF9E64', navyLight = '#7FA6C9';
-  const dl = { color:'#383838', font:{family:"Cambria, 'Times New Roman', Georgia, serif", size:10, weight:'bold'}, display:'auto' };
-
-  const byClient = groupByFn(rows, r => clientLabel(r.nhom_kh));
-  const clientKeys = Object.keys(byClient).sort((a,b)=>byClient[b].den_bu - byClient[a].den_bu);
-  destroyChart('client');
-  charts.client = new Chart(document.getElementById('chartClient'), {
-    type:'bar',
-    data:{ labels: clientKeys, datasets:[
-      {label:'Đền bù', data: clientKeys.map(k=>byClient[k].den_bu), backgroundColor:navy},
-      {label:'Đã truy thu', data: clientKeys.map(k=>byClient[k].truy_thu), backgroundColor:orange},
-    ]},
-    options:{responsive:true, plugins:{legend:{position:'bottom'},
-      datalabels:{...dl, anchor:'end', align:'top', formatter:v=>fmtCompact(v)}},
-      scales:{y:{ticks:{callback:v=>fmtCompact(v)}}}}
-  });
-
-  const byTuyen = groupByFn(rows, r=>r.tuyen);
-  const tuyenKeys = Object.keys(byTuyen).sort((a,b)=>byTuyen[b].den_bu - byTuyen[a].den_bu);
-  const tuyenTotal = tuyenKeys.reduce((s,k)=>s+byTuyen[k].den_bu,0);
-  destroyChart('tuyen');
-  const isNarrowScreen = window.innerWidth < 640;
-  charts.tuyen = new Chart(document.getElementById('chartTuyen'), {
-    type:'doughnut',
-    data:{ labels: tuyenKeys, datasets:[{data: tuyenKeys.map(k=>byTuyen[k].den_bu),
-      backgroundColor:[orange,navy,orangeLight,navyLight,'#E04F00','#0A2F54','#FFE4D2'], cutout:'55%'}]},
-    options:{responsive:true, maintainAspectRatio:false,
-      layout:{padding:{top:30,bottom:30,left:60,right:60}},
-      plugins:{legend:{position: isNarrowScreen ? 'bottom' : 'left', align:'center', labels:{boxWidth:12,font:{size:12},padding:14}},
-      datalabels:{display:false}}}
-  });
-
-  const byPeriod = {};
-  ALL_ROWS.forEach(r=>{
-    const k = periodKey(r.ngay_duyet_eform, currentGranularity);
-    if(!k) return;
-    if(!byPeriod[k]) byPeriod[k] = {den_bu:0, truy_thu:0};
-    byPeriod[k].den_bu += (+r.gia_tri_den_bu||0);
-    byPeriod[k].truy_thu += (+r.so_tien_da_truy_thu||0);
-  });
-  const periods = Object.keys(byPeriod).sort();
-  destroyChart('month');
-  charts.month = new Chart(document.getElementById('chartMonth'), {
-    type:'line',
-    data:{ labels: periods, datasets:[
-      {label:'Đền bù', data: periods.map(m=>byPeriod[m].den_bu), borderColor:navy, backgroundColor:navy, tension:.3},
-      {label:'Truy thu', data: periods.map(m=>byPeriod[m].truy_thu), borderColor:orange, backgroundColor:orange, tension:.3},
-    ]},
-    options:{responsive:true, plugins:{legend:{position:'bottom'},
-      datalabels:{...dl, align:'top', formatter:v=>fmtCompact(v)}},
-      scales:{y:{ticks:{callback:v=>fmtCompact(v)}}}}
-  });
-
-  const rowsRegion = currentRegion === 'all' ? rows : rows.filter(r => String(r.vung_chiu_trach_nhiem) === String(currentRegion));
-
-  const byLyDo = groupByFn(rowsRegion, r=>r.loai_yeu_cau);
-  const lyDoKeys = Object.keys(byLyDo).sort((a,b)=>byLyDo[b].den_bu - byLyDo[a].den_bu).slice(0,8);
-  destroyChart('lydo');
-
-  const CLIENT_PALETTE = [navy, orange, orangeLight, navyLight, '#0A2F54', '#E04F00', '#B9CBE0', '#FFE4D2'];
-  const CLIENT_COLOR_MAP = {
-    'SPE Express': navy,
-    'SPE Bulky': orange,
-    'SPE Reverse': navyLight,
-    'SPX Express': orangeLight,
-    'Lazada': '#00A896',
-    'Tiki': '#7B2CBF',
-  };
-  function getClientColor(label, i){ return CLIENT_COLOR_MAP[label] || CLIENT_PALETTE[i % CLIENT_PALETTE.length]; }
-
-  if(currentTab === 'all'){
-    const clientLabelsAll = [...new Set(rowsRegion.map(r=>clientLabel(r.nhom_kh)))];
-    const byLyDoClient = {};
-    rowsRegion.forEach(r=>{
-      const lyDo = r.loai_yeu_cau || '(Không rõ)';
-      const cl = clientLabel(r.nhom_kh);
-      if(!byLyDoClient[lyDo]) byLyDoClient[lyDo] = {};
-      byLyDoClient[lyDo][cl] = (byLyDoClient[lyDo][cl]||0) + (+r.gia_tri_den_bu||0);
-    });
-    const datasets = clientLabelsAll.map((cl,i)=>({
-      label: cl,
-      data: lyDoKeys.map(k => (byLyDoClient[k] && byLyDoClient[k][cl]) || 0),
-      backgroundColor: getClientColor(cl, i),
-    }));
-    charts.lydo = new Chart(document.getElementById('chartLyDo'), {
-      type:'bar',
-      data:{ labels: lyDoKeys, datasets },
-      options:{indexAxis:'y', responsive:true,
-        plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:10.5}}},
-          datalabels:{display:false}},
-        scales:{x:{stacked:true, ticks:{callback:v=>fmtCompact(v)}}, y:{stacked:true}}}
-    });
-  } else {
-    charts.lydo = new Chart(document.getElementById('chartLyDo'), {
-      type:'bar',
-      data:{ labels: lyDoKeys, datasets:[{label:'Đền bù', data: lyDoKeys.map(k=>byLyDo[k].den_bu), backgroundColor:orange}]},
-      options:{indexAxis:'y', responsive:true, plugins:{legend:{display:false},
-        datalabels:{...dl, anchor:'end', align:'right', formatter:v=>fmtCompact(v)}},
-        scales:{x:{ticks:{callback:v=>fmtCompact(v)}}}}
-    });
-  }
-
-  const byLyDoBattery = groupByFn(rowsRegion, r=>r.loai_yeu_cau);
-  const lyDoBatteryKeys = Object.keys(byLyDoBattery).sort((a,b)=>byLyDoBattery[b].den_bu - byLyDoBattery[a].den_bu).slice(0,8);
-
-  document.getElementById('batteryList').innerHTML = lyDoBatteryKeys.map(k=>{
-    const v = byLyDoBattery[k];
-    const pct = v.den_bu ? (v.truy_thu/v.den_bu*100) : 0;
-    const widthPct = Math.min(pct,100);
-    return `<div class="battery-row">
-      <div class="battery-label" title="${k}">${k}</div>
-      <div class="battery"><div class="battery-fill ${batteryClass(pct)}" style="width:${widthPct}%"></div></div>
-      <div class="battery-pct">${fmtPct(pct)}</div>
-    </div>`;
-  }).join('');
-
-  const khoVungCount = {};
-  rows.forEach(r=>{
-    const kho = r.kho_chiu_trach_nhiem, vg = r.vung_chiu_trach_nhiem;
-    if(!kho || !vg) return;
-    if(!khoVungCount[kho]) khoVungCount[kho] = {};
-    khoVungCount[kho][vg] = (khoVungCount[kho][vg]||0) + 1;
-  });
-  const khoToVung = {};
-  Object.entries(khoVungCount).forEach(([kho,counts])=>{
-    khoToVung[kho] = Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0];
-  });
-
-  const byVungFull = groupByFn(rows, r=>r.vung_chiu_trach_nhiem);
-  const byHubFull = groupByFn(rowsRegion, r=>r.kho_chiu_trach_nhiem);
-  delete byHubFull['(Không rõ)'];
-
-  const TOP_N_HUB = 15;
-
-  const topHubEntries = Object.entries(byHubFull).sort((a,b)=>b[1].den_bu - a[1].den_bu).slice(0, TOP_N_HUB);
-
-  const hubGroupByVung = {};
-  topHubEntries.forEach(([kho,v])=>{
-    const vg = khoToVung[kho] || '(Không rõ)';
-    if(!hubGroupByVung[vg]) hubGroupByVung[vg] = [];
-    hubGroupByVung[vg].push({ name:kho, den_bu:v.den_bu, truy_thu:v.truy_thu });
-  });
-
-  const vungForHubGroup = Object.keys(hubGroupByVung)
-    .map(name => {
-      const total = byVungFull[name] || { den_bu:0, truy_thu:0 };
-      return { name, den_bu: total.den_bu, truy_thu: total.truy_thu, pct: total.den_bu ? total.truy_thu/total.den_bu*100 : 0 };
-    })
-    .sort((a,b) => b.den_bu - a.den_bu);
-
-  const hubGroupHtml = vungForHubGroup.map((vg, idx) => {
-    const parentCls = colorSuffix(batteryClass(vg.pct));
-    const children = (hubGroupByVung[vg.name] || [])
-      .map(h => ({ name:h.name, den_bu:h.den_bu, pct: h.den_bu ? h.truy_thu/h.den_bu*100 : 0 }))
-      .sort((a,b) => b.den_bu - a.den_bu);
-
-    const sumChildDenBu = children.reduce((s,c)=>s+c.den_bu, 0);
-    const sumChildTruyThu = (hubGroupByVung[vg.name] || []).reduce((s,c)=>s+c.truy_thu, 0);
-    const remainDenBu = vg.den_bu - sumChildDenBu;
-    const remainTruyThu = vg.truy_thu - sumChildTruyThu;
-    const remainPct = remainDenBu > 0 ? (remainTruyThu/remainDenBu*100) : 0;
-    const totalKhoInVung = (Object.entries(byHubFull).filter(([k])=>khoToVung[k] === vg.name)).length;
-    const remainKhoCount = totalKhoInVung - children.length;
-
-    let childHtml = children.map(h => `<div class="cluster-child ${colorSuffix(batteryClass(h.pct))}">
-        <span>${h.name}</span>
-        <span>${fmtMoney(h.den_bu)} · ${fmtPct(h.pct)}</span>
-      </div>`).join('');
-    if(remainDenBu > 0 && remainKhoCount > 0){
-      childHtml += `<div class="cluster-child ${colorSuffix(batteryClass(remainPct))}" style="font-style:italic;">
-        <span>${remainKhoCount} kho còn lại</span>
-        <span>${fmtMoney(remainDenBu)} · ${fmtPct(remainPct)}</span>
-      </div>`;
-    }
-
-    const childId = `hubGroupChildren-${idx}`;
-    const badgeText = children.length ? `${children.length}/${TOP_N_HUB} kho thuộc nhóm đền bù cao nhất` : `Không có kho nào lọt Top ${TOP_N_HUB}`;
-    return `<div class="cluster-group">
-      <div class="cluster-parent ${parentCls}">
-        <span>${vg.name === '(Không rõ)' ? 'Không rõ vùng' : vg.name}<br><span style="font-size:11.5px;font-weight:600;opacity:.85;">${badgeText}</span></span>
-        <span style="display:flex;align-items:center;gap:10px;">
-          <span>${fmtMoney(vg.den_bu)} · ${fmtPct(vg.pct)}</span>
-          <button class="warn-toggle" type="button" data-target="${childId}">+</button>
-        </span>
-      </div>
-      <div class="warning-children" id="${childId}" style="display:none;">
-        ${childHtml}
-      </div>
-    </div>`;
-  }).join('');
-  document.getElementById('hubGroupList').innerHTML = hubGroupHtml || '<div class="warning-empty">Không có dữ liệu</div>';
-
-  const byLyDoAllForVung = groupByFn(rows, r=>r.loai_yeu_cau);
-  const lyDoKeysForVung = Object.keys(byLyDoAllForVung).sort((a,b)=>byLyDoAllForVung[b].den_bu - byLyDoAllForVung[a].den_bu).slice(0,8);
-  const vungListAll = [...new Set(rows.map(r=>r.vung_chiu_trach_nhiem || '(Không rõ)'))];
-  const byLyDoVung = {};
-  rows.forEach(r=>{
-    const lyDo = r.loai_yeu_cau || '(Không rõ)';
-    const vg = r.vung_chiu_trach_nhiem || '(Không rõ)';
-    if(!byLyDoVung[lyDo]) byLyDoVung[lyDo] = {};
-    byLyDoVung[lyDo][vg] = (byLyDoVung[lyDo][vg]||0) + (+r.gia_tri_den_bu||0);
-  });
-  const vungDatasets = vungListAll.map((vg,i)=>({
-    label: vg,
-    data: lyDoKeysForVung.map(k => (byLyDoVung[k] && byLyDoVung[k][vg]) || 0),
-    backgroundColor: CLIENT_PALETTE[i % CLIENT_PALETTE.length],
-  }));
-  destroyChart('lydoVung');
-  charts.lydoVung = new Chart(document.getElementById('chartLyDoVung'), {
-    type:'bar',
-    data:{ labels: lyDoKeysForVung, datasets: vungDatasets },
-    options:{indexAxis:'y', responsive:true,
-      plugins:{legend:{position:'bottom', labels:{boxWidth:12,font:{size:10.5}}}, datalabels:{display:false}},
-      scales:{x:{stacked:true, ticks:{callback:v=>fmtCompact(v)}}, y:{stacked:true}}}
-  });
-
-  const prodRows = getTabFilteredRows();
-  const allMonthsProd = [...new Set(prodRows.map(r=>String(r.ngay_duyet_eform||'').slice(0,7)).filter(Boolean))].sort();
-  const last7 = allMonthsProd.slice(-7);
-  const last6 = last7.slice(-6);
-  const monthsDesc = [...last6].reverse();
-  const currentMonth6 = monthsDesc[0];
-
-  const bySanPhamMonth = {};
-  prodRows.forEach(r=>{
-    const sp = r.san_pham_vn_group || '(Không rõ nhóm)';
-    const m = String(r.ngay_duyet_eform||'').slice(0,7);
-    if(!last7.includes(m)) return;
-    if(!bySanPhamMonth[sp]) bySanPhamMonth[sp] = {};
-    if(!bySanPhamMonth[sp][m]) bySanPhamMonth[sp][m] = { den_bu:0, truy_thu:0 };
-    bySanPhamMonth[sp][m].den_bu += (+r.gia_tri_den_bu||0);
-    bySanPhamMonth[sp][m].truy_thu += (+r.so_tien_da_truy_thu||0);
-  });
-  delete bySanPhamMonth['(Không rõ nhóm)'];
-
-  const sanPhamRanked = Object.entries(bySanPhamMonth).map(([sp, byMonth])=>{
-    const total6 = last6.reduce((s,m)=> s + ((byMonth[m]&&byMonth[m].den_bu)||0), 0);
-    return { sp, byMonth, total6 };
-  }).sort((a,b)=>b.total6 - a.total6).slice(0,10);
-
-  function momPct(byMonth, month){
-    const idx = last7.indexOf(month);
-    if(idx <= 0) return null;
-    const prevMonth = last7[idx-1];
-    const cur = (byMonth[month] && byMonth[month].den_bu) || 0;
-    const prev = (byMonth[prevMonth] && byMonth[prevMonth].den_bu) || 0;
-    if(!prev) return null;
-    return (cur-prev)/prev*100;
-  }
-  function momCellHtml(pct){
-    if(pct === null) return '<span class="mom-flat">—</span>';
-    if(pct > 0) return `<span class="mom-up">▲ ${pct.toFixed(2)}%</span>`;
-    if(pct < 0) return `<span class="mom-down">▼ ${Math.abs(pct).toFixed(2)}%</span>`;
-    return '<span class="mom-flat">0.00%</span>';
-  }
-
-  const hubBySanPham = {};
-  prodRows.forEach(r=>{
-    const sp = r.san_pham_vn_group || '(Không rõ nhóm)';
-    const kho = r.kho_chiu_trach_nhiem;
-    const m = String(r.ngay_duyet_eform||'').slice(0,7);
-    if(!kho) return;
-    if(!hubBySanPham[sp]) hubBySanPham[sp] = {};
-    if(!hubBySanPham[sp][kho]) hubBySanPham[sp][kho] = { den_bu:0, truy_thu:0, byMonth:{} };
-    hubBySanPham[sp][kho].den_bu += (+r.gia_tri_den_bu||0);
-    hubBySanPham[sp][kho].truy_thu += (+r.so_tien_da_truy_thu||0);
-    if(last7.includes(m)){
-      if(!hubBySanPham[sp][kho].byMonth[m]) hubBySanPham[sp][kho].byMonth[m] = { den_bu:0, truy_thu:0 };
-      hubBySanPham[sp][kho].byMonth[m].den_bu += (+r.gia_tri_den_bu||0);
-      hubBySanPham[sp][kho].byMonth[m].truy_thu += (+r.so_tien_da_truy_thu||0);
-    }
-  });
-
-  const colGroup = () => monthsDesc.map(m=>`<th class="${m===currentMonth6?'current-col':''}">${m}</th>`).join('');
-  document.getElementById('pivotColgroup').innerHTML =
-    '<col style="width:170px">' + monthsDesc.map(()=>'<col style="width:100px">').join('') + monthsDesc.map(()=>'<col style="width:100px">').join('');
-  document.getElementById('pivotHead').innerHTML = `
-    <tr>
-      <th rowspan="2" class="label-col">Sản phẩm</th>
-      <th colspan="${monthsDesc.length}">Tổng tiền đền bù (tăng/giảm MoM)</th>
-      <th colspan="${monthsDesc.length}">Tỷ lệ thu hồi</th>
-    </tr>
-    <tr>${colGroup()}${colGroup()}</tr>
-  `;
-
-  const pivotBodyHtml = sanPhamRanked.map((item, idx) => {
-    const { sp, byMonth } = item;
-    const rowId = `prodChildren-${idx}`;
-    const valMomCells = monthsDesc.map(m=>{
-      const v = (byMonth[m] && byMonth[m].den_bu) || 0;
-      return `<td class="${m===currentMonth6?'current-col':''}">${fmtMoney(v)}<br>${momCellHtml(momPct(byMonth,m))}</td>`;
-    }).join('');
-    const rateCells = monthsDesc.map(m=>{
-      const v = byMonth[m] || { den_bu:0, truy_thu:0 };
-      const pct = v.den_bu ? v.truy_thu/v.den_bu*100 : 0;
-      return `<td class="${m===currentMonth6?'current-col':''}"><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>`;
-    }).join('');
-
-    const topHubsForSp = Object.entries(hubBySanPham[sp] || {})
-      .map(([kho, v]) => [kho, v, (v.byMonth[currentMonth6] && v.byMonth[currentMonth6].den_bu) || 0])
-      .sort((a,b) => b[2] - a[2])
-      .slice(0,5)
-      .map(([kho, v]) => [kho, v]);
-    const detailHtml = topHubsForSp.length
-      ? `<table class="pivot-table pivot-table-nested">
-          <colgroup>
-            <col style="width:150px">
-            ${monthsDesc.map(()=>'<col style="width:88px">').join('')}
-            ${monthsDesc.map(()=>'<col style="width:88px">').join('')}
-          </colgroup>
-          <thead>
-            <tr><th rowspan="2" class="label-col">Kho</th><th colspan="${monthsDesc.length}">Tổng tiền đền bù (tăng/giảm MoM)</th><th colspan="${monthsDesc.length}">Tỷ lệ thu hồi</th></tr>
-            <tr>${monthsDesc.map(m=>`<th class="${m===currentMonth6?'current-col':''}">${m}</th>`).join('')}${monthsDesc.map(m=>`<th class="${m===currentMonth6?'current-col':''}">${m}</th>`).join('')}</tr>
-          </thead>
-          <tbody>
-            ${topHubsForSp.map(([kho,v])=>{
-              const khoCells = monthsDesc.map(m=>{
-                const mv = v.byMonth[m] || { den_bu:0, truy_thu:0 };
-                return `<td class="${m===currentMonth6?'current-col':''}">${fmtMoney(mv.den_bu)}<br>${momCellHtml(momPct(v.byMonth,m))}</td>`;
-              }).join('');
-              const khoRateCells = monthsDesc.map(m=>{
-                const mv = v.byMonth[m] || { den_bu:0, truy_thu:0 };
-                const pct = mv.den_bu ? mv.truy_thu/mv.den_bu*100 : 0;
-                return `<td class="${m===currentMonth6?'current-col':''}"><span class="pill ${pillClass(pct)}">${fmtPct(pct)}</span></td>`;
-              }).join('');
-              return `<tr><td class="label-col">${kho}</td>${khoCells}${khoRateCells}</tr>`;
-            }).join('')}
-          </tbody>
-        </table>`
-      : '<span class="warning-empty">Không có dữ liệu kho cho sản phẩm này</span>';
-
-    const totalCols = 1 + monthsDesc.length*2;
-    return `
-      <tr>
-        <td class="label-col"><button class="warn-toggle" type="button" data-target="${rowId}" style="margin-right:8px;">+</button>${sp}</td>
-        ${valMomCells}${rateCells}
-      </tr>
-      <tr class="prod-detail" id="${rowId}" style="display:none;">
-        <td colspan="${totalCols}">
-          <strong style="font-size:13px;color:var(--muted);">Top 5 kho gây đền bù cho "${sp}":</strong>
-          ${detailHtml}
-        </td>
-      </tr>
-    `;
-  }).join('');
-
-  document.getElementById('pivotBody').innerHTML = pivotBodyHtml ||
-    `<tr><td colspan="${1+monthsDesc.length*3}">Không có dữ liệu sản phẩm trong ${monthsDesc.length} tháng gần nhất</td></tr>`;
+  document.querySelectorAll('.subtab-btn').forEach(b=>b.classList.toggle('active', b.dataset.subtab===currentSubtab));
+  if(currentSubtab==='tongquan') renderTongQuan();
+  else if(currentSubtab==='spb') renderChiTiet('SPB');
+  else if(currentSubtab==='spe') renderChiTiet('SPE');
+  else if(currentSubtab==='chuyensau') renderChuyenSau();
+  else if(currentSubtab==='thang') renderBaoCaoThang();
 }
+document.getElementById('subtabbar').addEventListener('click', e=>{
+  if(e.target.tagName !== 'BUTTON') return;
+  currentSubtab = e.target.dataset.subtab;
+  render();
+});
+document.getElementById('app').addEventListener('click', e=>{
+  const btn = e.target.closest('.warn-toggle');
+  if(!btn) return;
+  const el = document.getElementById(btn.dataset.target);
+  if(!el) return;
+  const isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'table-row' : 'none';
+  btn.textContent = isHidden ? '−' : '+';
+});
+
+function trendTableToMd(title, tbl){
+  let md = `### ${title}\n\n`;
+  const headers = ['Nhóm', ...tbl.lastWeeks.map(w=>w.label), 'MTD', 'MoM'];
+  md += '| ' + headers.join(' | ') + ' |\n';
+  md += '|' + headers.map(()=>'---').join('|') + '|\n';
+  tbl.groupsSorted.forEach(g=>{
+    const row = [g];
+    tbl.lastWeeks.forEach(w=>{
+      const v = (tbl.byGroupWeek && tbl.byGroupWeek[g] && tbl.byGroupWeek[g][w.key]) ? tbl.byGroupWeek[g][w.key].den_bu : 0;
+      row.push(fmtMoney(v));
+    });
+    const mtdEntry = tbl.mtdmom.byGroup[g] || {mtd:0, prevComparable:0};
+    const momPct = mtdEntry.prevComparable ? (mtdEntry.mtd-mtdEntry.prevComparable)/mtdEntry.prevComparable*100 : null;
+    row.push(fmtMoney(mtdEntry.mtd));
+    row.push(momPct===null?'—':(momPct>0?'▲ ':'▼ ')+Math.abs(momPct).toFixed(2)+'%');
+    md += '| ' + row.join(' | ') + ' |\n';
+  });
+  return md + '\n';
+}
+
+function triggerDownload(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function captureAllTabsHtml(){
+  const savedTab = currentSubtab;
+  const order = [
+    {key:'tongquan', title:'Tổng quan', fn:renderTongQuan},
+    {key:'spb', title:'Chi tiết SPB', fn:()=>renderChiTiet('SPB')},
+    {key:'spe', title:'Chi tiết SPE', fn:()=>renderChiTiet('SPE')},
+    {key:'chuyensau', title:'Chuyên sâu & Đề xuất', fn:renderChuyenSau},
+    {key:'thang', title:'Báo cáo tháng', fn:renderBaoCaoThang},
+  ];
+  const captured = {};
+  order.forEach(o=>{
+    o.fn();
+    captured[o.key] = { title:o.title, html: document.getElementById('app').innerHTML };
+  });
+  currentSubtab = savedTab;
+  render();
+  return { captured, order };
+}
+
+function buildMarkdown(){
+  const tq = REPORT.tongquan;
+  let md = `# BÁO CÁO TUẦN ĐỀN BÙ — ${tq.curWeek.label} (Năm ${selectedYear})\n\n`;
+  md += `_Phạm vi: Shopee Express (SPE) và Shopee Bulky (SPB) · Mốc thời gian: ngay_duyet_eform · Số liệu THẬT, không ước tính._\n\n`;
+  md += `## Tổng quan\n\n`;
+  md += `- **Tổng đền bù ${tq.curWeek.label}:** ${fmtMoney(tq.totalDenBuTuan)}\n`;
+  md += `- **Loại yêu cầu lớn nhất:** ${tq.topLoaiYC?tq.topLoaiYC[0]:'—'} (${fmtMoney(tq.topLoaiYC?tq.topLoaiYC[1]:0)})\n`;
+  md += `- **Nhóm ngành lớn nhất:** ${tq.topNganh?tq.topNganh[0]:'—'} (${fmtMoney(tq.topNganh?tq.topNganh[1]:0)})\n`;
+  md += `- **MTD:** ${fmtMoney(tq.mtdEntry.mtd)} · **MoM:** ${tq.momAllPct===null?'—':(tq.momAllPct>0?'▲ ':'▼ ')+Math.abs(tq.momAllPct).toFixed(2)+'%'}\n\n`;
+  md += trendTableToMd('Đền bù theo Account', tq.accTable);
+  md += trendTableToMd('Đền bù theo loại yêu cầu', tq.locTable);
+  md += trendTableToMd('Đền bù theo nhóm ngành hàng', tq.nganhTable);
+
+  ['spb','spe'].forEach(acc=>{
+    const d = REPORT[acc];
+    if(!d) return;
+    md += `## Chi tiết ${acc.toUpperCase()}\n\n`;
+    md += `- Tổng đền bù: ${fmtMoney(d.totalDenBu)} · Giá trị TB/đơn: ${fmtMoney(d.giaTriTB)} · Tỉ lệ thu hồi: ${fmtPct(d.tyLeThuHoi)}\n`;
+    md += `- Top 2 loại yêu cầu: ${d.top1?d.top1[0]:'—'}, ${d.top2?d.top2[0]:'—'}\n\n`;
+    md += trendTableToMd(`${acc.toUpperCase()} — Cơ cấu loại yêu cầu`, d.locTable);
+    md += trendTableToMd(`${acc.toUpperCase()} — Đào sâu "${d.top1?d.top1[0]:''}" theo nhóm ngành`, d.bTable);
+    md += trendTableToMd(`${acc.toUpperCase()} — Đào sâu "${d.top2?d.top2[0]:''}" theo tuyến`, d.cTable);
+  });
+
+  if(REPORT.chuyensau){
+    md += `## Chuyên sâu & Đề xuất\n\n`;
+    md += trendTableToMd('Root cause (san_pham)', REPORT.chuyensau.rootTable);
+    md += trendTableToMd('Theo Tuyến', REPORT.chuyensau.tuyenTable);
+    md += `### Đơn giá trị bất thường (${REPORT.tongquan.curWeek.label})\n\n`;
+    if(REPORT.chuyensau.outliers.length){
+      md += '| Mã đơn | Account | Seller | Giá trị đền bù | Loại yêu cầu |\n|---|---|---|---|---|\n';
+      REPORT.chuyensau.outliers.forEach(r=>{
+        md += `| ${r.ma_dh} | ${r._acc} | ${r.seller_name||''} | ${fmtMoney(+r.gia_tri_den_bu||0)} | ${r.loai_yeu_cau||''} |\n`;
+      });
+    } else {
+      md += '_Không có đơn bất thường._\n';
+    }
+    md += `\n### Đề xuất giải pháp\n\n`;
+    REPORT.chuyensau.suggestions.forEach(s=>{
+      md += `- **[${s.level==='cao'?'Cao':s.level==='tb'?'Trung bình':'Thấp'}]** ${s.text}\n`;
+    });
+  }
+
+  if(REPORT.thang){
+    const th = REPORT.thang;
+    md += `## Báo cáo tháng — ${th.curMonth.label}\n\n`;
+    md += `- **Tổng đền bù ${th.curMonth.label}:** ${fmtMoney(th.totalDenBuThang)}\n`;
+    md += `- **Loại yêu cầu lớn nhất:** ${th.topLoaiYC?th.topLoaiYC[0]:'—'} (${fmtMoney(th.topLoaiYC?th.topLoaiYC[1]:0)})\n`;
+    md += `- **Nhóm ngành lớn nhất:** ${th.topNganh?th.topNganh[0]:'—'} (${fmtMoney(th.topNganh?th.topNganh[1]:0)})\n`;
+    md += `- **MTD:** ${fmtMoney(th.mtdEntry.mtd)} · **MoM:** ${th.momAllPct===null?'—':(th.momAllPct>0?'▲ ':'▼ ')+Math.abs(th.momAllPct).toFixed(2)+'%'}\n\n`;
+    md += trendTableToMd('Đền bù theo Account (tháng)', th.accTable);
+    md += trendTableToMd('Đền bù theo loại yêu cầu (tháng)', th.locTable);
+    md += trendTableToMd('Đền bù theo nhóm ngành hàng (tháng)', th.nganhTable);
+    md += trendTableToMd('Root cause theo tháng', th.rootTable);
+  }
+
+  return md;
+}
+
+function buildHtmlDocument(captured, order, weekLabel){
+  const styleEl = document.querySelector('style');
+  const styleTag = styleEl ? styleEl.outerHTML : '';
+  const navButtons = order.map((o,i)=>
+    `<button class="subtab-btn${i===0?' active':''}" data-idx="${i}">${o.title}</button>`
+  ).join('');
+  const panels = order.map((o,i)=>
+    `<div class="export-panel" data-idx="${i}"${i===0?'':' style="display:none;"'}>${captured[o.key].html}</div>`
+  ).join('');
+  const openScript = '<' + 'script' + '>';
+  const closeScript = '<' + '/script' + '>';
+  const innerScript = `
+document.getElementById('exportSubtabbar').addEventListener('click', function(e){
+  if(e.target.tagName !== 'BUTTON') return;
+  var idx = e.target.dataset.idx;
+  document.querySelectorAll('#exportSubtabbar .subtab-btn').forEach(function(b){ b.classList.toggle('active', b===e.target); });
+  document.querySelectorAll('.export-panel').forEach(function(p){ p.style.display = (p.dataset.idx===idx) ? '' : 'none'; });
+});
+document.body.addEventListener('click', function(e){
+  var btn = e.target.closest('.warn-toggle');
+  if(!btn) return;
+  var el = document.getElementById(btn.dataset.target);
+  if(!el) return;
+  var isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'table-row' : 'none';
+  btn.textContent = isHidden ? '−' : '+';
+});
+`;
+  return `<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Báo cáo tuần đền bù — ${weekLabel}</title>
+${styleTag}
+<style>@media print{ .export-panel{display:block !important;} .sticky-top{position:static;} #exportSubtabbar{display:none;} }</style>
+</head>
+<body>
+<div class="sticky-top">
+<div class="top-line"></div>
+<header>
+  <div class="header-top">
+    <h1>BÁO CÁO TUẦN - ĐỀN BÙ (SPB / SPE) — ${weekLabel}</h1>
+  </div>
+</header>
+<div class="subtabbar" id="exportSubtabbar">${navButtons}</div>
+</div>
+<main>${panels}</main>
+${openScript}${innerScript}${closeScript}
+</body>
+</html>`;
+}
+
+function doExport(format){
+  if(!RAW_ALL.length){ alert('Dữ liệu chưa tải xong, vui lòng đợi rồi thử lại.'); return; }
+  const { captured, order } = captureAllTabsHtml();
+  const weekLabel = REPORT.tongquan.curWeek.label;
+
+  if(format === 'md'){
+    const md = buildMarkdown();
+    triggerDownload(new Blob([md], {type:'text/markdown;charset=utf-8'}), `Compensation_${weekLabel}_Report.md`);
+  } else if(format === 'html'){
+    const htmlDoc = buildHtmlDocument(captured, order, weekLabel);
+    triggerDownload(new Blob([htmlDoc], {type:'text/html;charset=utf-8'}), `Compensation_${weekLabel}_Report.html`);
+  } else if(format === 'pdf'){
+    const htmlDoc = buildHtmlDocument(captured, order, weekLabel);
+    const win = window.open('', '_blank');
+    if(!win){ alert('Trình duyệt đang chặn cửa sổ mới, vui lòng cho phép popup rồi thử lại.'); return; }
+    win.document.write(htmlDoc);
+    win.document.close();
+    win.addEventListener('load', ()=> win.print());
+  }
+}
+
+document.getElementById('exportBtn').addEventListener('click', (e)=>{
+  e.stopPropagation();
+  document.getElementById('exportMenu').classList.toggle('show');
+});
+document.getElementById('exportMenu').addEventListener('click', (e)=>{
+  if(e.target.tagName !== 'BUTTON') return;
+  document.getElementById('exportMenu').classList.remove('show');
+  doExport(e.target.dataset.format);
+});
+document.addEventListener('click', ()=> document.getElementById('exportMenu').classList.remove('show'));
+
+
+loadAll();
 </script>
 </body>
 </html>
