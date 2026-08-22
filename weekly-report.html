@@ -814,6 +814,25 @@ function buildHtmlDocument(captured, order, weekLabel){
   const panels = order.map((o,i)=>
     `<div class="export-panel" data-idx="${i}"${i===0?'':' style="display:none;"'}>${captured[o.key].html}</div>`
   ).join('');
+  const openScript = '<' + 'script' + '>';
+  const closeScript = '<' + '/script' + '>';
+  const innerScript = `
+document.getElementById('exportSubtabbar').addEventListener('click', function(e){
+  if(e.target.tagName !== 'BUTTON') return;
+  var idx = e.target.dataset.idx;
+  document.querySelectorAll('#exportSubtabbar .subtab-btn').forEach(function(b){ b.classList.toggle('active', b===e.target); });
+  document.querySelectorAll('.export-panel').forEach(function(p){ p.style.display = (p.dataset.idx===idx) ? '' : 'none'; });
+});
+document.body.addEventListener('click', function(e){
+  var btn = e.target.closest('.warn-toggle');
+  if(!btn) return;
+  var el = document.getElementById(btn.dataset.target);
+  if(!el) return;
+  var isHidden = el.style.display === 'none';
+  el.style.display = isHidden ? 'table-row' : 'none';
+  btn.textContent = isHidden ? '−' : '+';
+});
+`;
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -833,23 +852,7 @@ ${styleTag}
 <div class="subtabbar" id="exportSubtabbar">${navButtons}</div>
 </div>
 <main>${panels}</main>
-<script>
-document.getElementById('exportSubtabbar').addEventListener('click', function(e){
-  if(e.target.tagName !== 'BUTTON') return;
-  var idx = e.target.dataset.idx;
-  document.querySelectorAll('#exportSubtabbar .subtab-btn').forEach(function(b){ b.classList.toggle('active', b===e.target); });
-  document.querySelectorAll('.export-panel').forEach(function(p){ p.style.display = (p.dataset.idx===idx) ? '' : 'none'; });
-});
-document.body.addEventListener('click', function(e){
-  var btn = e.target.closest('.warn-toggle');
-  if(!btn) return;
-  var el = document.getElementById(btn.dataset.target);
-  if(!el) return;
-  var isHidden = el.style.display === 'none';
-  el.style.display = isHidden ? 'table-row' : 'none';
-  btn.textContent = isHidden ? '−' : '+';
-});
-</script>
+${openScript}${innerScript}${closeScript}
 </body>
 </html>`;
 }
