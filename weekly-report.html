@@ -313,13 +313,40 @@ function computeMTDMoM(rows, groupFn){
   const prevDate = new Date(Date.UTC(cy, cm-2, 1));
   const prevMonth = prevDate.getUTCFullYear() + '-' + String(prevDate.getUTCMonth()+1).padStart(2,'0');
   const cutoffDay = wi.day;
+
+  // FIX: dữ liệu ngay_duyet_eform được ghi nhận theo LÔ HÀNG TUẦN (thường 1 lô/tuần vào 1 ngày cố định),
+  // không rải đều theo từng ngày trong tháng, và các nhóm (SPB/SPE) có thể có lô rơi vào NGÀY KHÁC NHAU,
+  // thậm chí TUẦN KHÁC NHAU trong cùng 1 tháng. Vì vậy:
+  //  - So sánh theo "ngày <= cutoffDay" (cách cũ) có thể loại bỏ hoàn toàn lô của 1 nhóm nếu lô đó rơi
+  //    sau cutoffDay, khiến prevComparable = 0 một cách giả tạo và MoM bị sai dấu.
+  //  - So sánh theo "N tuần ISO đầu tiên" tính CHUNG cho mọi nhóm (lần sửa đầu) cũng sai tương tự: nếu lô
+  //    tháng trước của nhóm A rơi vào tuần sớm hơn nhóm B, lấy "N tuần đầu" theo mốc chung sẽ loại bỏ đúng
+  //    tuần chứa lô thật của nhóm B.
+  // Cách đúng: tính SỐ TUẦN ISO đã có dữ liệu trong tháng này VÀ danh sách "N tuần đầu tháng trước" RIÊNG
+  // CHO TỪNG NHÓM, dựa trên chính dữ liệu của nhóm đó — không phụ thuộc nhóm khác.
+  const weeksThisMonthByGroup = {};
+  const weeksPrevMonthByGroup = {};
+  rows.forEach(r=>{
+    const g = groupFn(r);
+    if(g === null || g === undefined || g === '' || !r._weekKey) return;
+    if(r._month === currentMonth){ (weeksThisMonthByGroup[g] = weeksThisMonthByGroup[g] || new Set()).add(r._weekKey); }
+    if(r._month === prevMonth){ (weeksPrevMonthByGroup[g] = weeksPrevMonthByGroup[g] || new Set()).add(r._weekKey); }
+  });
+  const comparableWeeksPrevByGroup = {};
+  Object.keys(weeksThisMonthByGroup).forEach(g=>{
+    const nWeeksElapsed = weeksThisMonthByGroup[g].size || 1;
+    const weeksPrevSorted = Array.from(weeksPrevMonthByGroup[g] || []).sort();
+    comparableWeeksPrevByGroup[g] = new Set(weeksPrevSorted.slice(0, nWeeksElapsed));
+  });
+
   const byGroup = {};
   rows.forEach(r=>{
     const g = groupFn(r);
     if(g === null || g === undefined || g === '') return;
     if(!byGroup[g]) byGroup[g] = {mtd:0, prevComparable:0, mtd_don:0};
     if(r._month === currentMonth){ byGroup[g].mtd += (+r.gia_tri_den_bu||0); byGroup[g].mtd_don += 1; }
-    if(r._month === prevMonth && r._day <= cutoffDay) byGroup[g].prevComparable += (+r.gia_tri_den_bu||0);
+    const comparableWeeks = comparableWeeksPrevByGroup[g];
+    if(r._month === prevMonth && comparableWeeks && comparableWeeks.has(r._weekKey)) byGroup[g].prevComparable += (+r.gia_tri_den_bu||0);
   });
   return {byGroup, currentMonth, prevMonth, cutoffDay};
 }
