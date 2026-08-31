@@ -258,21 +258,6 @@ function loadAll(){
       return {key:k, label:'Th'+m+'/'+y};
     });
     document.getElementById('statusText').textContent = 'Dữ liệu SPB+SPE: ' + fmtNum(RAW_ALL.length) + ' đơn';
-    // === DEBUG TẠM THỜI: hiện trực tiếp số liệu computeMTDMoM lên trang, không cần mở Console ===
-    try{
-      const dbg = computeMTDMoM(RAW_ALL, r=>r._acc);
-      const dbgBox = document.createElement('div');
-      dbgBox.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font-family:monospace;font-size:12px;padding:12px;z-index:9999;max-height:40vh;overflow:auto;white-space:pre-wrap;border-top:3px solid #FE5F00;';
-      let txt = '=== DEBUG computeMTDMoM(RAW_ALL, acc) === currentMonth=' + dbg.currentMonth + ' prevMonth=' + dbg.prevMonth + '\n';
-      Object.keys(dbg.byGroup).forEach(g=>{
-        const e = dbg.byGroup[g];
-        txt += g + ':  mtd=' + e.mtd + '  (' + (e.mtd/1e9).toFixed(2) + ' tỷ)   prevComparable=' + e.prevComparable + '  (' + (e.prevComparable/1e9).toFixed(2) + ' tỷ)\n';
-      });
-      txt += '(Bấm vào đây để đóng)';
-      dbgBox.textContent = txt;
-      dbgBox.addEventListener('click', ()=> dbgBox.remove());
-      document.body.appendChild(dbgBox);
-    }catch(e){ console.error('debug error', e); }
     renderYearSwitcher();
     render();
   }).catch(err=>{
@@ -328,17 +313,6 @@ function computeMTDMoM(rows, groupFn){
   const prevDate = new Date(Date.UTC(cy, cm-2, 1));
   const prevMonth = prevDate.getUTCFullYear() + '-' + String(prevDate.getUTCMonth()+1).padStart(2,'0');
   const cutoffDay = wi.day;
-
-  // FIX (bản đơn giản, minh bạch): MTD = tổng cộng dồn của tháng hiện tại tính đến ngày dữ liệu mới nhất.
-  // MoM = so với TOÀN BỘ tổng tháng trước (không cắt theo ngày, không cắt theo "N tuần đầu").
-  // Lý do đổi cách này: 2 cách tính "công bằng" trước đó (cắt theo ngày, rồi cắt theo N tuần đầu) đều tạo
-  // ra prevComparable KHÁC với số tổng tháng trước đang hiển thị ngay trong cột kế bên (VD cột TH07/2026),
-  // khiến MoM cho dấu trái ngược với xu hướng nhìn thấy bằng mắt giữa 2 cột — gây hiểu lầm nghiêm trọng dù
-  // bản chất là "so sánh chưa đầy đủ kỳ" chứ không phải sai công thức. Cách tính mới này đảm bảo MoM luôn
-  // nhất quán 1-1 với đúng 2 con số đang hiển thị trong bảng (MTD và cột tháng liền trước).
-  // Đánh đổi: nếu tháng hiện tại CHƯA kết thúc (mới có 1-2 lô/tuần), MTD đang so với 1 tháng ĐẦY ĐỦ của
-  // tháng trước — không hoàn toàn "công bằng" về mặt thống kê, nhưng minh bạch và khớp với số hiển thị.
-  // Đã thêm ghi chú rõ điều này trong phần render UI (xem "MTD/MoM note" ở các hàm renderTongQuan/renderBaoCaoThang).
   const byGroup = {};
   rows.forEach(r=>{
     const g = groupFn(r);
