@@ -366,6 +366,50 @@
 </div>
 
 <script>
+const isEmbedded = (function(){ try{ return !!(window.parent && window.parent !== window && window.parent.document); }catch(e){ return false; } })();
+
+function ensureShellSlot(){
+  if(!isEmbedded) return null;
+  const pdoc = window.parent.document;
+  let slot = pdoc.getElementById('shellControls-truythu');
+  return slot || null;
+}
+
+function mountShellControls(){
+  const slot = ensureShellSlot();
+  if(!slot) return;
+  slot.innerHTML = '';
+  const statusSpan = window.parent.document.createElement('span');
+  statusSpan.id = 'shell-tt-status';
+  statusSpan.style.cssText = 'font-size:13px;color:#FFE4D2;font-style:italic;';
+  statusSpan.textContent = 'Đang tải dữ liệu...';
+  slot.appendChild(statusSpan);
+  const logoutBtn = window.parent.document.createElement('button');
+  logoutBtn.type = 'button';
+  logoutBtn.textContent = 'Đăng xuất';
+  logoutBtn.style.cssText = 'font-family:inherit;background:transparent;border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;padding:5px 12px;border-radius:14px;cursor:pointer;margin-left:10px;';
+  logoutBtn.addEventListener('mouseenter', ()=> logoutBtn.style.background='rgba(255,255,255,0.15)');
+  logoutBtn.addEventListener('mouseleave', ()=> logoutBtn.style.background='transparent');
+  logoutBtn.addEventListener('click', handleLogout);
+  slot.appendChild(logoutBtn);
+}
+
+function setStatusText(text){
+  if(isEmbedded){
+    const el = window.parent.document.getElementById('shell-tt-status');
+    if(el) el.textContent = text;
+  } else {
+    const el = document.getElementById('statusText');
+    if(el) el.textContent = text;
+  }
+}
+
+if(isEmbedded){
+  const headerEl = document.querySelector('header');
+  if(headerEl) headerEl.style.display = 'none';
+  mountShellControls();
+}
+
 const fmtNum = n => n.toLocaleString('vi-VN');
 const fmtPct = n => n.toFixed(2) + '%';
 
@@ -524,13 +568,13 @@ function loadYear(year){
 
   if(yearDataCache[year]){
     hideLoginOverlay();
-    document.getElementById('statusText').textContent = yearDataCache[year].statusLabel;
+    setStatusText(yearDataCache[year].statusLabel);
     applyLoadedRows(yearDataCache[year].rows);
     return;
   }
 
   isLoadingYear = true;
-  document.getElementById('statusText').textContent = 'Đang tải dữ liệu...';
+  setStatusText('Đang tải dữ liệu...');
 
   let statusLabel = 'Dữ liệu cập nhật';
 
@@ -548,7 +592,7 @@ function loadYear(year){
           statusLabel = 'Dữ liệu cập nhật lúc ' + fmtDateTime(d);
         }
       }
-      document.getElementById('statusText').textContent = statusLabel;
+      setStatusText(statusLabel);
       return r.text();
     })
     .then(csvText => {
