@@ -150,7 +150,6 @@
           <button type="button" data-format="pdf">In / Lưu PDF</button>
         </div>
       </div>
-      <a class="backlink" href="index.html?tab=truythu" target="_top">← Về Trang chủ</a>
     </div>
   </div>
 </header>
@@ -166,6 +165,70 @@
 </div>
 
 <script>
+const isEmbedded = (function(){ try{ return !!(window.parent && window.parent !== window && window.parent.document); }catch(e){ return false; } })();
+
+function shellEl(id){
+  return isEmbedded ? window.parent.document.getElementById(id) : document.getElementById(id);
+}
+
+function mountShellControls(){
+  if(!isEmbedded) return;
+  const pdoc = window.parent.document;
+  const slot = pdoc.getElementById('shellControls-report');
+  if(!slot) return;
+  if(!pdoc.getElementById('shell-wr-styles')){
+    const styleEl = pdoc.createElement('style');
+    styleEl.id = 'shell-wr-styles';
+    styleEl.textContent = `
+      #statusText{font-size:13px;color:#FFE4D2;font-style:italic;}
+      #yearSwitcher{display:inline-flex;gap:2px;background:rgba(255,255,255,.2);border-radius:6px;padding:2px;}
+      .year-btn{font-family:inherit;background:transparent;border:none;color:#fff;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;border-radius:5px;}
+      .year-btn.active{background:#fff;color:#E04F00;}
+      .export-wrap{position:relative;display:inline-block;}
+      #exportBtn{font-family:inherit;background:#0E4174;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-weight:700;font-size:13.5px;cursor:pointer;}
+      #exportBtn:hover{background:#0A2F54;}
+      .export-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);overflow:hidden;min-width:170px;z-index:200;}
+      .export-menu.show{display:block;}
+      .export-menu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:#383838;font-family:"Cambria","Times New Roman",Georgia,serif;font-size:13.5px;padding:10px 14px;cursor:pointer;}
+      .export-menu button:hover{background:#F6F7FA;}
+    `;
+    pdoc.head.appendChild(styleEl);
+  }
+  slot.innerHTML = `
+    <span id="statusText"></span>
+    <span id="yearSwitcher"></span>
+    <div class="export-wrap">
+      <button id="exportBtn" type="button">⬇ Xuất ▾</button>
+      <div class="export-menu" id="exportMenu">
+        <button type="button" data-format="md">Markdown (.md)</button>
+        <button type="button" data-format="html">HTML (.html)</button>
+        <button type="button" data-format="pdf">In / Lưu PDF</button>
+      </div>
+    </div>
+  `;
+  const headerRight = document.querySelector('header .header-top > div');
+  if(headerRight) headerRight.style.display = 'none';
+  wireExportControls();
+}
+
+function wireExportControls(){
+  const exportBtn = shellEl('exportBtn');
+  const exportMenu = shellEl('exportMenu');
+  if(!exportBtn || !exportMenu) return;
+  exportBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    exportMenu.classList.toggle('show');
+  });
+  exportMenu.addEventListener('click', (e)=>{
+    if(e.target.tagName !== 'BUTTON') return;
+    exportMenu.classList.remove('show');
+    doExport(e.target.dataset.format);
+  });
+  (isEmbedded ? window.parent.document : document).addEventListener('click', ()=> exportMenu.classList.remove('show'));
+}
+
+if(isEmbedded) mountShellControls();
+
 function showLoginOverlay(){ document.getElementById('loginOverlay').style.display='flex'; document.getElementById('appShellWrap').style.display='none'; }
 function hideLoginOverlay(){ document.getElementById('loginOverlay').style.display='none'; document.getElementById('appShellWrap').style.display='block'; }
 function handleGoogleLogin(response){
@@ -241,7 +304,8 @@ function applyYearFilter(){
 }
 
 function loadAll(){
-  document.getElementById('statusText').textContent = 'Đang tải dữ liệu...';
+  const st = shellEl('statusText');
+  if(st) st.textContent = 'Đang tải dữ liệu...';
   Promise.all([
     fetch('/api/data?year=2025', {credentials:'include'}).then(r=> r.status===401 ? Promise.reject('__UNAUTHORIZED__') : r.text()),
     fetch('/api/data?year=2026', {credentials:'include'}).then(r=> r.status===401 ? Promise.reject('__UNAUTHORIZED__') : r.text()),
@@ -270,7 +334,8 @@ function loadAll(){
       const [y,m] = k.split('-');
       return {key:k, label:'Th'+m+'/'+y};
     });
-    document.getElementById('statusText').textContent = 'Dữ liệu SPB+SPE: ' + fmtNum(RAW_ALL.length) + ' đơn';
+    const stEl = shellEl('statusText');
+    if(stEl) stEl.textContent = 'Dữ liệu SPB+SPE: ' + fmtNum(RAW_ALL.length) + ' đơn';
     renderYearSwitcher();
     render();
   }).catch(err=>{
@@ -281,7 +346,7 @@ function loadAll(){
 }
 
 function renderYearSwitcher(){
-  const el = document.getElementById('yearSwitcher');
+  const el = shellEl('yearSwitcher');
   if(!el) return;
   el.innerHTML = YEARS_AVAILABLE.map(y=>
     `<button type="button" class="year-btn ${String(y)===String(selectedYear)?'active':''}" data-year="${y}">${y}</button>`
@@ -941,17 +1006,7 @@ function doExport(format){
   }
 }
 
-document.getElementById('exportBtn').addEventListener('click', (e)=>{
-  e.stopPropagation();
-  document.getElementById('exportMenu').classList.toggle('show');
-});
-document.getElementById('exportMenu').addEventListener('click', (e)=>{
-  if(e.target.tagName !== 'BUTTON') return;
-  document.getElementById('exportMenu').classList.remove('show');
-  doExport(e.target.dataset.format);
-});
-document.addEventListener('click', ()=> document.getElementById('exportMenu').classList.remove('show'));
-
+if(!isEmbedded) wireExportControls();
 
 loadAll();
 </script>
