@@ -207,8 +207,10 @@ function mountShellControls(){
       </div>
     </div>
   `;
-  const headerRight = document.querySelector('header .header-top > div');
-  if(headerRight) headerRight.style.display = 'none';
+  const headerEl = document.querySelector('header');
+  if(headerEl) headerEl.style.display = 'none';
+  const topLineEl = document.querySelector('.sticky-top > .top-line');
+  if(topLineEl) topLineEl.style.display = 'none';
   wireExportControls();
 }
 
