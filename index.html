@@ -26,6 +26,9 @@
   .tabbar button:hover:not(.active){color:#fff;}
   .tabbar .icon{font-size:16px;}
 
+  .shell-controls{display:none;align-items:center;gap:10px;flex-wrap:wrap;}
+  .shell-controls.active{display:flex;}
+
   .frame-wrap{position:relative;flex:1;min-height:0;}
   iframe.app-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;display:none;}
   iframe.app-frame.active{display:block;}
@@ -42,6 +45,8 @@
       <div class="sub">Đền bù · Truy thu · Báo cáo tuần &amp; tháng</div>
     </div>
   </div>
+  <div id="shellControls-truythu" class="shell-controls"></div>
+  <div id="shellControls-report" class="shell-controls"></div>
 </header>
 <div class="tabbar" id="tabbar">
   <button class="tab-btn" data-tab="truythu" data-src="truy_thu.html"><span class="icon">🧾</span> Truy thu</button>
@@ -72,6 +77,7 @@ function ensureFrame(key){
 function activateTab(key){
   if(!TABS.some(t=>t.key===key)) key = TABS[0].key;
   document.querySelectorAll('.tab-btn').forEach(b=> b.classList.toggle('active', b.dataset.tab===key));
+  document.querySelectorAll('.shell-controls').forEach(el=> el.classList.toggle('active', el.id==='shellControls-'+key));
   const f = ensureFrame(key);
   Object.keys(frames).forEach(k=> frames[k].classList.toggle('active', k===key));
   f.classList.add('active');
