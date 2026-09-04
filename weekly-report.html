@@ -81,7 +81,7 @@
   th:first-child,td:first-child{text-align:left;}
   th{color:var(--muted);font-weight:700;font-size:11.5px;text-transform:uppercase;background:#FAFBFD;}
   td.cur,th.cur{background:var(--cur-bg);}
-  .mom-up{color:var(--bad);font-weight:700;font-size:11.5px;}
+  .mom-up{color:var(--bad);font-weight:700;font-size:11.5px;animation:blinkFocus 1.4s ease-in-out infinite;}
   .mom-down{color:#2E7D32;font-weight:700;font-size:11.5px;}
   .mom-flat{color:var(--muted);font-size:11.5px;}
 
@@ -90,6 +90,19 @@
   .barrow .btrack{position:relative;flex:1;height:20px;background:#F0F2F6;border-radius:4px;overflow:hidden;}
   .barrow .bfill{height:100%;background:var(--orange);}
   .barrow .bval{flex:0 0 90px;text-align:right;font-size:12.5px;font-weight:700;}
+  .bar-nganh-tags{margin:0 0 10px 160px;display:flex;gap:6px;flex-wrap:wrap;}
+  .nganh-tag{font-size:11px;background:#FFF3EA;color:var(--orange-dark);padding:2px 9px;border-radius:10px;border:1px solid #FFD9BB;font-weight:700;}
+
+  @keyframes blinkFocus{0%,100%{opacity:1;}50%{opacity:.32;}}
+  .blink{animation:blinkFocus 1.4s ease-in-out infinite;}
+
+  td.cur{vertical-align:top;}
+  .wow{font-size:10.5px;margin-top:2px;font-weight:700;}
+
+  table.subtable.seller-subtable th{background:#EAF1FA;color:var(--navy);}
+  table.subtable.seller-subtable td{background:#F4F8FC;}
+  table.subtable.seller-subtable td.cur,table.subtable.seller-subtable th.cur{background:#DCE8F5;}
+  .subtable .subtable{margin:4px 0 4px 14px;width:calc(100% - 14px);}
 
   .badge-spb{display:inline-block;background:#FFE4D2;color:var(--orange-dark);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
   .badge-spe{display:inline-block;background:#DCE8F5;color:var(--navy);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
@@ -137,7 +150,7 @@
           <button type="button" data-format="pdf">In / Lưu PDF</button>
         </div>
       </div>
-      <a class="backlink" href="index.html">← Về Dashboard</a>
+      <a class="backlink" href="index.html?tab=truythu" target="_top">← Về Trang chủ</a>
     </div>
   </div>
 </header>
@@ -360,6 +373,8 @@ function renderTrendTable(rows, groupFn, opts){
       });
     });
     groupsSorted = groupsSorted.slice(0, topN);
+  } else if(opts.topOnly && groupsSorted.length > topN){
+    groupsSorted = groupsSorted.slice(0, topN);
   }
   const grandTotal = Object.values(totalByGroup).reduce((s,v)=>s+v,0) || 1;
   const colCount = lastWeeks.length + 3;
@@ -369,8 +384,15 @@ function renderTrendTable(rows, groupFn, opts){
   lastWeeks.forEach(w=> thead += `<th class="${w.key===curWeekKey?'cur':''}">${w.label}</th>`);
   thead += `<th>MTD</th><th>MoM</th></tr>`;
 
+  function sellerTableHtml(groupRows){
+    const sub = renderTrendTable(groupRows||[], r=>r.seller_name||'(Không rõ)', {periodType, nPeriods, topN:5, topOnly:true});
+    return `<table class="subtable seller-subtable" style="table-layout:fixed;">${sub.colgroup}<thead>${sub.thead}</thead><tbody>${sub.tbody}</tbody></table>`;
+  }
+
   function subChannelTableHtml(groupRows){
-    const sub = renderTrendTable(groupRows||[], classifyChannel, {periodType, nPeriods});
+    const sub = renderTrendTable(groupRows||[], classifyChannel, {
+      periodType, nPeriods, expandable:true, idPrefix:`${opts.idPrefix||'g'}-ch`, expandRenderer: sellerTableHtml
+    });
     return `<table class="subtable" style="table-layout:fixed;">${sub.colgroup}<thead>${sub.thead}</thead><tbody>${sub.tbody}</tbody></table>`;
   }
 
@@ -380,12 +402,19 @@ function renderTrendTable(rows, groupFn, opts){
     if(opts.expandable && groupRows && groupRows.length){
       const rowId = `exp-${opts.idPrefix||'g'}-${EXPAND_ID_SEQ++}`;
       expandBtn = `<button class="warn-toggle" type="button" data-target="${rowId}">+</button>`;
-      expandRow = `<tr id="${rowId}" class="expand-row" style="display:none;"><td colspan="${colCount}">${subChannelTableHtml(groupRows)}</td></tr>`;
+      const renderer = opts.expandRenderer || subChannelTableHtml;
+      expandRow = `<tr id="${rowId}" class="expand-row" style="display:none;"><td colspan="${colCount}">${renderer(groupRows)}</td></tr>`;
     }
     let html = `<tr><td>${expandBtn}${label}</td>`;
-    lastWeeks.forEach(w=>{
+    lastWeeks.forEach((w,idx)=>{
       const v = (byWeek[w.key] && byWeek[w.key].den_bu) || 0;
-      html += `<td class="${w.key===curWeekKey?'cur':''}">${fmtMoney(v)}</td>`;
+      let wowBadge = '';
+      if(periodType==='week' && w.key===curWeekKey && idx>0){
+        const prevV = (byWeek[lastWeeks[idx-1].key] && byWeek[lastWeeks[idx-1].key].den_bu) || 0;
+        const wowPct = prevV ? (v-prevV)/prevV*100 : null;
+        wowBadge = `<div class="wow">${momHtml(wowPct)}</div>`;
+      }
+      html += `<td class="${w.key===curWeekKey?'cur':''}">${fmtMoney(v)}${wowBadge}</td>`;
     });
     const mtd = mtdEntry ? mtdEntry.mtd : 0;
     const prev = mtdEntry ? mtdEntry.prevComparable : 0;
@@ -443,10 +472,14 @@ function renderTongQuan(){
   const spbVal = accShare['SPB']||0, speVal = accShare['SPE']||0;
   const accLeader = spbVal >= speVal ? 'SPB' : 'SPE';
 
+  const accLeaderPct = totalDenBuTuan ? (accShare[accLeader]||0)/totalDenBuTuan*100 : 0;
+  const topLoaiYCPct = topLoaiYC && totalDenBuTuan ? topLoaiYC[1]/totalDenBuTuan*100 : 0;
+  const topNganhPct = topNganh && totalDenBuTuan ? topNganh[1]/totalDenBuTuan*100 : 0;
+
   const nhanxetHtml = `
-    <div class="nhanxet"><b>Tổng đền bù ${curWeek.label}:</b> ${fmtMoney(totalDenBuTuan)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}).</div>
-    <div class="nhanxet"><b>Loại yêu cầu lớn nhất:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)} trong tuần.</div>
-    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)} trong tuần.</div>
+    <div class="nhanxet"><b>Tổng đền bù ${curWeek.label}:</b> ${fmtMoney(totalDenBuTuan)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}, <b>${fmtPct(accLeaderPct)}</b>).</div>
+    <div class="nhanxet"><b>Loại yêu cầu lớn nhất:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)} trong tuần (<b>${fmtPct(topLoaiYCPct)}</b> tổng đền bù tuần).</div>
+    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)} trong tuần (<b>${fmtPct(topNganhPct)}</b> tổng đền bù tuần).</div>
     <div class="nhanxet"><b>MTD tháng ${mtdAll.currentMonth||'—'}:</b> ${fmtMoney(mtdEntry.mtd)} — MoM so với cùng kỳ tháng trước: ${momHtml(momAllPct)}</div>
   `;
 
@@ -504,10 +537,20 @@ function renderChiTiet(acc){
   rowsCurWeek.forEach(r=>{ const k=r.loai_yeu_cau||'(Không rõ)'; byLoaiYCCurWeek[k]=(byLoaiYCCurWeek[k]||0)+(+r.gia_tri_den_bu||0); });
   const barRanked = Object.entries(byLoaiYCCurWeek).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const barMax = barRanked.length ? barRanked[0][1] : 1;
+  function top3NganhTagsHtml(loaiYC){
+    const byNganhLoai = {};
+    rowsCurWeek.filter(r=>(r.loai_yeu_cau||'(Không rõ)')===loaiYC).forEach(r=>{
+      const kg = r.san_pham_vn_group||''; if(!kg) return;
+      byNganhLoai[kg] = (byNganhLoai[kg]||0) + (+r.gia_tri_den_bu||0);
+    });
+    const top3 = Object.entries(byNganhLoai).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([kg])=>kg);
+    if(!top3.length) return '';
+    return `<div class="bar-nganh-tags">${top3.map(n=>`<span class="nganh-tag blink">${n}</span>`).join('')}</div>`;
+  }
   const barHtml = barRanked.map(([k,v])=>`
     <div class="barrow"><div class="blabel">${k}</div>
       <div class="btrack"><div class="bfill" style="width:${Math.max(2,v/barMax*100)}%"></div></div>
-      <div class="bval">${fmtMoney(v)}</div></div>`).join('') || '<div class="note">Không có dữ liệu tuần này</div>';
+      <div class="bval">${fmtMoney(v)}</div></div>${top3NganhTagsHtml(k)}`).join('') || '<div class="note">Không có dữ liệu tuần này</div>';
 
   const locTable = renderTrendTable(rowsAcc, r=>r.loai_yeu_cau||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true});
 
@@ -650,10 +693,14 @@ function renderBaoCaoThang(){
   const spbVal = accShare['SPB']||0, speVal = accShare['SPE']||0;
   const accLeader = spbVal >= speVal ? 'SPB' : 'SPE';
 
+  const accLeaderPctThang = totalDenBuThang ? (accShare[accLeader]||0)/totalDenBuThang*100 : 0;
+  const topLoaiYCPctThang = topLoaiYC && totalDenBuThang ? topLoaiYC[1]/totalDenBuThang*100 : 0;
+  const topNganhPctThang = topNganh && totalDenBuThang ? topNganh[1]/totalDenBuThang*100 : 0;
+
   const nhanxetHtml = `
-    <div class="nhanxet"><b>Tổng đền bù ${curMonth.label}:</b> ${fmtMoney(totalDenBuThang)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}).</div>
-    <div class="nhanxet"><b>Loại yêu cầu lớn nhất trong tháng:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)}.</div>
-    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất trong tháng:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)}.</div>
+    <div class="nhanxet"><b>Tổng đền bù ${curMonth.label}:</b> ${fmtMoney(totalDenBuThang)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}, <b>${fmtPct(accLeaderPctThang)}</b>).</div>
+    <div class="nhanxet"><b>Loại yêu cầu lớn nhất trong tháng:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)} (<b>${fmtPct(topLoaiYCPctThang)}</b> tổng đền bù tháng).</div>
+    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất trong tháng:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)} (<b>${fmtPct(topNganhPctThang)}</b> tổng đền bù tháng).</div>
     <div class="nhanxet"><b>MTD:</b> ${fmtMoney(mtdEntry.mtd)} — MoM so với cùng kỳ tháng trước: ${momHtml(momAllPct)}</div>
   `;
 
