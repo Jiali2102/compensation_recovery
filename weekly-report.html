@@ -44,8 +44,8 @@
   .export-menu button:hover{background:#F6F7FA;}
   .warn-toggle{font-family:inherit;background:var(--bg);border:1px solid var(--border);border-radius:4px;width:20px;height:20px;line-height:1;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;margin-right:6px;}
   .warn-toggle:hover{background:#EAEDF3;}
-  .expand-row td{background:#FFF3EA;padding:8px 9px;border-left:4px solid var(--orange);}
-  table.subtable{width:100%;font-size:12.5px;background:#FFF3EA;}
+  .expand-row td{padding:0;}
+  table.subtable{width:100%;font-size:12.5px;background:#FFF3EA;box-shadow:inset 4px 0 0 var(--orange);}
   table.subtable th{background:#FDE4CC;color:var(--orange-dark);}
   table.subtable td{background:#FFF3EA;}
   table.subtable th,table.subtable td{padding:6px 9px;}
@@ -91,7 +91,7 @@
   .barrow .bfill{height:100%;background:var(--orange);}
   .barrow .bval{flex:0 0 90px;text-align:right;font-size:12.5px;font-weight:700;}
   .bar-nganh-tags{margin:0 0 10px 160px;display:flex;gap:6px;flex-wrap:wrap;}
-  .nganh-tag{font-size:11px;background:#FFF3EA;color:var(--orange-dark);padding:2px 9px;border-radius:10px;border:1px solid #FFD9BB;font-weight:700;}
+  .nganh-tag{font-size:11px;background:#DCE8F5;color:var(--navy);padding:2px 9px;border-radius:10px;border:1px solid #B9CBE0;font-weight:700;}
 
   @keyframes blinkFocus{0%,100%{opacity:1;}50%{opacity:.32;}}
   .blink{animation:blinkFocus 1.4s ease-in-out infinite;}
@@ -102,7 +102,8 @@
   table.subtable.seller-subtable th{background:#EAF1FA;color:var(--navy);}
   table.subtable.seller-subtable td{background:#F4F8FC;}
   table.subtable.seller-subtable td.cur,table.subtable.seller-subtable th.cur{background:#DCE8F5;}
-  .subtable .subtable{margin:4px 0 4px 14px;width:calc(100% - 14px);}
+  table.subtable.seller-subtable{box-shadow:inset 4px 0 0 var(--navy);}
+  .subtable .subtable{margin:0;width:100%;}
 
   .badge-spb{display:inline-block;background:#FFE4D2;color:var(--orange-dark);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
   .badge-spe{display:inline-block;background:#DCE8F5;color:var(--navy);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
@@ -425,7 +426,13 @@ function renderTrendTable(rows, groupFn, opts){
   const curWeekKey = lastWeeks.length ? lastWeeks[lastWeeks.length-1].key : null;
   const {byGroupPeriod, totalByGroup, rowsByGroup} = aggByGroupPeriod(rows, groupFn, periodField, !!opts.expandable);
   const mtdmom = computeMTDMoM(rows, groupFn);
-  let groupsSorted = Object.keys(totalByGroup).sort((a,b)=>totalByGroup[b]-totalByGroup[a]);
+  function rankValue(g){
+    if(opts.rankBy === 'current'){
+      return (curWeekKey && byGroupPeriod[g] && byGroupPeriod[g][curWeekKey]) ? byGroupPeriod[g][curWeekKey].den_bu : 0;
+    }
+    return totalByGroup[g] || 0;
+  }
+  let groupsSorted = Object.keys(totalByGroup).sort((a,b)=>rankValue(b)-rankValue(a));
   let othersTotal = 0, othersByWeek = {};
   if(opts.topAndOthers && groupsSorted.length > topN){
     const rest = groupsSorted.slice(topN);
@@ -450,15 +457,15 @@ function renderTrendTable(rows, groupFn, opts){
   thead += `<th>MTD</th><th>MoM</th></tr>`;
 
   function sellerTableHtml(groupRows){
-    const sub = renderTrendTable(groupRows||[], r=>r.seller_name||'(Không rõ)', {periodType, nPeriods, topN:5, topOnly:true});
-    return `<table class="subtable seller-subtable" style="table-layout:fixed;">${sub.colgroup}<thead>${sub.thead}</thead><tbody>${sub.tbody}</tbody></table>`;
+    const sub = renderTrendTable(groupRows||[], r=>r.seller_name||'(Không rõ)', {periodType, nPeriods, topN:5, topOnly:true, rankBy:'current'});
+    return `<table class="subtable seller-subtable" style="table-layout:fixed;">${sub.colgroup}<tbody>${sub.tbody}</tbody></table>`;
   }
 
   function subChannelTableHtml(groupRows){
     const sub = renderTrendTable(groupRows||[], classifyChannel, {
       periodType, nPeriods, expandable:true, idPrefix:`${opts.idPrefix||'g'}-ch`, expandRenderer: sellerTableHtml
     });
-    return `<table class="subtable" style="table-layout:fixed;">${sub.colgroup}<thead>${sub.thead}</thead><tbody>${sub.tbody}</tbody></table>`;
+    return `<table class="subtable" style="table-layout:fixed;">${sub.colgroup}<tbody>${sub.tbody}</tbody></table>`;
   }
 
   function rowHtml(label, byWeek, mtdEntry, groupRows){
@@ -608,9 +615,9 @@ function renderChiTiet(acc){
       const kg = r.san_pham_vn_group||''; if(!kg) return;
       byNganhLoai[kg] = (byNganhLoai[kg]||0) + (+r.gia_tri_den_bu||0);
     });
-    const top3 = Object.entries(byNganhLoai).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([kg])=>kg);
+    const top3 = Object.entries(byNganhLoai).sort((a,b)=>b[1]-a[1]).slice(0,3);
     if(!top3.length) return '';
-    return `<div class="bar-nganh-tags">${top3.map(n=>`<span class="nganh-tag blink">${n}</span>`).join('')}</div>`;
+    return `<div class="bar-nganh-tags">${top3.map(([n,v])=>`<span class="nganh-tag blink">${n}: ${fmtMoney(v)}</span>`).join('')}</div>`;
   }
   const barHtml = barRanked.map(([k,v])=>`
     <div class="barrow"><div class="blabel">${k}</div>

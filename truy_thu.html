@@ -407,6 +407,8 @@ function setStatusText(text){
 if(isEmbedded){
   const headerEl = document.querySelector('header');
   if(headerEl) headerEl.style.display = 'none';
+  const topLineEl = document.querySelector('#stickyTop > .top-line');
+  if(topLineEl) topLineEl.style.display = 'none';
   mountShellControls();
 }
 
