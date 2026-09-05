@@ -14,17 +14,16 @@
   html,body{height:100%;}
   body{margin:0;font-family:"Cambria","Times New Roman",Georgia,serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;}
   .top-line{height:3px;background:var(--orange);}
-  header{background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);color:#fff;padding:16px clamp(20px,4vw,48px);display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;}
-  .brand{display:flex;align-items:center;gap:12px;}
-  .brand img{height:34px;width:auto;border-radius:6px;background:#fff;padding:3px;}
-  header h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.2px;}
-  header .sub{font-size:12.5px;color:#FFE4D2;font-style:italic;margin-top:2px;}
+  header{background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);color:#fff;padding:10px clamp(20px,4vw,48px);display:flex;align-items:center;gap:22px;flex-wrap:wrap;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  .brand img{height:26px;width:auto;border-radius:5px;background:#fff;padding:2px;}
+  header h1{margin:0;font-size:15.5px;font-weight:800;letter-spacing:.2px;white-space:nowrap;}
 
-  .tabbar{display:flex;gap:2px;background:var(--navy);padding:0 clamp(20px,4vw,48px);}
-  .tabbar button{font-family:inherit;background:transparent;border:none;color:#B9CBE0;padding:14px 22px;font-size:15px;font-weight:800;cursor:pointer;border-bottom:3px solid transparent;display:flex;align-items:center;gap:8px;}
-  .tabbar button.active{color:#fff;border-bottom-color:var(--orange);background:rgba(255,255,255,.06);}
-  .tabbar button:hover:not(.active){color:#fff;}
-  .tabbar .icon{font-size:16px;}
+  .tabbar{display:flex;gap:2px;margin-right:auto;}
+  .tabbar button{font-family:inherit;background:rgba(255,255,255,.08);border:none;color:#FFE4D2;padding:8px 16px;font-size:14px;font-weight:800;cursor:pointer;border-radius:7px;display:flex;align-items:center;gap:7px;}
+  .tabbar button.active{color:var(--orange-dark);background:#fff;}
+  .tabbar button:hover:not(.active){color:#fff;background:rgba(255,255,255,.18);}
+  .tabbar .icon{font-size:15px;}
 
   .shell-controls{display:none;align-items:center;gap:10px;flex-wrap:wrap;}
   .shell-controls.active{display:flex;}
@@ -40,18 +39,15 @@
 <header>
   <div class="brand">
     <img src="logo.png" alt="GHN">
-    <div>
-      <h1>[KA - CRC] TRANG CHỦ</h1>
-      <div class="sub">Đền bù · Truy thu · Báo cáo tuần &amp; tháng</div>
-    </div>
+    <h1>[KA - CRC] TRANG CHỦ</h1>
+  </div>
+  <div class="tabbar" id="tabbar">
+    <button class="tab-btn" data-tab="truythu" data-src="truy_thu.html"><span class="icon">🧾</span> Truy thu</button>
+    <button class="tab-btn" data-tab="report" data-src="weekly-report.html"><span class="icon">📊</span> Report tuần</button>
   </div>
   <div id="shellControls-truythu" class="shell-controls"></div>
   <div id="shellControls-report" class="shell-controls"></div>
 </header>
-<div class="tabbar" id="tabbar">
-  <button class="tab-btn" data-tab="truythu" data-src="truy_thu.html"><span class="icon">🧾</span> Truy thu</button>
-  <button class="tab-btn" data-tab="report" data-src="weekly-report.html"><span class="icon">📊</span> Report tuần</button>
-</div>
 <div class="frame-wrap" id="frameWrap"></div>
 
 <script>
