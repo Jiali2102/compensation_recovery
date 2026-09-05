@@ -640,7 +640,7 @@ function renderChiTiet(acc){
     if(!top3.length) return '';
     return `<div class="bar-nganh-tags">${top3.map(([n,v])=>{
       const c = nganhTagColor(n);
-      return `<span class="nganh-tag blink" style="background:${c.bg};border-color:${c.border};color:${c.fg};">${n}: ${fmtMoney(v)}</span>`;
+      return `<span class="nganh-tag" style="background:${c.bg};border-color:${c.border};color:${c.fg};">${n}: ${fmtMoney(v)}</span>`;
     }).join('')}</div>`;
   }
   const barHtml = barRanked.map(([k,v])=>`
