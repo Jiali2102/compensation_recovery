@@ -260,24 +260,22 @@ function momHtml(pct){
   if(pct < -0.005) return `<span class="mom-down">▼ ${Math.abs(pct).toFixed(2)}%</span>`;
   return '<span class="mom-flat">0.00%</span>';
 }
-const NGANH_TAG_PALETTE = [
-  {bg:'#DCE8F5', border:'#B9CBE0', fg:'#0E4174'},
-  {bg:'#E2F3E5', border:'#A9DAB0', fg:'#2E7D32'},
-  {bg:'#EDE3F5', border:'#C9AEDE', fg:'#6A1B9A'},
-  {bg:'#DFF5F3', border:'#A9DED8', fg:'#00695C'},
-  {bg:'#FCE4EC', border:'#F4A9C0', fg:'#AD1457'},
-  {bg:'#FFF6DC', border:'#FFDE8A', fg:'#B98900'},
-  {bg:'#DFF0FB', border:'#A9D3EE', fg:'#01579B'},
-  {bg:'#F0E6DE', border:'#D9BFAA', fg:'#6D4C33'},
-  {bg:'#E8EAF6', border:'#C1C8E8', fg:'#303F9F'},
-  {bg:'#F1F3D9', border:'#D9DE9A', fg:'#757C1E'},
-];
+const NGANH_HUE_STEPS = 24;
 function nganhTagColor(name){
-  let hash = 0;
   const s = String(name||'');
-  for(let i=0;i<s.length;i++){ hash = (hash*31 + s.charCodeAt(i)) | 0; }
-  const idx = Math.abs(hash) % NGANH_TAG_PALETTE.length;
-  return NGANH_TAG_PALETTE[idx];
+  let hash = 0, hash2 = 0;
+  for(let i=0;i<s.length;i++){
+    hash = (hash*31 + s.charCodeAt(i)) | 0;
+    hash2 = (hash2*17 + s.charCodeAt(i)*7 + i) | 0;
+  }
+  const bucket = Math.abs(hash) % NGANH_HUE_STEPS;
+  const hue = Math.round(bucket * (360/NGANH_HUE_STEPS));
+  const fgLight = (Math.abs(hash2) % 2 === 0) ? 30 : 42;
+  return {
+    bg: `hsl(${hue}, 62%, 92%)`,
+    border: `hsl(${hue}, 45%, 76%)`,
+    fg: `hsl(${hue}, 70%, ${fgLight}%)`,
+  };
 }
 function isoWeekInfo(dateStr){
   if(!dateStr) return null;
