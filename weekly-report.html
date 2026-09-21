@@ -44,8 +44,8 @@
   .export-menu button:hover{background:#F6F7FA;}
   .warn-toggle{font-family:inherit;background:var(--bg);border:1px solid var(--border);border-radius:4px;width:20px;height:20px;line-height:1;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;margin-right:6px;}
   .warn-toggle:hover{background:#EAEDF3;}
-  .expand-row td{background:#FFF3EA;padding:8px 9px;border-left:4px solid var(--orange);}
-  table.subtable{width:100%;font-size:12.5px;background:#FFF3EA;}
+  .expand-row td{padding:0;}
+  table.subtable{width:100%;font-size:12.5px;background:#FFF3EA;box-shadow:inset 4px 0 0 var(--orange);}
   table.subtable th{background:#FDE4CC;color:var(--orange-dark);}
   table.subtable td{background:#FFF3EA;}
   table.subtable th,table.subtable td{padding:6px 9px;}
@@ -81,17 +81,29 @@
   th:first-child,td:first-child{text-align:left;}
   th{color:var(--muted);font-weight:700;font-size:11.5px;text-transform:uppercase;background:#FAFBFD;}
   td.cur,th.cur{background:var(--cur-bg);}
-  .mom-up{color:var(--bad);font-weight:700;font-size:11.5px;}
+  .mom-up{color:var(--bad);font-weight:700;font-size:11.5px;animation:blinkFocus 1.4s ease-in-out infinite;}
   .mom-down{color:#2E7D32;font-weight:700;font-size:11.5px;}
   .mom-flat{color:var(--muted);font-size:11.5px;}
-  .wow{margin-top:2px;}
-  .wow .mom-up,.wow .mom-down,.wow .mom-flat{font-size:10.5px;font-weight:700;}
 
   .barrow{display:flex;align-items:center;gap:10px;padding:6px 0;}
   .barrow .blabel{flex:0 0 150px;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .barrow .btrack{position:relative;flex:1;height:20px;background:#F0F2F6;border-radius:4px;overflow:hidden;}
   .barrow .bfill{height:100%;background:var(--orange);}
   .barrow .bval{flex:0 0 90px;text-align:right;font-size:12.5px;font-weight:700;}
+  .bar-nganh-tags{margin:0 0 10px 160px;display:flex;gap:6px;flex-wrap:wrap;}
+  .nganh-tag{font-size:11px;background:#DCE8F5;color:var(--navy);padding:2px 9px;border-radius:10px;border:1px solid #B9CBE0;font-weight:700;}
+
+  @keyframes blinkFocus{0%,100%{opacity:1;}50%{opacity:.32;}}
+  .blink{animation:blinkFocus 1.4s ease-in-out infinite;}
+
+  td.cur{vertical-align:top;}
+  .wow{font-size:10.5px;margin-top:2px;font-weight:700;}
+
+  table.subtable.seller-subtable th{background:#EAF1FA;color:var(--navy);}
+  table.subtable.seller-subtable td{background:#F4F8FC;}
+  table.subtable.seller-subtable td.cur,table.subtable.seller-subtable th.cur{background:#DCE8F5;}
+  table.subtable.seller-subtable{box-shadow:inset 4px 0 0 var(--navy);}
+  .subtable .subtable{margin:0;width:100%;}
 
   .badge-spb{display:inline-block;background:#FFE4D2;color:var(--orange-dark);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
   .badge-spe{display:inline-block;background:#DCE8F5;color:var(--navy);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;}
@@ -139,7 +151,6 @@
           <button type="button" data-format="pdf">In / Lưu PDF</button>
         </div>
       </div>
-      <a class="backlink" href="index.html">← Về Dashboard</a>
     </div>
   </div>
 </header>
@@ -155,6 +166,72 @@
 </div>
 
 <script>
+const isEmbedded = (function(){ try{ return !!(window.parent && window.parent !== window && window.parent.document); }catch(e){ return false; } })();
+
+function shellEl(id){
+  return isEmbedded ? window.parent.document.getElementById(id) : document.getElementById(id);
+}
+
+function mountShellControls(){
+  if(!isEmbedded) return;
+  const pdoc = window.parent.document;
+  const slot = pdoc.getElementById('shellControls-report');
+  if(!slot) return;
+  if(!pdoc.getElementById('shell-wr-styles')){
+    const styleEl = pdoc.createElement('style');
+    styleEl.id = 'shell-wr-styles';
+    styleEl.textContent = `
+      #statusText{font-size:13px;color:#FFE4D2;font-style:italic;}
+      #yearSwitcher{display:inline-flex;gap:2px;background:rgba(255,255,255,.2);border-radius:6px;padding:2px;}
+      .year-btn{font-family:inherit;background:transparent;border:none;color:#fff;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;border-radius:5px;}
+      .year-btn.active{background:#fff;color:#E04F00;}
+      .export-wrap{position:relative;display:inline-block;}
+      #exportBtn{font-family:inherit;background:#0E4174;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-weight:700;font-size:13.5px;cursor:pointer;}
+      #exportBtn:hover{background:#0A2F54;}
+      .export-menu{display:none;position:absolute;top:calc(100% + 6px);right:0;background:#fff;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);overflow:hidden;min-width:170px;z-index:200;}
+      .export-menu.show{display:block;}
+      .export-menu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:#383838;font-family:"Cambria","Times New Roman",Georgia,serif;font-size:13.5px;padding:10px 14px;cursor:pointer;}
+      .export-menu button:hover{background:#F6F7FA;}
+    `;
+    pdoc.head.appendChild(styleEl);
+  }
+  slot.innerHTML = `
+    <span id="statusText"></span>
+    <span id="yearSwitcher"></span>
+    <div class="export-wrap">
+      <button id="exportBtn" type="button">⬇ Xuất ▾</button>
+      <div class="export-menu" id="exportMenu">
+        <button type="button" data-format="md">Markdown (.md)</button>
+        <button type="button" data-format="html">HTML (.html)</button>
+        <button type="button" data-format="pdf">In / Lưu PDF</button>
+      </div>
+    </div>
+  `;
+  const headerEl = document.querySelector('header');
+  if(headerEl) headerEl.style.display = 'none';
+  const topLineEl = document.querySelector('.sticky-top > .top-line');
+  if(topLineEl) topLineEl.style.display = 'none';
+  wireExportControls();
+}
+
+function wireExportControls(){
+  const exportBtn = shellEl('exportBtn');
+  const exportMenu = shellEl('exportMenu');
+  if(!exportBtn || !exportMenu) return;
+  exportBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    exportMenu.classList.toggle('show');
+  });
+  exportMenu.addEventListener('click', (e)=>{
+    if(e.target.tagName !== 'BUTTON') return;
+    exportMenu.classList.remove('show');
+    doExport(e.target.dataset.format);
+  });
+  (isEmbedded ? window.parent.document : document).addEventListener('click', ()=> exportMenu.classList.remove('show'));
+}
+
+if(isEmbedded) mountShellControls();
+
 function showLoginOverlay(){ document.getElementById('loginOverlay').style.display='flex'; document.getElementById('appShellWrap').style.display='none'; }
 function hideLoginOverlay(){ document.getElementById('loginOverlay').style.display='none'; document.getElementById('appShellWrap').style.display='block'; }
 function handleGoogleLogin(response){
@@ -182,6 +259,23 @@ function momHtml(pct){
   if(pct > 0.005) return `<span class="mom-up">▲ ${pct.toFixed(2)}%</span>`;
   if(pct < -0.005) return `<span class="mom-down">▼ ${Math.abs(pct).toFixed(2)}%</span>`;
   return '<span class="mom-flat">0.00%</span>';
+}
+const NGANH_HUE_STEPS = 24;
+function nganhTagColor(name){
+  const s = String(name||'');
+  let hash = 0, hash2 = 0;
+  for(let i=0;i<s.length;i++){
+    hash = (hash*31 + s.charCodeAt(i)) | 0;
+    hash2 = (hash2*17 + s.charCodeAt(i)*7 + i) | 0;
+  }
+  const bucket = Math.abs(hash) % NGANH_HUE_STEPS;
+  const hue = Math.round(bucket * (360/NGANH_HUE_STEPS));
+  const fgLight = (Math.abs(hash2) % 2 === 0) ? 30 : 42;
+  return {
+    bg: `hsl(${hue}, 62%, 92%)`,
+    border: `hsl(${hue}, 45%, 76%)`,
+    fg: `hsl(${hue}, 70%, ${fgLight}%)`,
+  };
 }
 function isoWeekInfo(dateStr){
   if(!dateStr) return null;
@@ -230,7 +324,8 @@ function applyYearFilter(){
 }
 
 function loadAll(){
-  document.getElementById('statusText').textContent = 'Đang tải dữ liệu...';
+  const st = shellEl('statusText');
+  if(st) st.textContent = 'Đang tải dữ liệu...';
   Promise.all([
     fetch('/api/data?year=2025', {credentials:'include'}).then(r=> r.status===401 ? Promise.reject('__UNAUTHORIZED__') : r.text()),
     fetch('/api/data?year=2026', {credentials:'include'}).then(r=> r.status===401 ? Promise.reject('__UNAUTHORIZED__') : r.text()),
@@ -259,7 +354,8 @@ function loadAll(){
       const [y,m] = k.split('-');
       return {key:k, label:'Th'+m+'/'+y};
     });
-    document.getElementById('statusText').textContent = 'Dữ liệu SPB+SPE: ' + fmtNum(RAW_ALL.length) + ' đơn';
+    const stEl = shellEl('statusText');
+    if(stEl) stEl.textContent = 'Dữ liệu SPB+SPE: ' + fmtNum(RAW_ALL.length) + ' đơn';
     renderYearSwitcher();
     render();
   }).catch(err=>{
@@ -270,7 +366,7 @@ function loadAll(){
 }
 
 function renderYearSwitcher(){
-  const el = document.getElementById('yearSwitcher');
+  const el = shellEl('yearSwitcher');
   if(!el) return;
   el.innerHTML = YEARS_AVAILABLE.map(y=>
     `<button type="button" class="year-btn ${String(y)===String(selectedYear)?'active':''}" data-year="${y}">${y}</button>`
@@ -315,17 +411,6 @@ function computeMTDMoM(rows, groupFn){
   const prevDate = new Date(Date.UTC(cy, cm-2, 1));
   const prevMonth = prevDate.getUTCFullYear() + '-' + String(prevDate.getUTCMonth()+1).padStart(2,'0');
   const cutoffDay = wi.day;
-
-  // FIX (bản đơn giản, minh bạch): MTD = tổng cộng dồn của tháng hiện tại tính đến ngày dữ liệu mới nhất.
-  // MoM = so với TOÀN BỘ tổng tháng trước (không cắt theo ngày, không cắt theo "N tuần đầu").
-  // Lý do đổi cách này: 2 cách tính "công bằng" trước đó (cắt theo ngày, rồi cắt theo N tuần đầu) đều tạo
-  // ra prevComparable KHÁC với số tổng tháng trước đang hiển thị ngay trong cột kế bên (VD cột TH07/2026),
-  // khiến MoM cho dấu trái ngược với xu hướng nhìn thấy bằng mắt giữa 2 cột — gây hiểu lầm nghiêm trọng dù
-  // bản chất là "so sánh chưa đầy đủ kỳ" chứ không phải sai công thức. Cách tính mới này đảm bảo MoM luôn
-  // nhất quán 1-1 với đúng 2 con số đang hiển thị trong bảng (MTD và cột tháng liền trước).
-  // Đánh đổi: nếu tháng hiện tại CHƯA kết thúc (mới có 1-2 lô/tuần), MTD đang so với 1 tháng ĐẦY ĐỦ của
-  // tháng trước — không hoàn toàn "công bằng" về mặt thống kê, nhưng minh bạch và khớp với số hiển thị.
-  // Đã thêm ghi chú rõ điều này trong phần render UI (xem "MTD/MoM note" ở các hàm renderTongQuan/renderBaoCaoThang).
   const byGroup = {};
   rows.forEach(r=>{
     const g = groupFn(r);
@@ -360,7 +445,13 @@ function renderTrendTable(rows, groupFn, opts){
   const curWeekKey = lastWeeks.length ? lastWeeks[lastWeeks.length-1].key : null;
   const {byGroupPeriod, totalByGroup, rowsByGroup} = aggByGroupPeriod(rows, groupFn, periodField, !!opts.expandable);
   const mtdmom = computeMTDMoM(rows, groupFn);
-  let groupsSorted = Object.keys(totalByGroup).sort((a,b)=>totalByGroup[b]-totalByGroup[a]);
+  function rankValue(g){
+    if(opts.rankBy === 'current'){
+      return (curWeekKey && byGroupPeriod[g] && byGroupPeriod[g][curWeekKey]) ? byGroupPeriod[g][curWeekKey].den_bu : 0;
+    }
+    return totalByGroup[g] || 0;
+  }
+  let groupsSorted = Object.keys(totalByGroup).sort((a,b)=>rankValue(b)-rankValue(a));
   let othersTotal = 0, othersByWeek = {};
   if(opts.topAndOthers && groupsSorted.length > topN){
     const rest = groupsSorted.slice(topN);
@@ -373,6 +464,8 @@ function renderTrendTable(rows, groupFn, opts){
       });
     });
     groupsSorted = groupsSorted.slice(0, topN);
+  } else if(opts.topOnly && groupsSorted.length > topN){
+    groupsSorted = groupsSorted.slice(0, topN);
   }
   const grandTotal = Object.values(totalByGroup).reduce((s,v)=>s+v,0) || 1;
   const colCount = lastWeeks.length + 3;
@@ -382,9 +475,16 @@ function renderTrendTable(rows, groupFn, opts){
   lastWeeks.forEach(w=> thead += `<th class="${w.key===curWeekKey?'cur':''}">${w.label}</th>`);
   thead += `<th>MTD</th><th>MoM</th></tr>`;
 
+  function sellerTableHtml(groupRows){
+    const sub = renderTrendTable(groupRows||[], r=>r.seller_name||'(Không rõ)', {periodType, nPeriods, topN:5, topOnly:true, rankBy:'current'});
+    return `<table class="subtable seller-subtable" style="table-layout:fixed;">${sub.colgroup}<tbody>${sub.tbody}</tbody></table>`;
+  }
+
   function subChannelTableHtml(groupRows){
-    const sub = renderTrendTable(groupRows||[], classifyChannel, {periodType, nPeriods});
-    return `<table class="subtable" style="table-layout:fixed;">${sub.colgroup}<thead>${sub.thead}</thead><tbody>${sub.tbody}</tbody></table>`;
+    const sub = renderTrendTable(groupRows||[], classifyChannel, {
+      periodType, nPeriods, expandable:true, idPrefix:`${opts.idPrefix||'g'}-ch`, expandRenderer: sellerTableHtml
+    });
+    return `<table class="subtable" style="table-layout:fixed;">${sub.colgroup}<tbody>${sub.tbody}</tbody></table>`;
   }
 
   function rowHtml(label, byWeek, mtdEntry, groupRows){
@@ -393,17 +493,19 @@ function renderTrendTable(rows, groupFn, opts){
     if(opts.expandable && groupRows && groupRows.length){
       const rowId = `exp-${opts.idPrefix||'g'}-${EXPAND_ID_SEQ++}`;
       expandBtn = `<button class="warn-toggle" type="button" data-target="${rowId}">+</button>`;
-      expandRow = `<tr id="${rowId}" class="expand-row" style="display:none;"><td colspan="${colCount}">${subChannelTableHtml(groupRows)}</td></tr>`;
+      const renderer = opts.expandRenderer || subChannelTableHtml;
+      expandRow = `<tr id="${rowId}" class="expand-row" style="display:none;"><td colspan="${colCount}">${renderer(groupRows)}</td></tr>`;
     }
     let html = `<tr><td>${expandBtn}${label}</td>`;
-    lastWeeks.forEach(w=>{
+    lastWeeks.forEach((w,idx)=>{
       const v = (byWeek[w.key] && byWeek[w.key].den_bu) || 0;
-      const fullIdx = periodsAll.findIndex(p=>p.key===w.key);
-      const prevPeriod = fullIdx > 0 ? periodsAll[fullIdx-1] : null;
-      const prevVal = prevPeriod ? ((byWeek[prevPeriod.key] && byWeek[prevPeriod.key].den_bu) || 0) : null;
-      const changePct = (prevPeriod && prevVal) ? (v-prevVal)/prevVal*100 : null;
-      const changeHtml = prevPeriod ? `<div class="wow">${momHtml(changePct)}</div>` : '';
-      html += `<td class="${w.key===curWeekKey?'cur':''}">${fmtMoney(v)}${changeHtml}</td>`;
+      let wowBadge = '';
+      if(periodType==='week' && w.key===curWeekKey && idx>0){
+        const prevV = (byWeek[lastWeeks[idx-1].key] && byWeek[lastWeeks[idx-1].key].den_bu) || 0;
+        const wowPct = prevV ? (v-prevV)/prevV*100 : null;
+        wowBadge = `<div class="wow">${momHtml(wowPct)}</div>`;
+      }
+      html += `<td class="${w.key===curWeekKey?'cur':''}">${fmtMoney(v)}${wowBadge}</td>`;
     });
     const mtd = mtdEntry ? mtdEntry.mtd : 0;
     const prev = mtdEntry ? mtdEntry.prevComparable : 0;
@@ -461,10 +563,14 @@ function renderTongQuan(){
   const spbVal = accShare['SPB']||0, speVal = accShare['SPE']||0;
   const accLeader = spbVal >= speVal ? 'SPB' : 'SPE';
 
+  const accLeaderPct = totalDenBuTuan ? (accShare[accLeader]||0)/totalDenBuTuan*100 : 0;
+  const topLoaiYCPct = topLoaiYC && totalDenBuTuan ? topLoaiYC[1]/totalDenBuTuan*100 : 0;
+  const topNganhPct = topNganh && totalDenBuTuan ? topNganh[1]/totalDenBuTuan*100 : 0;
+
   const nhanxetHtml = `
-    <div class="nhanxet"><b>Tổng đền bù ${curWeek.label}:</b> ${fmtMoney(totalDenBuTuan)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}).</div>
-    <div class="nhanxet"><b>Loại yêu cầu lớn nhất:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)} trong tuần.</div>
-    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)} trong tuần.</div>
+    <div class="nhanxet"><b>Tổng đền bù ${curWeek.label}:</b> ${fmtMoney(totalDenBuTuan)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}, <b>${fmtPct(accLeaderPct)}</b>).</div>
+    <div class="nhanxet"><b>Loại yêu cầu lớn nhất:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)} trong tuần (<b>${fmtPct(topLoaiYCPct)}</b> tổng đền bù tuần).</div>
+    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)} trong tuần (<b>${fmtPct(topNganhPct)}</b> tổng đền bù tuần).</div>
     <div class="nhanxet"><b>MTD tháng ${mtdAll.currentMonth||'—'}:</b> ${fmtMoney(mtdEntry.mtd)} — MoM so với cùng kỳ tháng trước: ${momHtml(momAllPct)}</div>
   `;
 
@@ -522,10 +628,23 @@ function renderChiTiet(acc){
   rowsCurWeek.forEach(r=>{ const k=r.loai_yeu_cau||'(Không rõ)'; byLoaiYCCurWeek[k]=(byLoaiYCCurWeek[k]||0)+(+r.gia_tri_den_bu||0); });
   const barRanked = Object.entries(byLoaiYCCurWeek).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const barMax = barRanked.length ? barRanked[0][1] : 1;
+  function top3NganhTagsHtml(loaiYC){
+    const byNganhLoai = {};
+    rowsCurWeek.filter(r=>(r.loai_yeu_cau||'(Không rõ)')===loaiYC).forEach(r=>{
+      const kg = r.san_pham_vn_group||''; if(!kg) return;
+      byNganhLoai[kg] = (byNganhLoai[kg]||0) + (+r.gia_tri_den_bu||0);
+    });
+    const top3 = Object.entries(byNganhLoai).sort((a,b)=>b[1]-a[1]).slice(0,3);
+    if(!top3.length) return '';
+    return `<div class="bar-nganh-tags">${top3.map(([n,v])=>{
+      const c = nganhTagColor(n);
+      return `<span class="nganh-tag" style="background:${c.bg};border-color:${c.border};color:${c.fg};">${n}: ${fmtMoney(v)}</span>`;
+    }).join('')}</div>`;
+  }
   const barHtml = barRanked.map(([k,v])=>`
     <div class="barrow"><div class="blabel">${k}</div>
       <div class="btrack"><div class="bfill" style="width:${Math.max(2,v/barMax*100)}%"></div></div>
-      <div class="bval">${fmtMoney(v)}</div></div>`).join('') || '<div class="note">Không có dữ liệu tuần này</div>';
+      <div class="bval">${fmtMoney(v)}</div></div>${top3NganhTagsHtml(k)}`).join('') || '<div class="note">Không có dữ liệu tuần này</div>';
 
   const locTable = renderTrendTable(rowsAcc, r=>r.loai_yeu_cau||'(Không rõ)', {nWeeks:5, topN:6, topAndOthers:true});
 
@@ -668,10 +787,14 @@ function renderBaoCaoThang(){
   const spbVal = accShare['SPB']||0, speVal = accShare['SPE']||0;
   const accLeader = spbVal >= speVal ? 'SPB' : 'SPE';
 
+  const accLeaderPctThang = totalDenBuThang ? (accShare[accLeader]||0)/totalDenBuThang*100 : 0;
+  const topLoaiYCPctThang = topLoaiYC && totalDenBuThang ? topLoaiYC[1]/totalDenBuThang*100 : 0;
+  const topNganhPctThang = topNganh && totalDenBuThang ? topNganh[1]/totalDenBuThang*100 : 0;
+
   const nhanxetHtml = `
-    <div class="nhanxet"><b>Tổng đền bù ${curMonth.label}:</b> ${fmtMoney(totalDenBuThang)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}).</div>
-    <div class="nhanxet"><b>Loại yêu cầu lớn nhất trong tháng:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)}.</div>
-    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất trong tháng:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)}.</div>
+    <div class="nhanxet"><b>Tổng đền bù ${curMonth.label}:</b> ${fmtMoney(totalDenBuThang)}, trong đó <b>${accLeader}</b> chiếm tỉ trọng lớn hơn (${fmtMoney(accShare[accLeader]||0)}, <b>${fmtPct(accLeaderPctThang)}</b>).</div>
+    <div class="nhanxet"><b>Loại yêu cầu lớn nhất trong tháng:</b> "${topLoaiYC?topLoaiYC[0]:'—'}" với ${fmtMoney(topLoaiYC?topLoaiYC[1]:0)} (<b>${fmtPct(topLoaiYCPctThang)}</b> tổng đền bù tháng).</div>
+    <div class="nhanxet"><b>Nhóm ngành hàng lớn nhất trong tháng:</b> "${topNganh?topNganh[0]:'—'}" với ${fmtMoney(topNganh?topNganh[1]:0)} (<b>${fmtPct(topNganhPctThang)}</b> tổng đền bù tháng).</div>
     <div class="nhanxet"><b>MTD:</b> ${fmtMoney(mtdEntry.mtd)} — MoM so với cùng kỳ tháng trước: ${momHtml(momAllPct)}</div>
   `;
 
@@ -912,17 +1035,7 @@ function doExport(format){
   }
 }
 
-document.getElementById('exportBtn').addEventListener('click', (e)=>{
-  e.stopPropagation();
-  document.getElementById('exportMenu').classList.toggle('show');
-});
-document.getElementById('exportMenu').addEventListener('click', (e)=>{
-  if(e.target.tagName !== 'BUTTON') return;
-  document.getElementById('exportMenu').classList.remove('show');
-  doExport(e.target.dataset.format);
-});
-document.addEventListener('click', ()=> document.getElementById('exportMenu').classList.remove('show'));
-
+if(!isEmbedded) wireExportControls();
 
 loadAll();
 </script>
