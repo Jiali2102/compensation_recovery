@@ -8,7 +8,79 @@ import {
   readHeaderOnly,
   mapHeader,
   CORE_COLUMNS,
+  createCsvRecordParser,
 } from "../lib/bi.js";
+import { legacyConfigured, loadLegacy } from "../lib/legacy.js";
+
+async function compareNganh() {
+  const legacy = await loadLegacy();
+  const upstream = await fetchMainCsv();
+  const reader = upstream.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let idx = null;
+  const pair = {};
+  const byNewGroup = {};
+  const byOldGroup = {};
+  const spDiff = {};
+  let total = 0;
+  let khongCoTrongNguonCu = 0;
+  let khongCoTrongNguonCuTien = 0;
+  const parser = createCsvRecordParser(rec => {
+    if (!idx) {
+      const m = rec.map(mapHeader);
+      idx = { ma: m.indexOf("ma_dh"), v: m.indexOf("gia_tri_den_bu"), sp: m.indexOf("san_pham"), g: m.indexOf("san_pham_vn_group") };
+      return;
+    }
+    total++;
+    const ma = String(rec[idx.ma] || "").trim();
+    const v = Number(rec[idx.v]) || 0;
+    const spMoi = String(rec[idx.sp] || "").trim();
+    const nhomMoi = String(rec[idx.g] || "").trim() || "(Không rõ)";
+    const old = legacy.byOrder.get(ma);
+    if (!old) {
+      khongCoTrongNguonCu++;
+      khongCoTrongNguonCuTien += v;
+      return;
+    }
+    const nhomCu = old.nhom_cu || "(Không rõ)";
+    byNewGroup[nhomMoi] = (byNewGroup[nhomMoi] || 0) + v;
+    byOldGroup[nhomCu] = (byOldGroup[nhomCu] || 0) + v;
+    if (nhomCu === nhomMoi) return;
+    const pk = nhomCu + " → " + nhomMoi;
+    if (!pair[pk]) pair[pk] = { nhom_cu: nhomCu, nhom_moi: nhomMoi, so_dong: 0, gia_tri_den_bu: 0 };
+    pair[pk].so_dong++;
+    pair[pk].gia_tri_den_bu += v;
+    const sk = old.san_pham_cu + " | " + spMoi;
+    if (!spDiff[sk]) spDiff[sk] = { san_pham_cu: old.san_pham_cu, san_pham_moi: spMoi, nhom_cu: nhomCu, nhom_moi: nhomMoi, nhom_cu_neu_dung_san_pham_moi: legacy.lookup(spMoi) || "(không có trong mapping cũ)", so_dong: 0, gia_tri_den_bu: 0 };
+    spDiff[sk].so_dong++;
+    spDiff[sk].gia_tri_den_bu += v;
+  });
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parser.push(decoder.decode(value, { stream: true }));
+  }
+  parser.push(decoder.decode());
+  parser.end();
+  const groups = [...new Set([...Object.keys(byNewGroup), ...Object.keys(byOldGroup)])].map(g => ({
+    nhom: g,
+    tong_moi: Math.round(byNewGroup[g] || 0),
+    tong_cu: Math.round(byOldGroup[g] || 0),
+    chenh_lech: Math.round((byNewGroup[g] || 0) - (byOldGroup[g] || 0)),
+  })).sort((a, b) => Math.abs(b.chenh_lech) - Math.abs(a.chenh_lech));
+  const pairs = Object.values(pair).sort((a, b) => b.gia_tri_den_bu - a.gia_tri_den_bu);
+  const sps = Object.values(spDiff).sort((a, b) => b.gia_tri_den_bu - a.gia_tri_den_bu);
+  return {
+    tong_dong_nguon_moi: total,
+    dong_khong_co_o_nguon_cu: khongCoTrongNguonCu,
+    tien_khong_co_o_nguon_cu: Math.round(khongCoTrongNguonCuTien),
+    so_cap_nhom_bi_doi: pairs.length,
+    theo_nhom: groups,
+    cap_nhom_cu_sang_moi: pairs.slice(0, 100),
+    chi_tiet_san_pham_lech: sps.slice(0, 300),
+    mapping_cu: legacy.mapping,
+  };
+}
 
 function fmtNow() {
   const d = new Date(Date.now() + 7 * 3600 * 1000);
@@ -42,6 +114,17 @@ export default async function handler(req, res) {
         }
       }
       res.status(200).json({ ok: true, version, checkedAt: fmtNow() });
+      return;
+    }
+
+    if (req.query.debug === "nganh") {
+      if (!legacyConfigured()) {
+        res.status(400).json({ error: "Thiếu cấu hình nguồn cũ để so sánh" });
+        return;
+      }
+      const t0 = Date.now();
+      const out = await compareNganh();
+      res.status(200).json({ thoi_gian_ms: Date.now() - t0, ...out });
       return;
     }
 
