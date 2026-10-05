@@ -13,7 +13,7 @@
 <style>
   :root{
     --orange:#FE5F00;
-    --orange-dark:#E04F00;
+    --orange-dark:#E04F00; --header-a:#FF8C4B; --header-b:#F57A36;
     --orange-light:#FF9E64;
     --orange-tint:#FFE4D2;
     --navy:#0E4174;
@@ -60,13 +60,13 @@
   #shopeeSubWrap{display:none;align-items:center;gap:8px;}
 
   header{
-    background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);
+    background:linear-gradient(135deg,var(--header-a) 0%,var(--header-b) 100%);
     color:#fff;
     padding:22px clamp(20px,4vw,48px) 18px;
   }
   .header-top{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px;}
   header h1{margin:0;font-size:27px;font-weight:800;letter-spacing:.4px;text-shadow:0 1px 3px rgba(0,0,0,0.15);}
-  header p{margin:0;color:#FFE4D2;font-size:16px;}
+  header p{margin:0;color:#FFF6EF;font-size:16px;}
 
   .tabbar{
     display:flex;align-items:center;gap:4px;flex-wrap:wrap;
@@ -80,7 +80,7 @@
   }
   .tabbar button.active{color:#fff;border-bottom-color:var(--orange);}
   .tabbar button:hover{color:#fff;}
-  .status{font-size:14px;color:#FFE4D2;font-style:italic;white-space:nowrap;}
+  .status{font-size:14px;color:#FFF6EF;font-style:italic;white-space:nowrap;}
 
   .granularity{display:flex;gap:4px;margin-left:auto;}
   .granularity button{
@@ -383,7 +383,7 @@ function mountShellControls(){
   slot.innerHTML = '';
   const statusSpan = window.parent.document.createElement('span');
   statusSpan.id = 'shell-tt-status';
-  statusSpan.style.cssText = 'font-size:13px;color:#FFE4D2;font-style:italic;';
+  statusSpan.style.cssText = 'font-size:13px;color:#FFF6EF;font-style:italic;';
   statusSpan.textContent = 'Đang tải dữ liệu...';
   slot.appendChild(statusSpan);
   slot.appendChild(CRData.makeRefreshButton(window.parent.document));
