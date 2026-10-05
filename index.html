@@ -7,20 +7,20 @@
 <link rel="icon" type="image/png" href="logo.png">
 <style>
   :root{
-    --orange:#FE5F00; --orange-dark:#E04F00; --navy:#0E4174; --navy-deep:#0A2F54;
+    --orange:#FE5F00; --orange-dark:#E04F00; --header-a:#FF8C4B; --header-b:#F57A36; --navy:#0E4174; --navy-deep:#0A2F54;
     --bg:#F6F7FA; --ink:#383838; --muted:#6B6B6B; --border:#E4E8F0;
   }
   *{box-sizing:border-box;}
   html,body{height:100%;}
   body{margin:0;font-family:"Cambria","Times New Roman",Georgia,serif;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;}
   .top-line{height:3px;background:var(--orange);}
-  header{background:linear-gradient(135deg,var(--orange) 0%,var(--orange-dark) 100%);color:#fff;padding:10px clamp(20px,4vw,48px);display:flex;align-items:center;gap:22px;flex-wrap:wrap;justify-content:space-between;}
+  header{background:linear-gradient(135deg,var(--header-a) 0%,var(--header-b) 100%);color:#fff;padding:10px clamp(20px,4vw,48px);display:flex;align-items:center;gap:22px;flex-wrap:wrap;justify-content:space-between;}
   .brand{display:flex;align-items:center;gap:10px;}
   .brand img{height:26px;width:auto;border-radius:5px;background:#fff;padding:2px;}
   header h1{margin:0;font-size:15.5px;font-weight:800;letter-spacing:.2px;white-space:nowrap;}
 
   .tabbar{display:flex;gap:2px;margin-right:auto;}
-  .tabbar button{font-family:inherit;background:rgba(255,255,255,.08);border:none;color:#FFE4D2;padding:8px 16px;font-size:14px;font-weight:800;cursor:pointer;border-radius:7px;display:flex;align-items:center;gap:7px;}
+  .tabbar button{font-family:inherit;background:rgba(255,255,255,.08);border:none;color:#FFF6EF;padding:8px 16px;font-size:14px;font-weight:800;cursor:pointer;border-radius:7px;display:flex;align-items:center;gap:7px;}
   .tabbar button.active{color:var(--orange-dark);background:#fff;}
   .tabbar button:hover:not(.active){color:#fff;background:rgba(255,255,255,.18);}
   .tabbar .icon{font-size:15px;}
