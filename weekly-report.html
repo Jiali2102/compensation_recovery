@@ -1109,13 +1109,20 @@
         return `<table class="subtable" style="table-layout:fixed;">${sub.colgroup}<tbody>${sub.tbody}</tbody></table>`;
       }
 
+      function subGroupTableHtml(groupRows) {
+        const sub = renderTrendTable(groupRows || [], opts.subGroupFn, {
+          periodType, nPeriods, topN: opts.subTopN || 8, topAndOthers: true, expandable: true, idPrefix: `${opts.idPrefix || 'g'}-sp`
+        });
+        return `<table class="subtable" style="table-layout:fixed;">${sub.colgroup}<tbody>${sub.tbody}</tbody></table>`;
+      }
+
       function rowHtml(label, byWeek, mtdEntry, groupRows) {
         let expandBtn = '';
         let expandRow = '';
         if (opts.expandable && groupRows && groupRows.length) {
           const rowId = `exp-${opts.idPrefix || 'g'}-${EXPAND_ID_SEQ++}`;
           expandBtn = `<button class="warn-toggle" type="button" data-target="${rowId}">+</button>`;
-          const renderer = opts.expandRenderer || subChannelTableHtml;
+          const renderer = opts.expandRenderer || (opts.subGroupFn ? subGroupTableHtml : subChannelTableHtml);
           expandRow = `<tr id="${rowId}" class="expand-row" style="display:none;"><td colspan="${colCount}">${renderer(groupRows)}</td></tr>`;
         }
         let html = `<tr><td>${expandBtn}${label}</td>`;
@@ -1305,8 +1312,8 @@
 
     function renderChuyenSau() {
       const lastWeeks = WEEKS.slice(-5);
-      function rootCauseLabel(r) {const sp = r.san_pham || ''; return sp ? translateSanPham(sp) : '(Không rõ)';}
-      const rootTable = renderTrendTable(RAW, rootCauseLabel, {nWeeks: 5, topN: 8, topAndOthers: true, expandable: true, idPrefix: 'root'});
+      function rootCauseLabel(r) {const vn = r.san_pham_vn || ''; if (vn) return vn; const sp = r.san_pham || ''; return sp ? translateSanPham(sp) : '(Không rõ)';}
+      const rootTable = renderTrendTable(RAW, rootCauseLabel, {nWeeks: 5, topN: 8, topAndOthers: true, expandable: true, idPrefix: 'root', subGroupFn: r => r.san_pham || '(Không rõ)'});
       const tuyenTable = renderTrendTable(RAW, r => r.tuyen || '(Không rõ)', {nWeeks: 5, topN: 8, topAndOthers: true, expandable: true, idPrefix: 'tuyen'});
 
       const ahamoveRows = RAW.filter(r => /intra|n[ộo]i th[àa]nh/i.test(r.tuyen || ''));
@@ -1348,8 +1355,8 @@
 
       document.getElementById('app').innerHTML = `
     <section>
-      <h2>Root cause (theo san_pham / cat_level3)</h2><div class="underline"></div>
-      <p class="desc">Gộp SPB+SPE, top 8 + "Khác", trend 5 tuần + MTD/MoM · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
+      <h2>Root cause (theo san_pham_vn → san_pham)</h2><div class="underline"></div>
+      <p class="desc">Gộp SPB+SPE, top 8 + "Khác", trend 5 tuần + MTD/MoM · bấm (+) xem san_pham bên trong, bấm (+) tiếp để xem WH/MP và seller</p>
       ${tableWrap(rootTable)}
     </section>
     <section>
@@ -1393,8 +1400,8 @@
       const accTable = renderTrendTable(RAW_ALL, r => r._acc, {periodType: 'month', nPeriods: 6});
       const locTable = renderTrendTable(RAW_ALL, r => r.loai_yeu_cau || '(Không rõ)', {periodType: 'month', nPeriods: 6, topN: 6, topAndOthers: true});
       const nganhTable = renderTrendTable(RAW_ALL, r => r.san_pham_vn_group || '(Không rõ)', {periodType: 'month', nPeriods: 6, topN: 5, topAndOthers: true, expandable: true, idPrefix: 'thang-nganh'});
-      function rootCauseLabelThang(r) {const sp = r.san_pham || ''; return sp ? translateSanPham(sp) : '(Không rõ)';}
-      const rootTable = renderTrendTable(RAW_ALL, rootCauseLabelThang, {periodType: 'month', nPeriods: 6, topN: 8, topAndOthers: true, expandable: true, idPrefix: 'thang-root'});
+      function rootCauseLabelThang(r) {const vn = r.san_pham_vn || ''; if (vn) return vn; const sp = r.san_pham || ''; return sp ? translateSanPham(sp) : '(Không rõ)';}
+      const rootTable = renderTrendTable(RAW_ALL, rootCauseLabelThang, {periodType: 'month', nPeriods: 6, topN: 8, topAndOthers: true, expandable: true, idPrefix: 'thang-root', subGroupFn: r => r.san_pham || '(Không rõ)'});
 
       const accShare = {};
       rowsCurMonth.forEach(r => {accShare[r._acc] = (accShare[r._acc] || 0) + (+r.gia_tri_den_bu || 0);});
@@ -1436,8 +1443,8 @@
       ${tableWrap(nganhTable)}
     </section>
     <section>
-      <h2>Root cause theo tháng</h2><div class="underline"></div>
-      <p class="desc">Bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
+      <h2>Root cause theo tháng (san_pham_vn → san_pham)</h2><div class="underline"></div>
+      <p class="desc">Bấm (+) xem san_pham bên trong, bấm (+) tiếp để xem WH/MP và seller</p>
       ${tableWrap(rootTable)}
     </section>
   `;
@@ -1542,7 +1549,7 @@
 
       if (REPORT.chuyensau) {
         md += `## Chuyên sâu & Đề xuất\n\n`;
-        md += trendTableToMd('Root cause (san_pham)', REPORT.chuyensau.rootTable);
+        md += trendTableToMd('Root cause (san_pham_vn)', REPORT.chuyensau.rootTable);
         md += trendTableToMd('Theo Tuyến', REPORT.chuyensau.tuyenTable);
         md += `### Đơn giá trị bất thường (${REPORT.tongquan.curWeek.label})\n\n`;
         if (REPORT.chuyensau.outliers.length) {
