@@ -6,6 +6,7 @@
 <title>[KA - CRC] BÁO CÁO ĐỀN BÙ - TRUY THU</title>
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="data-client.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -329,6 +330,7 @@
     <div style="display:flex;align-items:center;">
       <div class="status" id="statusText">Đang tải dữ liệu...</div>
       <a href="index.html?tab=report" target="_top" style="color:#fff;text-decoration:none;font-size:12px;border:1px solid rgba(255,255,255,.4);border-radius:14px;padding:5px 12px;margin-left:10px;">📊 Báo cáo tuần</a>
+      <span id="refreshSlot"></span>
       <button id="logoutBtn" type="button" onclick="handleLogout()">Đăng xuất</button>
     </div>
   </div>
@@ -384,6 +386,7 @@ function mountShellControls(){
   statusSpan.style.cssText = 'font-size:13px;color:#FFE4D2;font-style:italic;';
   statusSpan.textContent = 'Đang tải dữ liệu...';
   slot.appendChild(statusSpan);
+  slot.appendChild(CRData.makeRefreshButton(window.parent.document));
   const logoutBtn = window.parent.document.createElement('button');
   logoutBtn.type = 'button';
   logoutBtn.textContent = 'Đăng xuất';
@@ -402,6 +405,11 @@ function setStatusText(text){
     const el = document.getElementById('statusText');
     if(el) el.textContent = text;
   }
+}
+
+if(!isEmbedded){
+  const rs = document.getElementById('refreshSlot');
+  if(rs) rs.appendChild(CRData.makeRefreshButton(document));
 }
 
 if(isEmbedded){
@@ -578,35 +586,22 @@ function loadYear(year){
   isLoadingYear = true;
   setStatusText('Đang tải dữ liệu...');
 
-  let statusLabel = 'Dữ liệu cập nhật';
-
-  fetch('/api/data?year=' + year)
-    .then(r => {
-      if(r.status === 401){
-        showLoginOverlay();
-        throw new Error('__UNAUTHORIZED__');
-      }
+  CRData.load()
+    .then(res => {
       hideLoginOverlay();
-      const lastModifiedHeader = r.headers.get('X-Data-Last-Modified');
-      if(lastModifiedHeader){
-        const d = new Date(lastModifiedHeader);
-        if(!isNaN(d)){
-          statusLabel = 'Dữ liệu cập nhật lúc ' + fmtDateTime(d);
-        }
-      }
+      const statusLabel = CRData.statusLabel(res);
       setStatusText(statusLabel);
-      return r.text();
-    })
-    .then(csvText => {
-      const parsed = Papa.parse(csvText, {header:true, skipEmptyLines:true, dynamicTyping:true});
-      const rows = parsed.data.filter(r => r.ma_dh);
+      const rows = res.rows.filter(r => String(r.ngay_duyet_eform||'').slice(0,4) === String(year));
       yearDataCache[year] = { rows, statusLabel };
       applyLoadedRows(rows);
     })
     .catch(err => {
-      if(err.message === '__UNAUTHORIZED__') return;
+      if(err.message === '__UNAUTHORIZED__'){
+        showLoginOverlay();
+        return;
+      }
       document.getElementById('app').innerHTML =
-        '<div class="loading">Không tải được dữ liệu.<br><small>'+err+'</small></div>';
+        '<div class="loading">Không tải được dữ liệu.<br><small>'+err.message+'</small></div>';
       console.error(err);
     })
     .finally(() => {
@@ -650,8 +645,10 @@ function handleGoogleLogin(response){
 }
 
 function handleLogout(){
-  fetch('/api/logout', { method: 'POST', credentials: 'include' })
+  CRData.clear()
+    .then(() => fetch('/api/logout', { method: 'POST', credentials: 'include' }))
     .finally(() => {
+      Object.keys(yearDataCache).forEach(k => delete yearDataCache[k]);
       shellReady = false;
       showLoginOverlay();
       if(window.google && google.accounts && google.accounts.id){
