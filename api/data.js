@@ -8,6 +8,7 @@ import {
   readHeaderOnly,
   mapHeader,
   CORE_COLUMNS,
+  availableColumns,
   createCsvRecordParser,
 } from "../lib/bi.js";
 import { legacyConfigured, loadLegacy } from "../lib/legacy.js";
@@ -133,11 +134,13 @@ export default async function handler(req, res) {
       const upstream = await fetchMainCsv();
       const header = await readHeaderOnly(upstream);
       const mapped = header.map(mapHeader);
+      const avail = availableColumns(mapped);
       res.status(200).json({
         thoi_gian_cho_nguon_ms: Date.now() - t0,
         cot_goc: header,
-        cot_sau_doi_ten: mapped,
-        thieu_cot_bat_buoc: CORE_COLUMNS.filter(c => !mapped.includes(c)),
+        cot_sau_doi_ten: avail,
+        thieu_cot_bat_buoc: CORE_COLUMNS.filter(c => !avail.includes(c)),
+        canh_bao: mapped.includes("warehouse_type") ? [] : ["Thiếu cột warehouse_type: vùng chịu trách nhiệm đang lấy hoàn toàn theo region_shortname"],
       });
       return;
     }
