@@ -7,11 +7,14 @@
   <title>BÁO CÁO TUẦN - ĐỀN BÙ</title>
   <link rel="icon" type="image/png" href="logo.png">
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="data-client.js"></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     :root {
       --orange: #FE5F00;
       --orange-dark: #E04F00;
+      --header-a: #FF8C4B;
+      --header-b: #F57A36;
       --navy: #0E4174;
       --navy-deep: #0A2F54;
       --bg: #F6F7FA;
@@ -100,7 +103,7 @@
     }
 
     header {
-      background: linear-gradient(135deg, var(--orange) 0%, var(--orange-dark) 100%);
+      background: linear-gradient(135deg, var(--header-a) 0%, var(--header-b) 100%);
       color: #fff;
       padding: 18px clamp(20px, 4vw, 48px);
     }
@@ -134,7 +137,7 @@
 
     #statusText {
       font-size: 13px;
-      color: #FFE4D2;
+      color: #FFF6EF;
       font-style: italic;
     }
 
@@ -557,6 +560,19 @@
       font-weight: 700;
     }
 
+    .row-sublabel {
+      font-size: 11.5px;
+      color: var(--muted);
+      font-style: italic;
+      margin-top: 2px;
+      white-space: normal;
+      line-height: 1.3;
+    }
+
+    .row-sublabel.with-btn {
+      padding-left: 26px;
+    }
+
     table.subtable.seller-subtable th {
       background: #EAF1FA;
       color: var(--navy);
@@ -666,6 +682,8 @@
           <div style="display:flex;align-items:center;gap:10px;">
             <span id="statusText"></span>
             <span id="yearSwitcher"></span>
+            <span id="periodPickerSlot"></span>
+            <span id="wrRefreshSlot"></span>
             <div class="export-wrap">
               <button id="exportBtn" type="button">⬇ Xuất ▾</button>
               <div class="export-menu" id="exportMenu">
@@ -706,7 +724,7 @@
         const styleEl = pdoc.createElement('style');
         styleEl.id = 'shell-wr-styles';
         styleEl.textContent = `
-      #statusText{font-size:13px;color:#FFE4D2;font-style:italic;}
+      #statusText{font-size:13px;color:#FFF6EF;font-style:italic;}
       #yearSwitcher{display:inline-flex;gap:2px;background:rgba(255,255,255,.2);border-radius:6px;padding:2px;}
       .year-btn{font-family:inherit;background:transparent;border:none;color:#fff;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;border-radius:5px;}
       .year-btn.active{background:#fff;color:#E04F00;}
@@ -717,12 +735,15 @@
       .export-menu.show{display:block;}
       .export-menu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:#383838;font-family:"Cambria","Times New Roman",Georgia,serif;font-size:13.5px;padding:10px 14px;cursor:pointer;}
       .export-menu button:hover{background:#F6F7FA;}
+      #periodPicker{font-family:"Cambria","Times New Roman",Georgia,serif;font-size:13px;font-weight:700;color:#E04F00;background:#fff;border:none;border-radius:6px;padding:6px 8px;cursor:pointer;max-width:240px;}
     `;
         pdoc.head.appendChild(styleEl);
       }
       slot.innerHTML = `
     <span id="statusText"></span>
     <span id="yearSwitcher"></span>
+    <span id="periodPickerSlot"></span>
+    <span id="shell-wr-refresh"></span>
     <div class="export-wrap">
       <button id="exportBtn" type="button">⬇ Xuất ▾</button>
       <div class="export-menu" id="exportMenu">
@@ -737,6 +758,8 @@
       const topLineEl = document.querySelector('.sticky-top > .top-line');
       if (topLineEl) topLineEl.style.display = 'none';
       wireExportControls();
+      const rs = pdoc.getElementById('shell-wr-refresh');
+      if (rs) rs.appendChild(CRData.makeRefreshButton(pdoc));
     }
 
     function wireExportControls() {
@@ -756,6 +779,10 @@
     }
 
     if (isEmbedded) mountShellControls();
+    if (!isEmbedded) {
+      const rs = document.getElementById('wrRefreshSlot');
+      if (rs) rs.appendChild(CRData.makeRefreshButton(document));
+    }
 
     function showLoginOverlay() {document.getElementById('loginOverlay').style.display = 'flex'; document.getElementById('appShellWrap').style.display = 'none';}
     function hideLoginOverlay() {document.getElementById('loginOverlay').style.display = 'none'; document.getElementById('appShellWrap').style.display = 'block';}
@@ -836,7 +863,11 @@
     const CLIENT_ACC = {'18692': 'SPE', '3892833': 'SPB'};
     const ACC_COLOR = {SPB: 'var(--spb)', SPE: 'var(--spe)'};
 
+    let RAW_FULL = [];
     let RAW_ALL = [];
+    let VIEW_CUTOFF = null;
+    let VIEW_LABEL = '';
+    let LOADED_LABEL = '';
     let RAW = [];
     let WEEKS = [];
     let MONTHS = [];
@@ -852,17 +883,93 @@
       WEEKS = Object.keys(weekMap).sort().map(k => ({key: k, label: weekMap[k]}));
     }
 
+    function isoWeekRange(key) {
+      const m = String(key || '').match(/^(\d{4})-W(\d{2})$/);
+      if (!m) return null;
+      const y = +m[1], w = +m[2];
+      const jan4 = new Date(Date.UTC(y, 0, 4));
+      const mon = new Date(jan4);
+      mon.setUTCDate(jan4.getUTCDate() - ((jan4.getUTCDay() + 6) % 7) + (w - 1) * 7);
+      const sun = new Date(mon);
+      sun.setUTCDate(mon.getUTCDate() + 6);
+      const f = d => d.toISOString().slice(0, 10);
+      return {start: f(mon), end: f(sun)};
+    }
+
+    function rebuildView() {
+      RAW_ALL = VIEW_CUTOFF ? RAW_FULL.filter(r => String(r.ngay_duyet_eform || '').slice(0, 10) <= VIEW_CUTOFF) : RAW_FULL;
+      const monthSet = {};
+      RAW_ALL.forEach(r => {monthSet[r._month] = true;});
+      MONTHS = Object.keys(monthSet).sort().map(k => {
+        const [y, m] = k.split('-');
+        return {key: k, label: 'Th' + m + '/' + y};
+      });
+      applyYearFilter();
+    }
+
+    function updateStatus() {
+      const stEl = shellEl('statusText');
+      if (!stEl) return;
+      stEl.textContent = LOADED_LABEL;
+    }
+
+    function renderPeriodPicker() {
+      const slot = shellEl('periodPickerSlot');
+      if (!slot) return;
+      const weekMap = {}, monthSet = {};
+      RAW_FULL.forEach(r => {
+        if (String(r._month || '').slice(0, 4) !== String(selectedYear)) return;
+        weekMap[r._weekKey] = r._weekLabel;
+        monthSet[r._month] = true;
+      });
+      const weeks = Object.keys(weekMap).sort().reverse();
+      const months = Object.keys(monthSet).sort().reverse();
+      const cur = VIEW_CUTOFF ? VIEW_LABEL : '';
+      const opt = (v, t) => `<option value="${v}"${t === cur ? ' selected' : ''}>${t}</option>`;
+      let html = `<select id="periodPicker" title="Chọn kỳ muốn xem lại"><option value=""${cur ? '' : ' selected'}>Kỳ mới nhất</option>`;
+      html += '<optgroup label="Xem đến hết tuần">' + weeks.map(k => {
+        const rg = isoWeekRange(k);
+        return opt('w:' + k, weekMap[k] + (rg ? ' (' + rg.start.slice(5) + ' → ' + rg.end.slice(5) + ')' : ''));
+      }).join('') + '</optgroup>';
+      html += '<optgroup label="Xem đến hết tháng">' + months.map(k => {
+        const [y, m] = k.split('-');
+        return opt('m:' + k, 'Th' + m + '/' + y);
+      }).join('') + '</optgroup></select>';
+      slot.innerHTML = html;
+      const sel = slot.querySelector('#periodPicker');
+      sel.addEventListener('change', () => {
+        const v = sel.value;
+        if (!v) {
+          VIEW_CUTOFF = null;
+          VIEW_LABEL = '';
+        } else if (v.startsWith('w:')) {
+          const key = v.slice(2);
+          const rg = isoWeekRange(key);
+          VIEW_CUTOFF = rg ? rg.end : null;
+          VIEW_LABEL = sel.options[sel.selectedIndex].text;
+          if (key === Object.keys(weekMap).sort().pop()) {
+            VIEW_CUTOFF = null;
+            VIEW_LABEL = '';
+          }
+        } else {
+          const key = v.slice(2);
+          VIEW_CUTOFF = key + '-31';
+          VIEW_LABEL = sel.options[sel.selectedIndex].text;
+        }
+        rebuildView();
+        updateStatus();
+        renderPeriodPicker();
+        render();
+      });
+    }
+
     function loadAll() {
       const st = shellEl('statusText');
       if (st) st.textContent = 'Đang tải dữ liệu...';
-      Promise.all([
-        fetch('/api/data?year=2025', {credentials: 'include'}).then(r => r.status === 401 ? Promise.reject('__UNAUTHORIZED__') : r.text()),
-        fetch('/api/data?year=2026', {credentials: 'include'}).then(r => r.status === 401 ? Promise.reject('__UNAUTHORIZED__') : r.text()),
-      ]).then(([csv2025, csv2026]) => {
+      CRData.load().then(res => {
         hideLoginOverlay();
-        const rows2025 = Papa.parse(csv2025, {header: true, skipEmptyLines: true, dynamicTyping: true}).data;
-        const rows2026 = Papa.parse(csv2026, {header: true, skipEmptyLines: true, dynamicTyping: true}).data;
-        const all = [...rows2025, ...rows2026].filter(r => r.ma_dh && CLIENT_ACC[String(r.nhom_kh)]);
+        LOADED_LABEL = res.fetchedAt ? 'Dữ liệu lấy lúc ' + res.fetchedAt : 'Dữ liệu cập nhật';
+        const all = res.rows.filter(r => r.ma_dh && CLIENT_ACC[String(r.nhom_kh)]);
         all.forEach(r => {
           const wi = isoWeekInfo(r.ngay_duyet_eform);
           r._acc = CLIENT_ACC[String(r.nhom_kh)];
@@ -871,25 +978,21 @@
           r._month = wi ? wi.month : null;
           r._day = wi ? wi.day : null;
         });
-        RAW_ALL = all.filter(r => r._weekKey);
+        RAW_FULL = all.filter(r => r._weekKey);
         const yearSet = {};
-        RAW_ALL.forEach(r => {yearSet[r._month.slice(0, 4)] = true;});
+        RAW_FULL.forEach(r => {yearSet[r._month.slice(0, 4)] = true;});
         YEARS_AVAILABLE = Object.keys(yearSet).sort();
         selectedYear = YEARS_AVAILABLE[YEARS_AVAILABLE.length - 1];
-        applyYearFilter();
-        const monthSet = {};
-        RAW_ALL.forEach(r => {monthSet[r._month] = true;});
-        MONTHS = Object.keys(monthSet).sort().map(k => {
-          const [y, m] = k.split('-');
-          return {key: k, label: 'Th' + m + '/' + y};
-        });
-        const stEl = shellEl('statusText');
-        if (stEl) stEl.textContent = 'Dữ liệu SPB+SPE: ' + fmtNum(RAW_ALL.length) + ' đơn';
+        VIEW_CUTOFF = null;
+        VIEW_LABEL = '';
+        rebuildView();
+        updateStatus();
         renderYearSwitcher();
+        renderPeriodPicker();
         render();
       }).catch(err => {
-        if (err === '__UNAUTHORIZED__') {showLoginOverlay(); return;}
-        document.getElementById('app').innerHTML = '<div class="loading">Không tải được dữ liệu.<br><small>' + err + '</small></div>';
+        if (err && err.message === '__UNAUTHORIZED__') {showLoginOverlay(); return;}
+        document.getElementById('app').innerHTML = '<div class="loading">Không tải được dữ liệu.<br><small>' + (err && err.message ? err.message : err) + '</small></div>';
         console.error(err);
       });
     }
@@ -903,9 +1006,13 @@
       el.querySelectorAll('.year-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           selectedYear = btn.dataset.year;
-          applyYearFilter();
+          VIEW_CUTOFF = null;
+          VIEW_LABEL = '';
+          rebuildView();
+          updateStatus();
           renderYearSwitcher();
-          if (currentSubtab !== 'thang') render();
+          renderPeriodPicker();
+          render();
         });
       });
     }
@@ -1016,16 +1123,25 @@
         return `<table class="subtable" style="table-layout:fixed;">${sub.colgroup}<tbody>${sub.tbody}</tbody></table>`;
       }
 
+      function subGroupTableHtml(groupRows) {
+        const sub = renderTrendTable(groupRows || [], opts.subGroupFn, {
+          periodType, nPeriods, topN: opts.subTopN || 8, topAndOthers: true, expandable: true, idPrefix: `${opts.idPrefix || 'g'}-sp`
+        });
+        return `<table class="subtable" style="table-layout:fixed;">${sub.colgroup}<tbody>${sub.tbody}</tbody></table>`;
+      }
+
       function rowHtml(label, byWeek, mtdEntry, groupRows) {
         let expandBtn = '';
         let expandRow = '';
         if (opts.expandable && groupRows && groupRows.length) {
           const rowId = `exp-${opts.idPrefix || 'g'}-${EXPAND_ID_SEQ++}`;
           expandBtn = `<button class="warn-toggle" type="button" data-target="${rowId}">+</button>`;
-          const renderer = opts.expandRenderer || subChannelTableHtml;
+          const renderer = opts.expandRenderer || (opts.subGroupFn ? subGroupTableHtml : subChannelTableHtml);
           expandRow = `<tr id="${rowId}" class="expand-row" style="display:none;"><td colspan="${colCount}">${renderer(groupRows)}</td></tr>`;
         }
-        let html = `<tr><td>${expandBtn}${label}</td>`;
+        const subLabel = (opts.subLabelFn && groupRows && groupRows.length) ? opts.subLabelFn(groupRows) : '';
+        const subHtml = subLabel ? `<div class="row-sublabel${expandBtn ? ' with-btn' : ''}">${subLabel}</div>` : '';
+        let html = `<tr><td>${expandBtn}${label}${subHtml}</td>`;
         lastWeeks.forEach((w, idx) => {
           const v = (byWeek[w.key] && byWeek[w.key].den_bu) || 0;
           const fullIdx = periodsAll.findIndex(p => p.key === w.key);
@@ -1105,7 +1221,6 @@
       REPORT.tongquan = {curWeek, totalDenBuTuan, topLoaiYC, topNganh, mtdEntry, momAllPct, accTable, locTable, nganhTable};
 
       document.getElementById('app').innerHTML = `
-    <div class="banner">Phạm vi dữ liệu: <b>Shopee Express (SPE, nhom_kh=18692)</b> và <b>Shopee Bulky (SPB, nhom_kh=3892833)</b> · Năm: <b>${selectedYear}</b> · Mốc thời gian: <code>ngay_duyet_eform</code> · Toàn bộ số liệu là số THẬT tính trực tiếp từ dữ liệu hiện có (không ước tính). <b>MTD/MoM:</b> so tổng lũy kế tháng hiện tại (có thể CHƯA đầy đủ nếu tháng chưa kết thúc) với TOÀN BỘ tháng trước — nếu tháng hiện tại mới có ít lô hàng, % giảm có thể bị phóng đại so với thực tế cả tháng, cần đọc lại khi tháng có thêm dữ liệu.</div>
     <section><h2>Nhận xét chung — ${curWeek.label}</h2><div class="underline"></div>${nhanxetHtml}</section>
     <div class="kpis">
       <div class="kpi accent"><div class="label">Tổng đền bù ${curWeek.label}</div><div class="value">${fmtMoney(totalDenBuTuan)}</div></div>
@@ -1129,6 +1244,20 @@
       ${tableWrap(nganhTable)}
     </section>
   `;
+    }
+
+    function sanPhamSubLabel(groupRows) {
+      const by = {};
+      groupRows.forEach(r => {
+        const k = r.san_pham || '';
+        if (!k) return;
+        by[k] = (by[k] || 0) + (+r.gia_tri_den_bu || 0);
+      });
+      const names = Object.entries(by).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+      if (!names.length) return '';
+      const esc = t => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const shown = names.slice(0, 3).map(esc).join(' · ');
+      return names.length > 3 ? `${shown} · +${names.length - 3}` : shown;
     }
 
     function classifyChannel(r) {
@@ -1185,7 +1314,6 @@
       REPORT[acc.toLowerCase()] = {totalDenBu, totalTruyThu, soDon, giaTriTB, tyLeThuHoi, top1, top2, locTable, bTable, cTable};
 
       document.getElementById('app').innerHTML = `
-    <div class="banner"><span class="badge-${acc.toLowerCase()}">${acc}</span> ${acc === 'SPB' ? 'Shopee Bulky' : 'Shopee Express'} · nhom_kh = ${acc === 'SPB' ? '3892833' : '18692'} · Năm: <b>${selectedYear}</b></div>
     <div class="kpis">
       <div class="kpi accent"><div class="label">Tổng đền bù (toàn kỳ)</div><div class="value">${fmtMoney(totalDenBu)}</div></div>
       <div class="kpi"><div class="label">Giá trị TB / đơn</div><div class="value">${fmtMoney(giaTriTB)}</div></div>
@@ -1214,8 +1342,8 @@
 
     function renderChuyenSau() {
       const lastWeeks = WEEKS.slice(-5);
-      function rootCauseLabel(r) {const sp = r.san_pham || ''; return sp ? translateSanPham(sp) : '(Không rõ)';}
-      const rootTable = renderTrendTable(RAW, rootCauseLabel, {nWeeks: 5, topN: 8, topAndOthers: true, expandable: true, idPrefix: 'root'});
+      function rootCauseLabel(r) {const vn = r.san_pham_vn || ''; if (vn) return vn; const sp = r.san_pham || ''; return sp ? translateSanPham(sp) : '(Không rõ)';}
+      const rootTable = renderTrendTable(RAW, rootCauseLabel, {nWeeks: 5, topN: 8, topAndOthers: true, expandable: true, idPrefix: 'root', subLabelFn: sanPhamSubLabel});
       const tuyenTable = renderTrendTable(RAW, r => r.tuyen || '(Không rõ)', {nWeeks: 5, topN: 8, topAndOthers: true, expandable: true, idPrefix: 'tuyen'});
 
       const ahamoveRows = RAW.filter(r => /intra|n[ộo]i th[àa]nh/i.test(r.tuyen || ''));
@@ -1256,10 +1384,9 @@
       REPORT.chuyensau = {rootTable, tuyenTable, outliers, suggestions};
 
       document.getElementById('app').innerHTML = `
-    <div class="banner">Gộp SPB+SPE · Năm: <b>${selectedYear}</b> · Mốc thời gian: <code>ngay_duyet_eform</code> Toàn bộ số liệu là số THẬT (không ước tính).</div>
     <section>
-      <h2>Root cause (theo san_pham / cat_level3)</h2><div class="underline"></div>
-      <p class="desc">Gộp SPB+SPE, top 8 + "Khác", trend 5 tuần + MTD/MoM · bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
+      <h2>Root cause (theo san_pham_vn → san_pham)</h2><div class="underline"></div>
+      <p class="desc">Gộp SPB+SPE, top 8 + "Khác", trend 5 tuần + MTD/MoM · dòng nghiêng bên dưới là san_pham gốc · bấm (+) xem tỉ lệ WH/MP và seller</p>
       ${tableWrap(rootTable)}
     </section>
     <section>
@@ -1278,10 +1405,6 @@
     <section>
       <h2>Đề xuất giải pháp</h2><div class="underline"></div>
       ${suggestHtml}
-    </section>
-    <section>
-      <h2>Ghi chú chất lượng dữ liệu</h2><div class="underline"></div>
-      <p class="desc">Số liệu tuần gần nhất (${curWeek.label}) có thể còn thấp hơn thực tế nếu <code>ngay_duyet_eform</code> chưa được nhập đầy đủ tại thời điểm xem báo cáo — đây là số thật hiện có tại thời điểm tải trang, không phải số đã chốt cuối kỳ.</p>
     </section>
   `;
     }
@@ -1307,8 +1430,8 @@
       const accTable = renderTrendTable(RAW_ALL, r => r._acc, {periodType: 'month', nPeriods: 6});
       const locTable = renderTrendTable(RAW_ALL, r => r.loai_yeu_cau || '(Không rõ)', {periodType: 'month', nPeriods: 6, topN: 6, topAndOthers: true});
       const nganhTable = renderTrendTable(RAW_ALL, r => r.san_pham_vn_group || '(Không rõ)', {periodType: 'month', nPeriods: 6, topN: 5, topAndOthers: true, expandable: true, idPrefix: 'thang-nganh'});
-      function rootCauseLabelThang(r) {const sp = r.san_pham || ''; return sp ? translateSanPham(sp) : '(Không rõ)';}
-      const rootTable = renderTrendTable(RAW_ALL, rootCauseLabelThang, {periodType: 'month', nPeriods: 6, topN: 8, topAndOthers: true, expandable: true, idPrefix: 'thang-root'});
+      function rootCauseLabelThang(r) {const vn = r.san_pham_vn || ''; if (vn) return vn; const sp = r.san_pham || ''; return sp ? translateSanPham(sp) : '(Không rõ)';}
+      const rootTable = renderTrendTable(RAW_ALL, rootCauseLabelThang, {periodType: 'month', nPeriods: 6, topN: 8, topAndOthers: true, expandable: true, idPrefix: 'thang-root', subLabelFn: sanPhamSubLabel});
 
       const accShare = {};
       rowsCurMonth.forEach(r => {accShare[r._acc] = (accShare[r._acc] || 0) + (+r.gia_tri_den_bu || 0);});
@@ -1329,7 +1452,6 @@
       REPORT.thang = {curMonth, totalDenBuThang, topLoaiYC, topNganh, mtdEntry, momAllPct, accTable, locTable, nganhTable, rootTable};
 
       document.getElementById('app').innerHTML = `
-    <div class="banner">Phạm vi dữ liệu: <b>Shopee Express (SPE)</b> và <b>Shopee Bulky (SPB)</b> · Trend theo tháng (6 tháng gần nhất), mốc thời gian: <code>ngay_duyet_eform</code>. <b>MTD/MoM:</b> so tổng lũy kế tháng hiện tại (có thể CHƯA đầy đủ nếu tháng chưa kết thúc) với TOÀN BỘ tháng trước — nếu tháng hiện tại mới có ít lô hàng, % giảm có thể bị phóng đại so với thực tế cả tháng.</div>
     <section><h2>Nhận xét chung — ${curMonth.label}</h2><div class="underline"></div>${nhanxetHtml}</section>
     <div class="kpis">
       <div class="kpi accent"><div class="label">Tổng đền bù ${curMonth.label}</div><div class="value">${fmtMoney(totalDenBuThang)}</div></div>
@@ -1351,8 +1473,8 @@
       ${tableWrap(nganhTable)}
     </section>
     <section>
-      <h2>Root cause theo tháng</h2><div class="underline"></div>
-      <p class="desc">Bấm (+) xem tỉ lệ WH/MP của từng dòng</p>
+      <h2>Root cause theo tháng (san_pham_vn → san_pham)</h2><div class="underline"></div>
+      <p class="desc">Dòng nghiêng bên dưới là san_pham gốc · bấm (+) xem tỉ lệ WH/MP và seller</p>
       ${tableWrap(rootTable)}
     </section>
   `;
@@ -1457,7 +1579,7 @@
 
       if (REPORT.chuyensau) {
         md += `## Chuyên sâu & Đề xuất\n\n`;
-        md += trendTableToMd('Root cause (san_pham)', REPORT.chuyensau.rootTable);
+        md += trendTableToMd('Root cause (san_pham_vn)', REPORT.chuyensau.rootTable);
         md += trendTableToMd('Theo Tuyến', REPORT.chuyensau.tuyenTable);
         md += `### Đơn giá trị bất thường (${REPORT.tongquan.curWeek.label})\n\n`;
         if (REPORT.chuyensau.outliers.length) {

@@ -1,24 +1,95 @@
-const SHEETS = [
-  { year: 2025, spreadsheetId: process.env.DATA_SRC_A, gid: 0 },
-  { year: 2026, spreadsheetId: process.env.DATA_SRC_B, gid: 0 },
-].filter(s => s.spreadsheetId);
-
-const SAN_PHAM_MAP_SPREADSHEET_ID = process.env.DATA_SRC_A;
-const SAN_PHAM_MAP_RANGE = "san_pham";
-
 import { verifySession } from "../lib/session.js";
+import {
+  isConfigured,
+  hasVersionCard,
+  fetchVersion,
+  fetchMainCsv,
+  streamTransformed,
+  readHeaderOnly,
+  mapHeader,
+  CORE_COLUMNS,
+  createCsvRecordParser,
+} from "../lib/bi.js";
+import { legacyConfigured, loadLegacy } from "../lib/legacy.js";
 
-function normKey(v) {
-  if (v === null || v === undefined) return "";
-  return String(v).replace(/\s+/g, " ").trim();
+async function compareNganh() {
+  const legacy = await loadLegacy();
+  const upstream = await fetchMainCsv();
+  const reader = upstream.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let idx = null;
+  const pair = {};
+  const byNewGroup = {};
+  const byOldGroup = {};
+  const spDiff = {};
+  let total = 0;
+  let khongCoTrongNguonCu = 0;
+  let khongCoTrongNguonCuTien = 0;
+  const parser = createCsvRecordParser(rec => {
+    if (!idx) {
+      const m = rec.map(mapHeader);
+      idx = { ma: m.indexOf("ma_dh"), v: m.indexOf("gia_tri_den_bu"), sp: m.indexOf("san_pham"), g: m.indexOf("san_pham_vn_group") };
+      return;
+    }
+    total++;
+    const ma = String(rec[idx.ma] || "").trim();
+    const v = Number(rec[idx.v]) || 0;
+    const spMoi = String(rec[idx.sp] || "").trim();
+    const nhomMoi = String(rec[idx.g] || "").trim() || "(Không rõ)";
+    const old = legacy.byOrder.get(ma);
+    if (!old) {
+      khongCoTrongNguonCu++;
+      khongCoTrongNguonCuTien += v;
+      return;
+    }
+    const nhomCu = old.nhom_cu || "(Không rõ)";
+    byNewGroup[nhomMoi] = (byNewGroup[nhomMoi] || 0) + v;
+    byOldGroup[nhomCu] = (byOldGroup[nhomCu] || 0) + v;
+    if (nhomCu === nhomMoi) return;
+    const pk = nhomCu + " → " + nhomMoi;
+    if (!pair[pk]) pair[pk] = { nhom_cu: nhomCu, nhom_moi: nhomMoi, so_dong: 0, gia_tri_den_bu: 0 };
+    pair[pk].so_dong++;
+    pair[pk].gia_tri_den_bu += v;
+    const sk = old.san_pham_cu + " | " + spMoi;
+    if (!spDiff[sk]) spDiff[sk] = { san_pham_cu: old.san_pham_cu, san_pham_moi: spMoi, nhom_cu: nhomCu, nhom_moi: nhomMoi, nhom_cu_neu_dung_san_pham_moi: legacy.lookup(spMoi) || "(không có trong mapping cũ)", so_dong: 0, gia_tri_den_bu: 0 };
+    spDiff[sk].so_dong++;
+    spDiff[sk].gia_tri_den_bu += v;
+  });
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    parser.push(decoder.decode(value, { stream: true }));
+  }
+  parser.push(decoder.decode());
+  parser.end();
+  const groups = [...new Set([...Object.keys(byNewGroup), ...Object.keys(byOldGroup)])].map(g => ({
+    nhom: g,
+    tong_moi: Math.round(byNewGroup[g] || 0),
+    tong_cu: Math.round(byOldGroup[g] || 0),
+    chenh_lech: Math.round((byNewGroup[g] || 0) - (byOldGroup[g] || 0)),
+  })).sort((a, b) => Math.abs(b.chenh_lech) - Math.abs(a.chenh_lech));
+  const pairs = Object.values(pair).sort((a, b) => b.gia_tri_den_bu - a.gia_tri_den_bu);
+  const sps = Object.values(spDiff).sort((a, b) => b.gia_tri_den_bu - a.gia_tri_den_bu);
+  return {
+    tong_dong_nguon_moi: total,
+    dong_khong_co_o_nguon_cu: khongCoTrongNguonCu,
+    tien_khong_co_o_nguon_cu: Math.round(khongCoTrongNguonCuTien),
+    so_cap_nhom_bi_doi: pairs.length,
+    theo_nhom: groups,
+    cap_nhom_cu_sang_moi: pairs.slice(0, 100),
+    chi_tiet_san_pham_lech: sps.slice(0, 300),
+    mapping_cu: legacy.mapping,
+  };
 }
 
-function findColIndex(headerRow, targetName) {
-  const normTarget = normKey(targetName).toLowerCase();
-  return headerRow.findIndex(h => normKey(h).toLowerCase() === normTarget);
+function fmtNow() {
+  const d = new Date(Date.now() + 7 * 3600 * 1000);
+  return d.toISOString().slice(0, 19).replace("T", " ");
 }
 
 export default async function handler(req, res) {
+  res.setHeader("Cache-Control", "private, no-store");
+
   const SESSION_SECRET = process.env.SESSION_SECRET;
   const session = SESSION_SECRET ? verifySession(req.headers.cookie, SESSION_SECRET) : null;
   if (!session) {
@@ -26,171 +97,65 @@ export default async function handler(req, res) {
     return;
   }
 
-  const API_KEY = process.env.DATA_KEY_1;
-  if (!API_KEY || !SHEETS.length) {
-    console.error("data.js: thiếu cấu hình Environment Variables (DATA_KEY_1 / DATA_SRC_A / DATA_SRC_B)");
+  if (!isConfigured()) {
+    console.error("data.js: thiếu cấu hình Environment Variables (BI_BASE / BI_CARD_MAIN / BI_KEY hoặc BI_AUTH_URL + BI_AUTH_KEY)");
     res.status(500).json({ error: "Lỗi cấu hình máy chủ" });
     return;
   }
-  const requestedYear = parseInt(req.query.year, 10);
-  const matchedSheets = SHEETS.filter(s => s.year === requestedYear);
-  const activeSheets = matchedSheets.length ? matchedSheets : [SHEETS[SHEETS.length - 1]];
-  const debugMode = req.query.debug === "sanpham";
-
-  function csvEscape(val) {
-    const s = val === null || val === undefined ? "" : String(val);
-    if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-    return s;
-  }
-
-  async function getSheetTitleByGid(spreadsheetId, gid) {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}?fields=sheets.properties&key=${API_KEY}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    const sheet = (data.sheets || []).find(s => s.properties.sheetId === gid);
-    if (!sheet) throw new Error(`gid không tồn tại`);
-    return sheet.properties.title;
-  }
-
-  async function getValues(spreadsheetId, gid) {
-    const title = await getSheetTitleByGid(spreadsheetId, gid);
-    const range = encodeURIComponent(`'${title}'`);
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${range}?key=${API_KEY}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    return data.values || [];
-  }
-
-  async function getValuesByRangeName(spreadsheetId, rangeName) {
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheetId}/values/${encodeURIComponent(rangeName)}?key=${API_KEY}`;
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    return data.values || [];
-  }
-
-  async function getModifiedTime(spreadsheetId) {
-    try {
-      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${spreadsheetId}?fields=modifiedTime&key=${API_KEY}`);
-      if (!r.ok) return null;
-      const data = await r.json();
-      return data.modifiedTime || null;
-    } catch (e) {
-      return null;
-    }
-  }
 
   try {
-    const [valuesResults, modifiedTimes, sanPhamRows] = await Promise.all([
-      Promise.all(activeSheets.map(s => getValues(s.spreadsheetId, s.gid))),
-      Promise.all(activeSheets.map(s => getModifiedTime(s.spreadsheetId))),
-      SAN_PHAM_MAP_SPREADSHEET_ID
-        ? getValuesByRangeName(SAN_PHAM_MAP_SPREADSHEET_ID, SAN_PHAM_MAP_RANGE)
-        : Promise.resolve([]),
-    ]);
-
-    let header = null;
-    let allRows = [];
-    valuesResults.forEach(rows => {
-      if (!rows.length) return;
-      if (!header) header = rows[0];
-      allRows = allRows.concat(rows.slice(1));
-    });
-    if (!header) header = [];
-
-    const sanPhamMap = {};
-    const sanPhamMapLower = {};
-    if (sanPhamRows.length > 1) {
-      const spHeader = sanPhamRows[0];
-      const spIdx = findColIndex(spHeader, "san_pham");
-      const spGroupIdx = findColIndex(spHeader, "san_pham_vn_group");
-      if (spIdx !== -1 && spGroupIdx !== -1) {
-        sanPhamRows.slice(1).forEach(row => {
-          const key = normKey(row[spIdx]);
-          const val = row[spGroupIdx] ? normKey(row[spGroupIdx]) : "";
-          if (key) {
-            sanPhamMap[key] = val;
-            sanPhamMapLower[key.toLowerCase()] = val;
-          }
-        });
+    if (req.query.meta === "1") {
+      let version = null;
+      if (hasVersionCard()) {
+        try {
+          version = await fetchVersion();
+        } catch (e) {
+          console.error("data.js version:", e.message);
+        }
       }
+      res.status(200).json({ ok: true, version, checkedAt: fmtNow() });
+      return;
     }
 
-    function lookupGroup(rawCode) {
-      const key = normKey(rawCode);
-      if (!key) return "";
-      if (sanPhamMap.hasOwnProperty(key)) return sanPhamMap[key];
-      const lowerHit = sanPhamMapLower[key.toLowerCase()];
-      if (lowerHit !== undefined) return lowerHit;
-      return "";
+    if (req.query.debug === "nganh") {
+      if (!legacyConfigured()) {
+        res.status(400).json({ error: "Thiếu cấu hình nguồn cũ để so sánh" });
+        return;
+      }
+      const t0 = Date.now();
+      const out = await compareNganh();
+      res.status(200).json({ thoi_gian_ms: Date.now() - t0, ...out });
+      return;
     }
 
-    const sanPhamColIdx = findColIndex(header, "san_pham");
-
-    function padRow(row, len) {
-      if (row.length >= len) return row;
-      const padded = row.slice();
-      while (padded.length < len) padded.push("");
-      return padded;
-    }
-
-    if (debugMode) {
-      const unmatchedCounts = {};
-      allRows.forEach(rawRow => {
-        const row = padRow(rawRow, header.length);
-        const rawCode = sanPhamColIdx !== -1 ? row[sanPhamColIdx] : undefined;
-        const key = normKey(rawCode);
-        if (!key) return;
-        const group = lookupGroup(rawCode);
-        if (!group) unmatchedCounts[key] = (unmatchedCounts[key] || 0) + 1;
-      });
-      const unmatchedList = Object.entries(unmatchedCounts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([code, count]) => ({ san_pham_raw: code, so_don: count }));
+    if (req.query.debug === "1") {
+      const t0 = Date.now();
+      const upstream = await fetchMainCsv();
+      const header = await readHeaderOnly(upstream);
+      const mapped = header.map(mapHeader);
       res.status(200).json({
-        nam_dang_xem: requestedYear,
-        chan_doan_cot_header: {
-          header_goc_cua_sheet: header,
-          da_tim_thay_cot_san_pham: sanPhamColIdx !== -1,
-          vi_tri_cot_san_pham: sanPhamColIdx,
-          da_tim_thay_cot_san_pham_trong_bang_mapping: findColIndex(sanPhamRows[0] || [], "san_pham") !== -1,
-          da_tim_thay_cot_san_pham_vn_group_trong_bang_mapping: findColIndex(sanPhamRows[0] || [], "san_pham_vn_group") !== -1,
-          header_goc_cua_bang_mapping: sanPhamRows[0] || [],
-        },
-        chan_doan_do_dai_dong: {
-          so_dong_bi_thieu_cot_cuoi: allRows.filter(r => r.length < header.length).length,
-        },
-        tong_so_dong: allRows.length,
-        so_dong_thieu_san_pham: allRows.filter(row => !normKey(sanPhamColIdx !== -1 ? padRow(row, header.length)[sanPhamColIdx] : "")).length,
-        so_ma_san_pham_khong_khop: unmatchedList.length,
-        so_dong_bi_anh_huong: unmatchedList.reduce((s, x) => s + x.so_don, 0),
-        so_ma_trong_bang_mapping: Object.keys(sanPhamMap).length,
-        chi_tiet_khong_khop: unmatchedList.slice(0, 100),
+        thoi_gian_cho_nguon_ms: Date.now() - t0,
+        cot_goc: header,
+        cot_sau_doi_ten: mapped,
+        thieu_cot_bat_buoc: CORE_COLUMNS.filter(c => !mapped.includes(c)),
       });
       return;
     }
 
-    const headerWithGroup = [...header, "san_pham_vn_group"];
-    const allRowsWithGroup = allRows.map(row => {
-      const paddedRow = padRow(row, header.length);
-      const rawCode = sanPhamColIdx !== -1 ? paddedRow[sanPhamColIdx] : undefined;
-      const group = lookupGroup(rawCode);
-      return [...paddedRow, group];
-    });
-
-    const csvText = [headerWithGroup, ...allRowsWithGroup].map(row => row.map(csvEscape).join(",")).join("\n");
-    const latestModified = modifiedTimes
-      .filter(Boolean)
-      .sort((a, b) => new Date(b) - new Date(a))[0] || "";
+    const mode = req.query.cols === "all" ? "all" : "core";
+    const upstream = await fetchMainCsv();
+    res.statusCode = 200;
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=600");
-    res.setHeader("Access-Control-Expose-Headers", "X-Data-Last-Modified");
-    res.setHeader("X-Data-Last-Modified", latestModified);
-    res.status(200).send(csvText);
+    res.setHeader("Content-Encoding", "gzip");
+    res.setHeader("Access-Control-Expose-Headers", "X-Data-Fetched-At");
+    res.setHeader("X-Data-Fetched-At", fmtNow());
+    await streamTransformed(upstream, res, mode);
   } catch (err) {
     console.error("data.js error:", err.message);
-    res.status(500).json({ error: "Lỗi khi lấy dữ liệu" });
+    if (!res.headersSent) {
+      res.status(502).json({ error: "Lỗi khi lấy dữ liệu" });
+    } else {
+      res.end();
+    }
   }
 }
