@@ -88,8 +88,80 @@ document.getElementById('tabbar').addEventListener('click', e=>{
   activateTab(btn.dataset.tab);
 });
 
+const ADMIN_KEY = 'tonghop';
 const initialTab = new URL(window.location.href).searchParams.get('tab') || 'truythu';
-activateTab(initialTab === 'truythu' || initialTab === 'report' ? initialTab : 'truythu');
+let pendingAdminTab = initialTab === ADMIN_KEY;
+let adminState = 'unknown';
+let adminFastUntil = Date.now() + 10 * 60 * 1000;
+
+function addAdminTab(page){
+  if(TABS.some(t=>t.key===ADMIN_KEY)) return;
+  TABS.push({key:ADMIN_KEY, src:page});
+  const btn = document.createElement('button');
+  btn.className = 'tab-btn';
+  btn.dataset.tab = ADMIN_KEY;
+  btn.dataset.src = page;
+  btn.innerHTML = '<span class="icon">🧮</span> Tổng hợp';
+  document.getElementById('tabbar').appendChild(btn);
+  if(pendingAdminTab){
+    pendingAdminTab = false;
+    activateTab(ADMIN_KEY);
+  }
+}
+
+function removeAdminTab(){
+  const i = TABS.findIndex(t=>t.key===ADMIN_KEY);
+  if(i === -1) return;
+  const wasActive = !!(frames[ADMIN_KEY] && frames[ADMIN_KEY].classList.contains('active'));
+  TABS.splice(i, 1);
+  if(frames[ADMIN_KEY]){
+    frames[ADMIN_KEY].remove();
+    delete frames[ADMIN_KEY];
+  }
+  const btn = document.querySelector('.tab-btn[data-tab="' + ADMIN_KEY + '"]');
+  if(btn) btn.remove();
+  if(wasActive) activateTab(TABS[0].key);
+}
+
+async function syncAdminTab(){
+  try{
+    const r = await fetch('/api/admin-gate', {credentials:'include', cache:'no-store'});
+    if(r.status === 401){
+      adminState = 'anon';
+      removeAdminTab();
+      return;
+    }
+    if(!r.ok){
+      adminState = 'other';
+      removeAdminTab();
+      return;
+    }
+    const g = await r.json();
+    if(g && g.allowed && g.page){
+      adminState = 'allowed';
+      addAdminTab(g.page);
+    } else {
+      adminState = 'denied';
+      removeAdminTab();
+    }
+  }catch(e){}
+}
+
+function scheduleAdminSync(){
+  let delay = 600000;
+  if(adminState === 'allowed') delay = 120000;
+  else if(adminState === 'anon' || adminState === 'unknown') delay = Date.now() < adminFastUntil ? 8000 : 60000;
+  setTimeout(async () => {
+    if(!document.hidden) await syncAdminTab();
+    scheduleAdminSync();
+  }, delay);
+}
+
+document.addEventListener('visibilitychange', () => { if(!document.hidden) syncAdminTab(); });
+
+activateTab(initialTab === 'report' ? 'report' : 'truythu');
+syncAdminTab();
+scheduleAdminSync();
 </script>
 </body>
 </html>
