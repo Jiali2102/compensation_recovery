@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[KA - CRC] TỔNG HỢP ĐỀN BÙ</title>
+<style>
+  :root{
+    --orange:#FE5F00; --orange-dark:#E04F00; --navy:#0E4174; --navy-deep:#0A2F54;
+    --bg:#F6F7FA; --card:#FFFFFF; --ink:#383838; --muted:#6B6B6B; --border:#E4E8F0;
+    --up:#F44336; --down:#1E88E5;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Cambria","Times New Roman",Georgia,serif;background:var(--bg);color:var(--ink);line-height:1.55;}
+  .toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--border);padding:10px clamp(16px,3vw,40px);display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:space-between;}
+  .toolbar h1{margin:0;font-size:17px;font-weight:800;color:var(--navy);}
+  .toolbar .meta{font-size:12.5px;color:var(--muted);}
+  .toolbar .actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .btn{font-family:inherit;font-size:13px;font-weight:700;border-radius:6px;padding:7px 14px;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--navy);}
+  .btn:hover{background:#F0F3F8;}
+  .btn.primary{background:var(--orange);border-color:var(--orange);color:#fff;}
+  .btn.primary:hover{background:var(--orange-dark);}
+  .btn:disabled{opacity:.55;cursor:default;}
+  main{max-width:1440px;margin:0 auto;padding:20px clamp(16px,3vw,40px) 60px;}
+
+  .gate{max-width:420px;margin:70px auto;background:#fff;border:1px solid var(--border);border-radius:12px;padding:30px;box-shadow:0 6px 24px rgba(0,0,0,.08);text-align:center;}
+  .gate .bar{width:56px;height:4px;background:var(--orange);margin:0 auto 16px;border-radius:2px;}
+  .gate h2{margin:0 0 6px;font-size:18px;color:var(--navy);}
+  .gate p{margin:0 0 16px;font-size:14px;color:var(--muted);}
+  .gate input{width:100%;font-family:inherit;font-size:15px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;}
+  .gate .err{color:#C62828;background:#FDECEA;border-radius:6px;padding:8px;font-size:13px;margin-bottom:10px;display:none;}
+  .loading{text-align:center;padding:70px 20px;color:var(--muted);font-size:15px;}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:20px;}
+  .kpi{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--navy);border-radius:8px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+  .kpi.accent{border-left-color:var(--orange);}
+  .kpi .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+  .kpi .value{font-size:24px;font-weight:800;color:var(--navy);margin-top:2px;}
+  .kpi.accent .value{color:var(--orange);}
+  .kpi .sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+
+  section{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px 20px;margin-bottom:18px;box-shadow:0 2px 8px rgba(0,0,0,.04);}
+  section h2{font-size:16px;font-weight:800;margin:0;color:var(--orange);text-transform:uppercase;letter-spacing:.4px;}
+  section .underline{width:56px;height:3px;background:var(--orange);margin:6px 0 12px;border-radius:2px;}
+  section .desc{font-size:13px;color:var(--muted);margin:0 0 10px;}
+  h3{font-size:14.5px;color:var(--navy);margin:16px 0 8px;}
+
+  .flag{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border);}
+  .flag:last-child{border-bottom:none;}
+  .tag{flex:0 0 auto;font-size:11px;font-weight:800;padding:3px 9px;border-radius:10px;margin-top:2px;white-space:nowrap;min-width:78px;text-align:center;}
+  .tag.cao{background:#FDECEA;color:#C62828;}
+  .tag.tb{background:#FFF8E1;color:#B98900;}
+  .tag.luu{background:#EEF1F6;color:#55627A;}
+  .tag.tot{background:#E3F0FC;color:#1565C0;}
+  .tag.thap{background:#EEF1F6;color:#55627A;}
+  .flag .t{font-size:14px;font-weight:700;}
+  .flag .d{font-size:12.5px;color:var(--muted);}
+  .flag .a{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:18px;}
+  .table-wrap{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{padding:7px 9px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;}
+  th:first-child,td:first-child{text-align:left;white-space:normal;}
+  th{color:var(--muted);font-weight:700;font-size:11.5px;text-transform:uppercase;background:#FAFBFD;}
+  .mom-up{color:var(--up);font-weight:700;}
+  .mom-down{color:var(--down);font-weight:700;}
+  .mom-flat{color:var(--muted);}
+  .new-tag{background:#FDECEA;color:#C62828;font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;}
+  .pill{display:inline-block;padding:2px 10px;border-radius:20px;font-weight:700;font-size:13px;}
+  .pill.red{background:#FDECEA;color:#C62828;}
+  .pill.yellow{background:#FFF8E1;color:#B98900;}
+  .pill.green{background:#E8F5E9;color:#2E7D32;}
+  .pill.purple{background:#F1E7F7;color:#6C3483;}
+  .sharebar{display:inline-block;height:7px;background:var(--orange);border-radius:4px;vertical-align:middle;margin-right:6px;opacity:.75;}
+
+  .trend{display:flex;align-items:flex-end;gap:10px;height:190px;padding:10px 4px 0;}
+  .trend .col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;min-width:0;}
+  .trend .bar{width:100%;max-width:64px;background:var(--navy);border-radius:4px 4px 0 0;min-height:2px;}
+  .trend .bar.partial{background:repeating-linear-gradient(45deg,var(--orange),var(--orange) 6px,#FF9E64 6px,#FF9E64 12px);}
+  .trend .v{font-size:11.5px;font-weight:700;margin-bottom:3px;white-space:nowrap;}
+  .trend .l{font-size:11.5px;color:var(--muted);margin-top:5px;white-space:nowrap;}
+  .trend-note{font-size:12px;color:var(--muted);margin:2px 0 6px;}
+
+  .sug{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;}
+  .sug:last-child{border-bottom:none;}
+  .thr{font-size:12.5px;color:var(--muted);columns:2;column-gap:30px;}
+  .thr li{margin-bottom:4px;break-inside:avoid;}
+  .foot{font-size:12px;color:var(--muted);margin-top:10px;}
+
+  @media print{
+    .toolbar{display:none;}
+    body{background:#fff;}
+    section{box-shadow:none;break-inside:avoid;}
+    main{padding:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar" id="toolbar" style="display:none;">
+  <div>
+    <h1>[KA - CRC] TỔNG HỢP ĐỀN BÙ — TUẦN &amp; THÁNG</h1>
+    <div class="meta" id="metaText"></div>
+  </div>
+  <div class="actions">
+    <button class="btn" id="btnRefresh" type="button">↻ Làm mới</button>
+    <button class="btn" id="btnMd" type="button">⬇ Xuất .md</button>
+    <button class="btn" id="btnPrint" type="button">In / Lưu PDF</button>
+    <button class="btn" id="btnLock" type="button">Khoá lại</button>
+  </div>
+</div>
+
+<main id="app"><div class="loading">Đang kiểm tra quyền truy cập...</div></main>
+
+<script>
+let REPORT = null;
+
+function esc(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+const fmtNum = n => Math.round(n || 0).toLocaleString('vi-VN');
+function fmtMoney(n) {
+  n = n || 0;
+  const a = Math.abs(n);
+  const f = (v, u) => v.toLocaleString('vi-VN', {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' ' + u;
+  if (a >= 1e9) return f(n / 1e9, 'tỷ');
+  if (a >= 1e6) return f(n / 1e6, 'triệu');
+  if (a >= 1e3) return f(n / 1e3, 'nghìn');
+  return fmtNum(n) + 'đ';
+}
+function fmtCompact(n) {
+  n = n || 0;
+  const a = Math.abs(n);
+  if (a >= 1e9) return (n / 1e9).toFixed(2).replace('.', ',') + ' tỷ';
+  if (a >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',') + ' tr';
+  if (a >= 1e3) return (n / 1e3).toFixed(0) + ' k';
+  return String(Math.round(n));
+}
+function momHtml(p) {
+  if (p === null || p === undefined || !isFinite(p)) return '<span class="mom-flat">—</span>';
+  if (p > 0.005) return '<span class="mom-up">▲ ' + p.toFixed(2) + '%</span>';
+  if (p < -0.005) return '<span class="mom-down">▼ ' + Math.abs(p).toFixed(2) + '%</span>';
+  return '<span class="mom-flat">0.00%</span>';
+}
+function deltaCell(it) {
+  if (it.prev === 0 && it.cur > 0) return '<span class="new-tag">Mới</span>';
+  return momHtml(it.pct);
+}
+function ratePill(r, th) {
+  const cls = r < th.rate[0] ? 'red' : r < th.rate[1] ? 'yellow' : r < 50 ? 'green' : 'purple';
+  return '<span class="pill ' + cls + '">' + r.toFixed(2) + '%</span>';
+}
+
+function showMessage(title, text, withReload) {
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('app').innerHTML =
+    '<div class="gate"><div class="bar"></div><h2>' + esc(title) + '</h2><p>' + esc(text) + '</p>' +
+    (withReload ? '<button class="btn primary" type="button" onclick="location.reload()">Tải lại trang</button>' : '') + '</div>';
+}
+
+function showForm(errText) {
+  document.getElementById('toolbar').style.display = 'none';
+  document.getElementById('app').innerHTML =
+    '<div class="gate"><div class="bar"></div><h2>Trang giới hạn quyền xem</h2>' +
+    '<p>Nhập mật khẩu để mở báo cáo tổng hợp.</p>' +
+    '<div class="err" id="gateErr"></div>' +
+    '<input type="password" id="gatePass" placeholder="Mật khẩu" autocomplete="current-password">' +
+    '<button class="btn primary" id="gateBtn" type="button" style="width:100%;">Mở khoá</button></div>';
+  const err = document.getElementById('gateErr');
+  if (errText) { err.textContent = errText; err.style.display = 'block'; }
+  const input = document.getElementById('gatePass');
+  const btn = document.getElementById('gateBtn');
+  input.focus();
+  const submit = async () => {
+    btn.disabled = true;
+    btn.textContent = 'Đang kiểm tra...';
+    try {
+      const r = await fetch('/api/admin-gate', {
+        method: 'POST', credentials: 'include', cache: 'no-store',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({password: input.value})
+      });
+      if (r.ok) { loadReport(false); return; }
+      if (r.status === 401) { showMessage('Phiên đăng nhập đã hết hạn', 'Vui lòng tải lại trang và đăng nhập lại.', true); return; }
+      showForm(r.status === 403 ? 'Mật khẩu không đúng.' : 'Không thể xác thực lúc này, vui lòng thử lại.');
+    } catch (e) {
+      showForm('Không thể kết nối máy chủ, vui lòng thử lại.');
+    }
+  };
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+}
+
+async function init() {
+  try {
+    const r = await fetch('/api/admin-gate', {credentials: 'include', cache: 'no-store'});
+    if (r.status === 401) return showMessage('Phiên đăng nhập đã hết hạn', 'Vui lòng tải lại trang và đăng nhập lại.', true);
+    if (!r.ok) return showMessage('Không truy cập được', 'Máy chủ chưa sẵn sàng, vui lòng thử lại sau.', true);
+    const g = await r.json();
+    if (!g.allowed) return showMessage('Chưa được cấp quyền', 'Tài khoản của bạn chưa nằm trong danh sách được xem trang này. Vui lòng liên hệ quản trị để được cấp quyền.', false);
+    if (!g.unlocked) return showForm('');
+    loadReport(false);
+  } catch (e) {
+    showMessage('Không truy cập được', 'Không kết nối được máy chủ, vui lòng thử lại.', true);
+  }
+}
+
+async function loadReport(refresh) {
+  document.getElementById('app').innerHTML = '<div class="loading">Đang tổng hợp dữ liệu (có thể mất vài giây)...</div>';
+  document.getElementById('toolbar').style.display = 'none';
+  try {
+    const r = await fetch('/api/admin-report' + (refresh ? '?refresh=1' : ''), {credentials: 'include', cache: 'no-store'});
+    if (r.status === 401) return showMessage('Phiên đăng nhập đã hết hạn', 'Vui lòng tải lại trang và đăng nhập lại.', true);
+    if (r.status === 403) return showForm('');
+    if (!r.ok) return showMessage('Không tổng hợp được dữ liệu', 'Nguồn dữ liệu đang bận hoặc chưa sẵn sàng. Bấm tải lại để thử lại.', true);
+    REPORT = await r.json();
+    render(REPORT);
+  } catch (e) {
+    showMessage('Không tổng hợp được dữ liệu', 'Không kết nối được máy chủ, vui lòng thử lại.', true);
+  }
+}
+
+function dimTable(title, items, cols) {
+  if (!items || !items.length) return '';
+  const head = '<tr><th>' + esc(title) + '</th><th>' + esc(cols[0]) + '</th><th>' + esc(cols[1]) + '</th><th>Biến động</th><th>Tỷ trọng</th></tr>';
+  const body = items.map(it =>
+    '<tr><td>' + esc(it.name) + '</td><td>' + fmtMoney(it.cur) + '</td><td>' + fmtMoney(it.prev) + '</td><td>' + deltaCell(it) +
+    '</td><td><span class="sharebar" style="width:' + Math.max(2, Math.min(60, it.share * 0.6)) + 'px"></span>' + it.share.toFixed(1) + '%</td></tr>'
+  ).join('');
+  return '<div class="table-wrap"><table><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
+}
+
+function trendBars(list) {
+  const max = Math.max.apply(null, list.map(x => x.den).concat([1]));
+  const hasPartial = list.some(x => x.partial);
+  return '<div class="trend">' + list.map(x =>
+    '<div class="col"><div class="v">' + esc(fmtCompact(x.den)) + '</div><div class="bar' + (x.partial ? ' partial' : '') +
+    '" style="height:' + Math.max(2, Math.round(x.den / max * 130)) + 'px"></div><div class="l">' + esc(x.label.replace('-20', '-')) + '</div></div>'
+  ).join('') + '</div>' + (hasPartial ? '<div class="trend-note">Cột sọc cam: kỳ hiện tại chưa đủ dữ liệu.</div>' : '');
+}
+
+function levelName(l) {
+  return {cao: 'Cao', tb: 'Trung bình', luu: 'Lưu ý', tot: 'Tích cực', thap: 'Thấp'}[l] || l;
+}
+
+function render(d) {
+  document.getElementById('toolbar').style.display = 'flex';
+  if (d.empty) {
+    document.getElementById('app').innerHTML = '<div class="loading">Nguồn dữ liệu chưa có dòng nào để tổng hợp.</div>';
+    return;
+  }
+  const w = d.week, m = d.month, t = d.truyThu, th = d.thresholds;
+  document.getElementById('metaText').textContent =
+    'Dữ liệu đến ' + d.dataThrough + ' · tổng hợp lúc ' + d.generatedAt + (d.fromCache ? ' (bộ nhớ đệm)' : '') + ' · ' + fmtNum(d.rows.total) + ' dòng';
+
+  const countBy = lv => d.flags.filter(f => f.level === lv).length;
+  const flagsHtml = d.flags.length
+    ? d.flags.map(f =>
+        '<div class="flag"><span class="tag ' + esc(f.level) + '">' + levelName(f.level) + '</span><div><div class="a">' + esc(f.area) +
+        '</div><div class="t">' + esc(f.title) + '</div><div class="d">' + esc(f.detail) + '</div></div></div>').join('')
+    : '<div class="desc">Không có chỉ số nào vượt ngưỡng cảnh báo.</div>';
+
+  const kpis =
+    '<div class="kpis">' +
+    '<div class="kpi accent"><div class="label">Đền bù ' + esc(w.label) + (w.partial ? ' (đến ' + esc(w.cutoff) + ')' : '') + '</div><div class="value">' + fmtMoney(w.total.cur) +
+      '</div><div class="sub">' + momHtml(w.total.pct) + ' so với tuần trước' + (w.partial ? ' (cùng ' + w.daysCovered + ' ngày)' : '') + '</div></div>' +
+    '<div class="kpi"><div class="label">Số đơn ' + esc(w.label) + '</div><div class="value">' + fmtNum(w.total.n) +
+      '</div><div class="sub">Trung bình 4 tuần trước: ' + fmtMoney(w.total.avg4) + ' ' + momHtml(w.total.pctAvg4) + '</div></div>' +
+    '<div class="kpi accent"><div class="label">Lũy kế ' + esc(m.label) + '</div><div class="value">' + fmtMoney(m.total.cur) +
+      '</div><div class="sub">' + momHtml(m.total.pct) + ' so với cùng kỳ ' + esc(m.prevLabel) + '</div></div>' +
+    '<div class="kpi"><div class="label">Dự phóng cả ' + esc(m.label) + '</div><div class="value">' + (m.total.runRate === null ? '—' : fmtMoney(m.total.runRate)) +
+      '</div><div class="sub">Tháng trước: ' + fmtMoney(m.total.prevFull) + (m.total.runRatePct === null ? '' : ' ' + momHtml(m.total.runRatePct)) + '</div></div>' +
+    '<div class="kpi"><div class="label">Tỷ lệ thu hồi ' + esc(t.label) + '</div><div class="value">' + ratePill(t.total.rate, th) +
+      '</div><div class="sub">Cùng kỳ tháng trước: ' + t.total.prevRateLike.toFixed(2) + '%</div></div>' +
+    '<div class="kpi"><div class="label">Chưa có ticket truy thu</div><div class="value">' + fmtNum(t.total.noTicketN) +
+      '</div><div class="sub">' + t.total.noTicketShare.toFixed(1) + '% số đơn · ' + fmtMoney(t.total.noTicketDen) + '</div></div>' +
+    '</div>';
+
+  const flagsSection =
+    '<section><h2>Chỉ số cần lưu ý</h2><div class="underline"></div>' +
+    '<p class="desc">' + countBy('cao') + ' mức Cao · ' + countBy('tb') + ' mức Trung bình · ' + countBy('luu') + ' lưu ý · ' + countBy('tot') + ' tích cực</p>' + flagsHtml + '</section>';
+
+  const sugHtml = d.suggestions.map(s =>
+    '<div class="sug"><span class="tag ' + esc(s.level) + '">' + levelName(s.level) + '</span><div>' + esc(s.text) + '</div></div>').join('');
+  const sugSection = '<section><h2>Đề xuất</h2><div class="underline"></div>' + sugHtml + '</section>';
+
+  const weekCols = ['Tuần này', 'Cùng kỳ tuần trước'];
+  const monthCols = ['Lũy kế tháng', 'Cùng kỳ tháng trước'];
+  const weekSection =
+    '<section><h2>Tuần ' + esc(w.label) + '</h2><div class="underline"></div>' +
+    '<p class="desc">' + esc(w.start) + ' → ' + esc(w.end) + (w.partial ? ' · mới có dữ liệu đến ' + esc(w.cutoff) + ' (' + w.daysCovered + '/7 ngày), so sánh theo cùng số ngày' : '') + ' · phạm vi SPE + SPB</p>' +
+    '<h3>Xu hướng 8 tuần gần nhất</h3>' + trendBars(w.trend) +
+    '<div class="grid2"><div>' + dimTable('Account', w.dims.acc, weekCols) + '<h3>Kênh (WH / MP)</h3>' + dimTable('Kênh', w.dims.ch, weekCols) +
+    '<h3>Loại yêu cầu</h3>' + dimTable('Loại yêu cầu', w.dims.lo, weekCols) + '</div>' +
+    '<div><h3>Nhóm ngành hàng</h3>' + dimTable('Nhóm ngành', w.dims.ng, weekCols) + '<h3>Root cause (sản phẩm)</h3>' + dimTable('Root cause', w.dims.rt, weekCols) + '</div></div>' +
+    '<div class="grid2"><div><h3>Tuyến</h3>' + dimTable('Tuyến', w.dims.tu, weekCols) + '<h3>Vùng</h3>' + dimTable('Vùng', w.dims.vu, weekCols) + '</div>' +
+    '<div><h3>Kho chịu trách nhiệm</h3>' + dimTable('Kho', w.dims.kh, weekCols) + '<h3>Seller</h3>' + dimTable('Seller', w.dims.se, weekCols) + '</div></div></section>';
+
+  const monthSection =
+    '<section><h2>Tháng ' + esc(m.label) + '</h2><div class="underline"></div>' +
+    '<p class="desc">Lũy kế đến ngày ' + String(m.cutoffDay).padStart(2, '0') + ' (' + m.cutoffDay + '/' + m.daysInMonth + ' ngày), so với cùng kỳ ' + esc(m.prevLabel) + ' · phạm vi SPE + SPB</p>' +
+    '<h3>Xu hướng 6 tháng gần nhất</h3>' + trendBars(m.trend) +
+    '<div class="grid2"><div>' + dimTable('Account', m.dims.acc, monthCols) + '<h3>Kênh (WH / MP)</h3>' + dimTable('Kênh', m.dims.ch, monthCols) +
+    '<h3>Loại yêu cầu</h3>' + dimTable('Loại yêu cầu', m.dims.lo, monthCols) + '</div>' +
+    '<div><h3>Nhóm ngành hàng</h3>' + dimTable('Nhóm ngành', m.dims.ng, monthCols) + '<h3>Root cause (sản phẩm)</h3>' + dimTable('Root cause', m.dims.rt, monthCols) + '</div></div>' +
+    '<div class="grid2"><div><h3>Tuyến</h3>' + dimTable('Tuyến', m.dims.tu, monthCols) + '</div>' +
+    '<div><h3>Kho chịu trách nhiệm</h3>' + dimTable('Kho', m.dims.kh, monthCols) + '</div></div></section>';
+
+  const clientRows = t.clients.map(c =>
+    '<tr><td>' + esc(c.name) + '</td><td>' + fmtMoney(c.den) + '</td><td>' + momHtml(c.pct) + '</td><td>' + fmtMoney(c.thu) + '</td><td>' + ratePill(c.rate, th) +
+    '</td><td>' + fmtNum(c.noTicketN) + ' (' + c.noTicketShare.toFixed(1) + '%)</td></tr>').join('');
+  const rateRows = list => list.map(x =>
+    '<tr><td>' + esc(x.name) + '</td><td>' + fmtMoney(x.den) + '</td><td>' + fmtMoney(x.thu) + '</td><td>' + ratePill(x.rate, th) + '</td></tr>').join('');
+  const truySection =
+    '<section><h2>Truy thu ' + esc(t.label) + '</h2><div class="underline"></div>' +
+    '<p class="desc">Tất cả khách hàng · lũy kế đến ngày ' + String(t.cutoffDay).padStart(2, '0') + ' · tỷ lệ thu hồi = đã truy thu / giá trị đền bù</p>' +
+    '<div class="table-wrap"><table><thead><tr><th>Khách hàng</th><th>Đền bù</th><th>So cùng kỳ tháng trước</th><th>Đã truy thu</th><th>Tỷ lệ thu hồi</th><th>Chưa ticket</th></tr></thead><tbody>' + clientRows + '</tbody></table></div>' +
+    '<h3>Tỷ lệ thu hồi 6 tháng gần nhất</h3><div class="table-wrap"><table><thead><tr><th>Tháng</th><th>Đền bù</th><th>Đã truy thu</th><th>Tỷ lệ thu hồi</th><th>Chưa ticket</th></tr></thead><tbody>' +
+    t.trend.map(x => '<tr><td>' + esc(x.label) + '</td><td>' + fmtMoney(x.den) + '</td><td>' + fmtMoney(x.thu) + '</td><td>' + ratePill(x.rate, th) + '</td><td>' + x.noTicketShare.toFixed(1) + '%</td></tr>').join('') +
+    '</tbody></table></div>' +
+    '<div class="grid2"><div><h3>Kho có tỷ lệ thu hồi thấp nhất</h3><div class="table-wrap"><table><thead><tr><th>Kho</th><th>Đền bù</th><th>Đã truy thu</th><th>Tỷ lệ</th></tr></thead><tbody>' + rateRows(t.lowKho) + '</tbody></table></div></div>' +
+    '<div><h3>Vùng có tỷ lệ thu hồi thấp nhất</h3><div class="table-wrap"><table><thead><tr><th>Vùng</th><th>Đền bù</th><th>Đã truy thu</th><th>Tỷ lệ</th></tr></thead><tbody>' + rateRows(t.lowVung) + '</tbody></table></div></div></div>' +
+    '<p class="foot">Chỉ tính kho/vùng có đền bù từ ' + fmtMoney(th.khoMinValue) + ' trong tháng. Tỷ lệ tháng hiện tại thường thấp hơn do truy thu có độ trễ, nên cần xem cùng cột so sánh cùng kỳ.</p></section>';
+
+  const o = d.outliers;
+  const outSection =
+    '<section><h2>Đơn có giá trị bất thường — ' + esc(w.label) + '</h2><div class="underline"></div>' +
+    '<p class="desc">' + o.count + ' đơn vượt ngưỡng ' + fmtMoney(o.threshold) + ' (trung bình + ' + th.outlierSigma + ' độ lệch chuẩn), tổng ' + fmtMoney(o.sum) + (o.count > o.list.length ? ' · hiển thị ' + o.list.length + ' đơn lớn nhất' : '') + '</p>' +
+    (o.list.length
+      ? '<div class="table-wrap"><table><thead><tr><th>Mã đơn</th><th>Ngày duyệt</th><th>Account</th><th>Seller</th><th>Loại yêu cầu</th><th>Giá trị đền bù</th></tr></thead><tbody>' +
+        o.list.map(x => '<tr><td>' + esc(x.ma) + '</td><td>' + esc(x.ngay) + '</td><td>' + esc(x.acc) + '</td><td>' + esc(x.seller) + '</td><td>' + esc(x.loai) + '</td><td>' + fmtMoney(x.den) + '</td></tr>').join('') + '</tbody></table></div>'
+      : '<p class="desc">Không có đơn nào vượt ngưỡng.</p>') + '</section>';
+
+  const thrSection =
+    '<section><h2>Ngưỡng cảnh báo đang áp dụng</h2><div class="underline"></div><ul class="thr">' +
+    '<li>Tổng đền bù tuần / lũy kế tháng tăng từ ' + th.totalWow[0] + '% (Trung bình), từ ' + th.totalWow[1] + '% (Cao) so với cùng kỳ</li>' +
+    '<li>Cao hơn trung bình 4 tuần gần nhất từ ' + th.avg4Over + '%</li>' +
+    '<li>Nhóm tăng từ ' + th.groupSurgePct + '% (Trung bình), từ ' + th.groupSurgeHigh + '% hoặc mới phát sinh (Cao); giá trị tối thiểu ' + fmtMoney(th.groupMinValue) + ' hoặc 3% tổng</li>' +
+    '<li>Tập trung: nhóm ngành / tuyến / kho từ ' + th.concentration.ng + '%, seller từ ' + th.concentration.se + '% tổng đền bù</li>' +
+    '<li>Nhóm ngành chưa xác định từ ' + th.unmappedShare + '% tổng đền bù</li>' +
+    '<li>Tỷ lệ thu hồi dưới ' + th.rate[0] + '% (Cao), dưới ' + th.rate[1] + '% (Trung bình); giảm từ ' + th.rateDropPts + ' điểm % so với cùng kỳ</li>' +
+    '<li>Đơn chưa ticket truy thu từ ' + th.noTicketShare + '% số đơn</li>' +
+    '<li>Kho có tỷ lệ thu hồi dưới ' + th.khoRateLow + '% (đền bù từ ' + fmtMoney(th.khoMinValue) + ')</li>' +
+    '<li>Dự phóng cả tháng cao hơn tháng trước từ ' + th.runRateOver + '%</li>' +
+    '<li>Đơn bất thường: vượt trung bình + ' + th.outlierSigma + ' độ lệch chuẩn</li></ul></section>';
+
+  document.getElementById('app').innerHTML = kpis + flagsSection + sugSection + weekSection + monthSection + truySection + outSection + thrSection;
+}
+
+function mdTable(headers, rows) {
+  if (!rows.length) return '';
+  return '| ' + headers.join(' | ') + ' |\n|' + headers.map(() => '---').join('|') + '|\n' +
+    rows.map(r => '| ' + r.map(c => String(c).replace(/\|/g, '/')).join(' | ') + ' |').join('\n') + '\n\n';
+}
+function mdPct(p, it) {
+  if (it && it.prev === 0 && it.cur > 0) return 'Mới';
+  if (p === null || p === undefined || !isFinite(p)) return '—';
+  return (p > 0 ? '▲ ' : p < 0 ? '▼ ' : '') + Math.abs(p).toFixed(2) + '%';
+}
+function mdDim(title, items) {
+  return mdTable([title, 'Hiện tại', 'Kỳ so sánh', 'Biến động', 'Tỷ trọng'],
+    (items || []).map(it => [it.name, fmtMoney(it.cur), fmtMoney(it.prev), mdPct(it.pct, it), it.share.toFixed(1) + '%']));
+}
+
+function buildMarkdown(d) {
+  const w = d.week, m = d.month, t = d.truyThu;
+  let md = '# TỔNG HỢP ĐỀN BÙ — TUẦN ' + w.label + ' & THÁNG ' + m.label + '\n\n';
+  md += '_Dữ liệu đến ' + d.dataThrough + ' · tổng hợp lúc ' + d.generatedAt + ' · phạm vi tuần/tháng: SPE + SPB; truy thu: tất cả khách hàng_\n\n';
+  md += '## Chỉ số chính\n\n';
+  md += '- **Đền bù ' + w.label + (w.partial ? ' (đến ' + w.cutoff + ')' : '') + ':** ' + fmtMoney(w.total.cur) + ' (' + mdPct(w.total.pct) + ' so với tuần trước' + (w.partial ? ', cùng ' + w.daysCovered + ' ngày' : '') + ')\n';
+  md += '- **Số đơn ' + w.label + ':** ' + fmtNum(w.total.n) + '\n';
+  md += '- **Lũy kế ' + m.label + ':** ' + fmtMoney(m.total.cur) + ' (' + mdPct(m.total.pct) + ' so với cùng kỳ ' + m.prevLabel + ')\n';
+  md += '- **Dự phóng cả ' + m.label + ':** ' + (m.total.runRate === null ? '—' : fmtMoney(m.total.runRate)) + ' (tháng trước ' + fmtMoney(m.total.prevFull) + ')\n';
+  md += '- **Tỷ lệ thu hồi ' + t.label + ':** ' + t.total.rate.toFixed(2) + '% (cùng kỳ tháng trước ' + t.total.prevRateLike.toFixed(2) + '%)\n';
+  md += '- **Chưa có ticket truy thu:** ' + fmtNum(t.total.noTicketN) + ' đơn (' + t.total.noTicketShare.toFixed(1) + '%), ' + fmtMoney(t.total.noTicketDen) + '\n\n';
+  md += '## Chỉ số cần lưu ý\n\n';
+  md += d.flags.length ? d.flags.map(f => '- **[' + levelName(f.level) + '] ' + f.area + ':** ' + f.title + ' — ' + f.detail).join('\n') + '\n\n' : '_Không có chỉ số vượt ngưỡng._\n\n';
+  md += '## Đề xuất\n\n' + d.suggestions.map(s => '- **[' + levelName(s.level) + ']** ' + s.text).join('\n') + '\n\n';
+  md += '## Tuần ' + w.label + ' (' + w.start + ' → ' + w.end + ')\n\n';
+  md += mdTable(['Tuần', 'Đền bù', 'Số đơn'], w.trend.map(x => [x.label + (x.partial ? ' (chưa đủ)' : ''), fmtMoney(x.den), fmtNum(x.n)]));
+  [['acc', 'Account'], ['ch', 'Kênh'], ['lo', 'Loại yêu cầu'], ['ng', 'Nhóm ngành'], ['rt', 'Root cause'], ['tu', 'Tuyến'], ['vu', 'Vùng'], ['kh', 'Kho'], ['se', 'Seller']]
+    .forEach(p => { md += '### ' + p[1] + '\n\n' + mdDim(p[1], w.dims[p[0]]); });
+  md += '## Tháng ' + m.label + '\n\n';
+  md += mdTable(['Tháng', 'Đền bù', 'Số đơn'], m.trend.map(x => [x.label + (x.partial ? ' (lũy kế)' : ''), fmtMoney(x.den), fmtNum(x.n)]));
+  [['acc', 'Account'], ['ch', 'Kênh'], ['lo', 'Loại yêu cầu'], ['ng', 'Nhóm ngành'], ['rt', 'Root cause'], ['tu', 'Tuyến'], ['kh', 'Kho']]
+    .forEach(p => { md += '### ' + p[1] + '\n\n' + mdDim(p[1], m.dims[p[0]]); });
+  md += '## Truy thu ' + t.label + '\n\n';
+  md += mdTable(['Khách hàng', 'Đền bù', 'So cùng kỳ', 'Đã truy thu', 'Tỷ lệ thu hồi', 'Chưa ticket'],
+    t.clients.map(c => [c.name, fmtMoney(c.den), mdPct(c.pct), fmtMoney(c.thu), c.rate.toFixed(2) + '%', fmtNum(c.noTicketN) + ' (' + c.noTicketShare.toFixed(1) + '%)']));
+  md += mdTable(['Tháng', 'Đền bù', 'Đã truy thu', 'Tỷ lệ thu hồi', 'Chưa ticket'],
+    t.trend.map(x => [x.label, fmtMoney(x.den), fmtMoney(x.thu), x.rate.toFixed(2) + '%', x.noTicketShare.toFixed(1) + '%']));
+  md += '### Kho có tỷ lệ thu hồi thấp nhất\n\n' + mdTable(['Kho', 'Đền bù', 'Đã truy thu', 'Tỷ lệ'], t.lowKho.map(x => [x.name, fmtMoney(x.den), fmtMoney(x.thu), x.rate.toFixed(2) + '%']));
+  md += '### Vùng có tỷ lệ thu hồi thấp nhất\n\n' + mdTable(['Vùng', 'Đền bù', 'Đã truy thu', 'Tỷ lệ'], t.lowVung.map(x => [x.name, fmtMoney(x.den), fmtMoney(x.thu), x.rate.toFixed(2) + '%']));
+  md += '## Đơn có giá trị bất thường — ' + w.label + '\n\n';
+  md += d.outliers.list.length
+    ? mdTable(['Mã đơn', 'Ngày duyệt', 'Account', 'Seller', 'Loại yêu cầu', 'Giá trị'], d.outliers.list.map(x => [x.ma, x.ngay, x.acc, x.seller, x.loai, fmtMoney(x.den)]))
+    : '_Không có đơn vượt ngưỡng._\n\n';
+  return md;
+}
+
+function downloadMd() {
+  if (!REPORT || REPORT.empty) return;
+  const blob = new Blob([buildMarkdown(REPORT)], {type: 'text/markdown;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'TongHop_DenBu_' + REPORT.week.label + '.md';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+async function lockAgain() {
+  try {
+    await fetch('/api/admin-gate', {
+      method: 'POST', credentials: 'include', cache: 'no-store',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({action: 'lock'})
+    });
+  } catch (e) {}
+  REPORT = null;
+  showForm('');
+}
+
+document.getElementById('btnRefresh').addEventListener('click', () => loadReport(true));
+document.getElementById('btnMd').addEventListener('click', downloadMd);
+document.getElementById('btnPrint').addEventListener('click', () => window.print());
+document.getElementById('btnLock').addEventListener('click', lockAgain);
+
+init();
+</script>
+</body>
+</html>
