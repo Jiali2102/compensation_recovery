@@ -103,6 +103,12 @@ function addAdminTab(page){
   btn.dataset.src = page;
   btn.innerHTML = '<span class="icon">🧮</span> Tổng hợp';
   document.getElementById('tabbar').appendChild(btn);
+  if(!document.getElementById('shellControls-' + ADMIN_KEY)){
+    const slot = document.createElement('div');
+    slot.id = 'shellControls-' + ADMIN_KEY;
+    slot.className = 'shell-controls';
+    document.querySelector('header').appendChild(slot);
+  }
   if(pendingAdminTab){
     pendingAdminTab = false;
     activateTab(ADMIN_KEY);
@@ -120,6 +126,8 @@ function removeAdminTab(){
   }
   const btn = document.querySelector('.tab-btn[data-tab="' + ADMIN_KEY + '"]');
   if(btn) btn.remove();
+  const slot = document.getElementById('shellControls-' + ADMIN_KEY);
+  if(slot) slot.remove();
   if(wasActive) activateTab(TABS[0].key);
 }
 
