@@ -80,6 +80,13 @@
   .thr{font-size:12.5px;color:var(--muted);columns:2;column-gap:30px;}
   .thr li{margin-bottom:4px;break-inside:avoid;}
   .foot{font-size:12px;color:var(--muted);margin-top:6px;text-align:right;}
+  .out-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 10px;}
+  .out-count{margin-right:auto;color:var(--muted);font-size:13px;}
+  .out-search{font-family:inherit;font-size:13.5px;padding:7px 11px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--ink);min-width:260px;}
+  .out-search:focus{outline:none;border-color:var(--orange);}
+  table.tbl-auto{table-layout:auto;}
+  table.tbl-auto th:first-child,table.tbl-auto td:first-child{width:auto;white-space:nowrap;}
+  table.tbl-auto td{overflow:visible;text-overflow:clip;}
 
   @media print{
     body{background:#fff;}
@@ -95,6 +102,7 @@
 
 <script>
 let REPORT = null;
+let OUT = {list: [], count: 0, label: '', expanded: false, q: ''};
 let SEL = {week: null, month: null};
 let ctl = null;
 
@@ -415,12 +423,19 @@ function render(d) {
     dimGrid(m.dims, monthCols, gridRows) + '</section>';
 
   const o = d.outliers;
+  OUT = {list: o.list, count: o.count, label: w.label, expanded: false, q: ''};
   const outSection =
-    '<section><h2>Đơn có giá trị bất thường — ' + esc(w.label) + '</h2><div class="underline"></div>' +
-    '<p class="desc">' + o.count + ' đơn vượt ngưỡng ' + fmtMoney(o.threshold) + ' (trung bình + ' + th.outlierSigma + ' độ lệch chuẩn), tổng ' + fmtMoney(o.sum) + (o.count > o.list.length ? ' · hiển thị ' + o.list.length + ' đơn lớn nhất' : '') + '</p>' +
+    '<section id="outSection"><h2>Đơn có giá trị bất thường — ' + esc(w.label) + '</h2><div class="underline"></div>' +
+    '<p class="desc">' + o.count + ' đơn vượt ngưỡng ' + fmtMoney(o.threshold) + ' (trung bình + ' + th.outlierSigma + ' độ lệch chuẩn), tổng ' + fmtMoney(o.sum) +
+      (o.truncated ? ' · danh sách giới hạn ' + o.list.length + ' đơn lớn nhất' : '') + '</p>' +
     (o.list.length
-      ? '<div class="table-wrap"><table><thead><tr><th>Mã đơn</th><th>Ngày duyệt</th><th>Account</th><th>Seller</th><th>Loại yêu cầu</th><th>Giá trị đền bù</th></tr></thead><tbody>' +
-        o.list.map(x => '<tr><td>' + esc(x.ma) + '</td><td>' + esc(x.ngay) + '</td><td>' + esc(x.acc) + '</td><td>' + esc(x.seller) + '</td><td>' + esc(x.loai) + '</td><td>' + fmtMoney(x.den) + '</td></tr>').join('') + '</tbody></table></div>'
+      ? '<div class="out-toolbar"><span class="out-count" id="outCount"></span>' +
+        '<input class="out-search" id="outSearch" type="text" placeholder="Lọc theo mã đơn, seller, loại yêu cầu, kho...">' +
+        '<button class="btn" id="outToggle" type="button"></button>' +
+        '<button class="btn primary" id="outXlsx" type="button"></button>' +
+        '<button class="btn" id="outCsv" type="button"></button></div>' +
+        '<div class="table-wrap"><table class="tbl-auto"><thead><tr><th>Mã đơn</th><th>Ngày duyệt</th><th>Account</th><th>Seller</th><th>Loại yêu cầu</th><th>Giá trị đền bù</th></tr></thead><tbody id="outBody"></tbody></table></div>' +
+        '<p class="foot" style="text-align:left;">File tải về gồm đủ cột: mã đơn, ngày duyệt, account, seller, kênh, loại yêu cầu, nhóm ngành, sản phẩm, tuyến, kho chịu trách nhiệm, vùng và giá trị đền bù (số thật, cộng được trực tiếp trong Excel). Nếu đang lọc thì file chỉ gồm các đơn đang lọc.</p>'
       : '<p class="desc">Không có đơn nào vượt ngưỡng.</p>') + '</section>';
 
   const thrSection =
@@ -436,6 +451,7 @@ function render(d) {
   const footer = '<div class="foot">Dữ liệu đến ' + esc(d.dataThrough) + ' · tổng hợp lúc ' + esc(d.generatedAt) + (d.fromCache ? ' (bộ nhớ đệm)' : '') + ' · ' + fmtNum(d.rows.total) + ' dòng</div>';
 
   document.getElementById('app').innerHTML = kpis + flagsSection + sugSection + weekSection + monthSection + outSection + thrSection + footer;
+  wireOutliers();
 }
 
 function mdTable(headers, rows) {
@@ -477,9 +493,204 @@ function buildMarkdown(d) {
   order.forEach(p => { md += '### ' + p[1] + '\n\n' + mdDim(p[1], m.dims[p[0]], monthCols); });
   md += '## Đơn có giá trị bất thường — ' + w.label + '\n\n';
   md += d.outliers.list.length
-    ? mdTable(['Mã đơn', 'Ngày duyệt', 'Account', 'Seller', 'Loại yêu cầu', 'Giá trị'], d.outliers.list.map(x => [x.ma, x.ngay, x.acc, x.seller, x.loai, fmtMoney(x.den)]))
+    ? mdTable(['Mã đơn', 'Ngày duyệt', 'Account', 'Seller', 'Loại yêu cầu', 'Giá trị'], d.outliers.list.slice(0, 50).map(x => [x.ma, x.ngay, x.acc, x.seller, x.loai, fmtMoney(x.den)])) +
+      (d.outliers.list.length > 50 ? '_Hiển thị 50 trên ' + d.outliers.list.length + ' đơn; xem đủ trong file Excel hoặc CSV tải từ trang._\n\n' : '')
     : '_Không có đơn vượt ngưỡng._\n\n';
   return md;
+}
+
+const OUT_COLS = [
+  ['Mã đơn', 'ma', 14], ['Ngày duyệt eform', 'ngay', 17], ['Account', 'acc', 10], ['Seller', 'seller', 30], ['Kênh', 'kenh', 8],
+  ['Loại yêu cầu', 'loai', 24], ['Nhóm ngành', 'ng', 28], ['Sản phẩm', 'rt', 32], ['Tuyến', 'tu', 18],
+  ['Kho chịu trách nhiệm', 'kh', 30], ['Vùng', 'vu', 12], ['Giá trị đền bù (đ)', 'den', 18]
+];
+
+function outFiltered() {
+  const q = OUT.q.trim().toLowerCase();
+  if (!q) return OUT.list;
+  return OUT.list.filter(x => [x.ma, x.seller, x.loai, x.acc, x.kh, x.ng, x.rt, x.tu, x.vu, x.kenh].join(' ').toLowerCase().indexOf(q) >= 0);
+}
+
+function renderOutlierRows() {
+  const body = document.getElementById('outBody');
+  if (!body) return;
+  const list = outFiltered();
+  const filtering = OUT.q.trim() !== '';
+  const shown = OUT.expanded || filtering ? list : list.slice(0, 10);
+  body.innerHTML = shown.length
+    ? shown.map(x => '<tr><td>' + esc(x.ma) + '</td><td>' + esc(x.ngay) + '</td><td>' + esc(x.acc) + '</td><td>' + esc(x.seller) + '</td><td>' + esc(x.loai) + '</td><td>' + fmtMoney(x.den) + '</td></tr>').join('')
+    : '<tr><td colspan="6" class="mom-flat" style="text-align:center;">Không có đơn nào khớp</td></tr>';
+  const total = OUT.list.length;
+  document.getElementById('outCount').textContent = filtering
+    ? 'Khớp ' + list.length + '/' + total + ' đơn'
+    : 'Đang hiển thị ' + shown.length + '/' + total + ' đơn' + (shown.length < total ? ' lớn nhất' : '');
+  const tg = document.getElementById('outToggle');
+  tg.style.display = filtering || total <= 10 ? 'none' : '';
+  tg.textContent = OUT.expanded ? 'Thu gọn còn 10 đơn' : 'Xem tất cả ' + total + ' đơn';
+  document.getElementById('outXlsx').textContent = '⬇ Tải Excel (' + list.length + ' đơn)';
+  document.getElementById('outCsv').textContent = '⬇ Tải CSV (' + list.length + ' đơn)';
+  document.getElementById('outXlsx').disabled = !list.length;
+  document.getElementById('outCsv').disabled = !list.length;
+}
+
+function wireOutliers() {
+  const body = document.getElementById('outBody');
+  if (!body) return;
+  document.getElementById('outSearch').addEventListener('input', e => { OUT.q = e.target.value; renderOutlierRows(); });
+  document.getElementById('outToggle').addEventListener('click', () => { OUT.expanded = !OUT.expanded; renderOutlierRows(); });
+  document.getElementById('outCsv').addEventListener('click', downloadOutliersCsv);
+  document.getElementById('outXlsx').addEventListener('click', downloadOutliersXlsx);
+  renderOutlierRows();
+}
+
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function outFileName(ext) {
+  return 'DonBatThuong_' + OUT.label + '_' + outFiltered().length + 'don.' + ext;
+}
+
+function downloadOutliersCsv() {
+  const list = outFiltered();
+  if (!list.length) return;
+  const cell = v => {
+    const t = String(v === null || v === undefined ? '' : v);
+    return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  };
+  const lines = [OUT_COLS.map(c => cell(c[0])).join(',')];
+  list.forEach(x => lines.push(OUT_COLS.map(c => cell(x[c[1]])).join(',')));
+  saveBlob(new Blob(['\uFEFF' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}), outFileName('csv'));
+}
+
+const CRC_TABLE = (function () {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(bytes) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+  return (crc ^ 0xFFFFFFFF) >>> 0;
+}
+
+function zipStore(files) {
+  const enc = new TextEncoder();
+  const parts = [];
+  const central = [];
+  const now = new Date();
+  const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  let offset = 0;
+  files.forEach(f => {
+    const name = enc.encode(f.name);
+    const data = enc.encode(f.text);
+    const crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true);
+    lh.setUint16(4, 20, true);
+    lh.setUint16(6, 0x0800, true);
+    lh.setUint16(8, 0, true);
+    lh.setUint16(10, dosTime, true);
+    lh.setUint16(12, dosDate, true);
+    lh.setUint32(14, crc, true);
+    lh.setUint32(18, data.length, true);
+    lh.setUint32(22, data.length, true);
+    lh.setUint16(26, name.length, true);
+    lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true);
+    ch.setUint16(4, 20, true);
+    ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0x0800, true);
+    ch.setUint16(10, 0, true);
+    ch.setUint16(12, dosTime, true);
+    ch.setUint16(14, dosDate, true);
+    ch.setUint32(16, crc, true);
+    ch.setUint32(20, data.length, true);
+    ch.setUint32(24, data.length, true);
+    ch.setUint16(28, name.length, true);
+    ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + data.length;
+  });
+  const cdSize = central.reduce((s, b) => s + b.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true);
+  end.setUint16(8, files.length, true);
+  end.setUint16(10, files.length, true);
+  end.setUint32(12, cdSize, true);
+  end.setUint32(16, offset, true);
+  return new Blob(parts.concat(central, [new Uint8Array(end.buffer)]), {type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+}
+
+function xmlText(v) {
+  return String(v === null || v === undefined ? '' : v)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function colLetter(i) {
+  let s = '';
+  i += 1;
+  while (i > 0) {
+    const m = (i - 1) % 26;
+    s = String.fromCharCode(65 + m) + s;
+    i = Math.floor((i - 1) / 26);
+  }
+  return s;
+}
+
+function buildXlsx(list) {
+  const head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  const ns = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+  const lastCol = colLetter(OUT_COLS.length - 1);
+  let rows = '<row r="1">' + OUT_COLS.map((c, i) => '<c r="' + colLetter(i) + '1" s="1" t="inlineStr"><is><t>' + xmlText(c[0]) + '</t></is></c>').join('') + '</row>';
+  list.forEach((x, r) => {
+    const rn = r + 2;
+    rows += '<row r="' + rn + '">' + OUT_COLS.map((c, i) => {
+      const ref = colLetter(i) + rn;
+      if (c[1] === 'den') return '<c r="' + ref + '" s="2"><v>' + (Number(x.den) || 0) + '</v></c>';
+      return '<c r="' + ref + '" t="inlineStr"><is><t>' + xmlText(x[c[1]]) + '</t></is></c>';
+    }).join('') + '</row>';
+  });
+  const sheet = head + '<worksheet xmlns="' + ns + '"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
+    '<cols>' + OUT_COLS.map((c, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + c[2] + '" customWidth="1"/>').join('') + '</cols>' +
+    '<sheetData>' + rows + '</sheetData><autoFilter ref="A1:' + lastCol + (list.length + 1) + '"/></worksheet>';
+  const styles = head + '<styleSheet xmlns="' + ns + '"><fonts count="2"><font><sz val="11"/><name val="Cambria"/></font><font><b/><sz val="11"/><name val="Cambria"/></font></fonts>' +
+    '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>' +
+    '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>' +
+    '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+    '<cellXfs count="3"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/><xf numFmtId="3" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/></cellXfs>' +
+    '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  const rel = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+  return zipStore([
+    {name: '[Content_Types].xml', text: head + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+    {name: '_rels/.rels', text: head + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' + rel + '/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name: 'xl/workbook.xml', text: head + '<workbook xmlns="' + ns + '" xmlns:r="' + rel + '"><sheets><sheet name="Đơn bất thường" sheetId="1" r:id="rId1"/></sheets></workbook>'},
+    {name: 'xl/_rels/workbook.xml.rels', text: head + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="' + rel + '/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="' + rel + '/styles" Target="styles.xml"/></Relationships>'},
+    {name: 'xl/styles.xml', text: styles},
+    {name: 'xl/worksheets/sheet1.xml', text: sheet}
+  ]);
+}
+
+function downloadOutliersXlsx() {
+  const list = outFiltered();
+  if (!list.length) return;
+  saveBlob(buildXlsx(list), outFileName('xlsx'));
 }
 
 function downloadMd() {
