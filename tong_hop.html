@@ -88,10 +88,30 @@
   table.tbl-auto th:first-child,table.tbl-auto td:first-child{width:auto;white-space:nowrap;}
   table.tbl-auto td{overflow:visible;text-overflow:clip;}
 
+  .vtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;}
+  .vtab{font-family:inherit;font-weight:700;font-size:13.5px;border-radius:999px;padding:7px 18px;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;}
+  .vtab:hover{border-color:var(--orange);color:var(--orange-dark);}
+  .vtab.active{background:var(--orange);border-color:var(--orange);color:#fff;}
+  .view.hide{display:none;}
+  table.tbl-heat{table-layout:auto;}
+  table.tbl-heat th:first-child,table.tbl-heat td:first-child{width:auto;min-width:190px;max-width:300px;white-space:normal;}
+  table.tbl-heat td{overflow:visible;text-overflow:clip;}
+  th.cur,td.cur{background:#FFF3CD;}
+  .h1c{background:rgba(254,95,0,.08);}
+  .h2c{background:rgba(254,95,0,.18);}
+  .h3c{background:rgba(254,95,0,.30);}
+  .h4c{background:rgba(254,95,0,.45);font-weight:700;}
+  .mutedv{color:#9AA3B5;}
+  .chip{display:inline-block;font-size:11px;font-weight:800;padding:1px 8px;border-radius:999px;background:#FDECEA;color:#C62828;margin-left:6px;white-space:nowrap;}
+  .flag{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;background:#FDECEA;color:#C62828;}
+  .flag.warn{background:#FFF8E1;color:#B98900;}
+  .sec-note{margin-top:12px;padding:10px 14px;border-left:4px solid var(--navy);background:#F3F6FB;border-radius:6px;font-size:13.5px;}
   @media print{
     body{background:#fff;}
     section{box-shadow:none;break-inside:avoid;}
     main{padding:0;}
+    .view.hide{display:block;}
+    .vtabs{display:none;}
   }
 </style>
 </head>
@@ -103,6 +123,7 @@
 <script>
 let REPORT = null;
 let OUT = {list: [], count: 0, label: '', expanded: false, q: ''};
+let VIEW = 'tq';
 let SEL = {week: null, month: null};
 let ctl = null;
 
@@ -358,6 +379,132 @@ function dimGrid(dims, cols, rows) {
   return rows.map(r => pairRow(block(r[0][1], dims[r[0][0]], cols), r[1] ? block(r[1][1], dims[r[1][0]], cols) : '')).join('');
 }
 
+const fmt1 = n => (Math.round(n * 10) / 10).toLocaleString('vi-VN', {minimumFractionDigits: 1, maximumFractionDigits: 1});
+const mil = v => v > 0 ? (v / 1e6).toLocaleString('vi-VN', {minimumFractionDigits: 1, maximumFractionDigits: 1}) : '—';
+
+function heatClass(v, max) {
+  if (!v || !max) return '';
+  const r = v / max;
+  return r >= 0.8 ? 'h4c' : r >= 0.55 ? 'h3c' : r >= 0.3 ? 'h2c' : r >= 0.12 ? 'h1c' : '';
+}
+
+function deltaDays(p) {
+  if (p === null || p === undefined || !isFinite(p)) return '<span class="mom-flat">—</span>';
+  if (p > 0.05) return '<span class="mom-up">▲ +' + fmt1(p) + ' ngày</span>';
+  if (p < -0.05) return '<span class="mom-down">▼ ' + fmt1(Math.abs(p)) + ' ngày</span>';
+  return '<span class="mom-flat">0,0 ngày</span>';
+}
+
+function sellersSection(d) {
+  const sl = d.deep.sellers, w = d.week, th = d.thresholds;
+  if (!sl.rows.length) return '';
+  const rows = sl.rows.map(r => {
+    const flag = r.flag === 'surge' ? '<span class="flag">Tăng đột biến</span>' : r.flag === 'new' ? '<span class="flag warn">Mới phát sinh</span>' : '';
+    const cmp = r.pct === null ? '<span class="new-tag">Mới</span>' : momHtml(r.pct);
+    return '<tr><td title="' + esc(r.name) + '">' + esc(r.name) + '</td><td>' + esc(r.acc) + '</td><td>' + fmtNum(r.n) + '</td><td>' + fmtMoney(r.cur) +
+      '</td><td><span class="sharebar" style="width:' + Math.max(2, Math.min(60, r.share * 4)) + 'px"></span>' + r.share.toFixed(2) + '%</td><td>' + r.cum.toFixed(2) + '%</td><td>' + cmp + '</td><td>' + flag + '</td></tr>';
+  }).join('');
+  const hot = sl.rows.filter(r => r.flag === 'surge').map(r => r.name);
+  const note = 'Top ' + sl.rows.length + ' seller chiếm ' + sl.topShare.toFixed(2) + '% tổng đền bù ' + w.label + ', các seller còn lại chiếm ' + (100 - sl.topShare).toFixed(2) + '%.' +
+    (hot.length ? ' ' + hot.slice(0, 3).join(', ') + ' tăng mạnh so với nền 4 tuần trước, nên làm việc với seller này trước.' : '');
+  return '<section><h2>Seller tập trung và cảnh báo tăng đột biến</h2><div class="underline"></div>' +
+    '<p class="desc">Top ' + sl.rows.length + ' seller của ' + esc(w.label) + ': tỷ trọng, lũy kế và mức thay đổi so với trung bình 4 tuần trước. Seller tăng từ ' + th.sellerSurgePct + '% và đền bù từ ' + fmtMoney(th.sellerMinValue) + ' bị gắn cờ.</p>' +
+    '<div class="table-wrap"><table class="tbl-heat"><thead><tr><th>Seller</th><th>Account</th><th>Số đơn</th><th>Đền bù</th><th>% tổng tuần</th><th>Lũy kế %</th><th>So với TB 4 tuần</th><th>Cảnh báo</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<div class="sec-note">' + esc(note) + '</div></section>';
+}
+
+function heatTable(title, rows, labels, withVung) {
+  if (!rows.length) return '<div class="desc">Không có dữ liệu.</div>';
+  let max = 0;
+  rows.forEach(r => r.vals.forEach(v => { if (v > max) max = v; }));
+  const head = '<tr><th>' + esc(title) + '</th>' + (withVung ? '<th>Vùng</th>' : '') +
+    labels.map((l, i) => '<th class="' + (i === labels.length - 1 ? 'cur' : '') + '">' + esc(l.replace('-20', '-')) + '</th>').join('') + '<th>So với tuần trước</th></tr>';
+  const body = rows.map(r => {
+    const chip = r.streak >= 2 ? '<span class="chip">Tăng ' + r.streak + ' tuần liền</span>' : '';
+    return '<tr><td title="' + esc(r.name) + '">' + esc(r.name) + chip + '</td>' + (withVung ? '<td>' + esc(r.vung) + '</td>' : '') +
+      r.vals.map((v, i) => '<td class="' + heatClass(v, max) + (i === r.vals.length - 1 ? ' cur' : '') + '">' + mil(v) + '</td>').join('') + '<td>' + momHtml(r.pct) + '</td></tr>';
+  }).join('');
+  return '<div class="table-wrap"><table class="tbl-heat"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
+}
+
+function khoSection(d) {
+  const dp = d.deep;
+  return '<section><h2>Kho và vùng chịu trách nhiệm theo 6 tuần</h2><div class="underline"></div>' +
+    '<p class="desc">Đơn vị: triệu đồng. Ô càng đậm là đền bù càng lớn trong bảng, cột vàng là tuần đang xem. Nhãn "Tăng N tuần liền" xuất hiện khi đền bù tăng từ 2 tuần liên tiếp.</p>' +
+    '<h3>Kho chịu trách nhiệm</h3>' + heatTable('Kho', dp.kho, dp.labels, true) +
+    '<h3>Vùng chịu trách nhiệm</h3>' + heatTable('Vùng', dp.vung, dp.labels, false) + '</section>';
+}
+
+function outTrendSection(d) {
+  const ot = d.deep.outTrend, w = d.week, acc = d.deep.outAcc, last = ot[ot.length - 1];
+  let streak = 0;
+  for (let k = ot.length - 1; k > 0; k--) {
+    if (ot[k].count > ot[k - 1].count) streak++;
+    else break;
+  }
+  const kpis = '<div class="kpis">' +
+    '<div class="kpi"><div class="label">Tỷ trọng giá trị</div><div class="value">' + last.share.toFixed(2) + '%</div><div class="sub">' + fmtMoney(last.val) + ' / ' + fmtMoney(last.den) + '</div></div>' +
+    '<div class="kpi"><div class="label">Tỷ trọng số đơn</div><div class="value">' + last.countShare.toFixed(2) + '%</div><div class="sub">' + fmtNum(last.count) + ' / ' + fmtNum(last.n) + ' đơn</div></div>' +
+    '<div class="kpi"><div class="label">Theo account</div><div class="value">SPB ' + fmtNum(acc.SPB) + ' · SPE ' + fmtNum(acc.SPE) + '</div><div class="sub">Số đơn bất thường ' + esc(w.label) + '</div></div></div>';
+  const bars = trendBars(ot.map(x => ({label: x.label, den: x.count, selected: x.selected})), 'Cột cam: tuần đang xem. Mỗi cột là số đơn bất thường của tuần.');
+  const rows = ot.map(x =>
+    '<tr><td>' + esc(x.label) + (x.selected ? ' (đang xem)' : '') + '</td><td>' + fmtNum(x.count) + '</td><td>' + fmtMoney(x.val) + '</td><td>' + x.share.toFixed(2) + '%</td><td>' + x.countShare.toFixed(2) + '%</td><td>' + fmtMoney(x.thr) + '</td></tr>').join('');
+  const note = streak >= 2
+    ? 'Số đơn bất thường tăng ' + streak + ' tuần liền (từ ' + ot[ot.length - 1 - streak].count + ' lên ' + last.count + ').'
+    : 'Số đơn bất thường chưa có xu hướng tăng liên tiếp từ 2 tuần.';
+  return '<section><h2>Đơn bất thường theo tuần</h2><div class="underline"></div>' +
+    '<p class="desc">Mỗi tuần dùng ngưỡng riêng: trung bình + ' + d.thresholds.outlierSigma + ' độ lệch chuẩn của chính tuần đó. Danh sách và nút tải đủ các đơn của tuần đang xem nằm ở mục "Đơn có giá trị bất thường" trong Tổng quan.</p>' +
+    kpis + '<h3>Số đơn bất thường 6 tuần</h3>' + bars +
+    '<div class="table-wrap"><table class="tbl-heat"><thead><tr><th>Tuần</th><th>Số đơn bất thường</th><th>Giá trị</th><th>Tỷ trọng giá trị</th><th>Tỷ trọng số đơn</th><th>Ngưỡng mỗi đơn</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<div class="sec-note">' + esc(note) + '</div></section>';
+}
+
+function leadSection(d) {
+  const ld = d.deep.lead, th = d.thresholds, w = d.week;
+  const row = (r, bold) =>
+    '<tr' + (bold ? ' style="font-weight:700;"' : '') + '><td>' + esc(r.name) + '</td><td>' + fmtNum(r.n) + '</td><td>' + (r.avg === null ? '—' : fmt1(r.avg)) + '</td><td>' +
+    (r.median === null ? '—' : fmt1(r.median)) + '</td><td>' + (r.p90 === null ? '—' : fmt1(r.p90)) + '</td><td>' + (r.n ? r.over.toFixed(1) + '%' : '—') + '</td><td>' + deltaDays(r.delta) + '</td></tr>';
+  const all = ld.valid + ld.invalid;
+  const note = all
+    ? 'Tính từ ngày hẹn lấy đến ngày duyệt eform (theo ngày). ' + fmtNum(ld.valid) + '/' + fmtNum(all) + ' đơn có ngày hẹn lấy hợp lệ, ' + fmtNum(ld.invalid) + ' đơn thiếu hoặc lệch ngày không được tính.'
+    : 'Không có đơn nào trong tuần.';
+  return '<section><h2>Thời gian xử lý đền bù</h2><div class="underline"></div>' +
+    '<p class="desc">Số ngày từ lúc hẹn lấy đến lúc duyệt đền bù của ' + esc(w.label) + ' theo loại yêu cầu. So sánh với tuần trước; số ngày tăng là đỏ, giảm là xanh.</p>' +
+    '<div class="table-wrap"><table class="tbl-heat"><thead><tr><th>Loại yêu cầu</th><th>Số đơn</th><th>TB (ngày)</th><th>Trung vị</th><th>P90</th><th>% trên ' + th.lead.overDays + ' ngày</th><th>So với tuần trước</th></tr></thead><tbody>' +
+    row(ld.total, true) + ld.rows.map(r => row(r, false)).join('') + '</tbody></table></div>' +
+    '<div class="sec-note">' + esc(note) + '</div></section>';
+}
+
+function repeatSection(d) {
+  const rp = d.deep.repeat, labels = d.deep.labels, th = d.thresholds;
+  const head = '<tr><th>Seller</th>' + labels.map((l, i) => '<th class="' + (i === labels.length - 1 ? 'cur' : '') + '">' + esc(l.replace('-20', '-')) + '</th>').join('') + '<th>Số tuần trong top ' + th.repeat[0] + '</th><th>Trạng thái</th></tr>';
+  let max = 0;
+  rp.forEach(r => r.vals.forEach(v => { if (v > max) max = v; }));
+  const body = rp.map(r =>
+    '<tr><td title="' + esc(r.name) + '">' + esc(r.name) + '</td>' +
+    r.vals.map((v, i) => '<td class="' + (r.inTop[i] ? heatClass(v, max) : 'mutedv') + (i === r.vals.length - 1 ? ' cur' : '') + '">' + mil(v) + '</td>').join('') +
+    '<td>' + r.weeks + '/6</td><td>' + (r.status === 'repeat' ? '<span class="flag">Lặp lại</span>' : '<span class="flag warn">Theo dõi</span>') + '</td></tr>').join('');
+  return '<section><h2>Seller xuất hiện nhiều tuần liên tiếp</h2><div class="underline"></div>' +
+    '<p class="desc">Seller nằm trong top ' + th.repeat[0] + ' đền bù từ ' + th.repeat[1] + '/6 tuần trở lên bị gắn "Lặp lại", từ ' + th.repeat[2] + '/6 tuần là "Theo dõi". Đây là nhóm nên làm việc trực tiếp vì xử lý một lần mà tuần sau vẫn quay lại. Đơn vị: triệu đồng; ô xám là tuần seller không nằm trong top.</p>' +
+    (rp.length
+      ? '<div class="table-wrap"><table class="tbl-heat"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>'
+      : '<p class="desc">Chưa có seller nào nằm trong top ' + th.repeat[0] + ' từ ' + th.repeat[2] + '/6 tuần.</p>') + '</section>';
+}
+
+function deepHtml(d) {
+  return sellersSection(d) + khoSection(d) + outTrendSection(d) + leadSection(d) + repeatSection(d);
+}
+
+function wireViews() {
+  document.querySelectorAll('.vtab').forEach(b => b.addEventListener('click', () => {
+    VIEW = b.dataset.v;
+    document.querySelectorAll('.vtab').forEach(x => x.classList.toggle('active', x === b));
+    document.getElementById('viewTq').classList.toggle('hide', VIEW !== 'tq');
+    document.getElementById('viewCs').classList.toggle('hide', VIEW !== 'cs');
+    window.scrollTo(0, 0);
+  }));
+}
+
 function render(d) {
   if (d.empty) {
     setControlsVisible(false);
@@ -446,12 +593,20 @@ function render(d) {
     '<li>Sản phẩm có giá trị đền bù cao: top ' + th.topProd.count + ', từ ' + fmtMoney(th.topProd.minValue) + '; mức Trung bình khi sản phẩm đầu bảng chiếm từ ' + th.topProd.alertShare + '% tổng</li>' +
     '<li>Tập trung: nhóm ngành / tuyến / kho từ ' + th.concentration.ng + '%, seller từ ' + th.concentration.se + '% tổng đền bù</li>' +
     '<li>Nhóm ngành chưa xác định từ ' + th.unmappedShare + '% tổng đền bù</li>' +
-    '<li>Đơn bất thường: vượt trung bình + ' + th.outlierSigma + ' độ lệch chuẩn</li></ul></section>';
+    '<li>Đơn bất thường: vượt trung bình + ' + th.outlierSigma + ' độ lệch chuẩn</li>' +
+    '<li>Seller lặp lại: nằm trong top ' + th.repeat[0] + ' từ ' + th.repeat[1] + '/6 tuần (Theo dõi từ ' + th.repeat[2] + '/6 tuần)</li>' +
+    '<li>Số đơn bất thường tăng từ ' + th.outTrendWeeks + ' tuần liền; kho tăng từ ' + th.streakFlag + ' tuần liền</li>' +
+    '<li>Thời gian xử lý: từ ' + th.lead.slowShare + '% đơn quá ' + th.lead.overDays + ' ngày, hoặc chậm thêm từ ' + th.lead.deltaDays + ' ngày so với tuần trước (tối thiểu ' + th.lead.minN + ' đơn)</li>' +
+    '<li>Seller tăng đột biến: từ ' + th.sellerSurgePct + '% so với trung bình 4 tuần và đền bù từ ' + fmtMoney(th.sellerMinValue) + '</li></ul></section>';
 
   const footer = '<div class="foot">Dữ liệu đến ' + esc(d.dataThrough) + ' · tổng hợp lúc ' + esc(d.generatedAt) + (d.fromCache ? ' (bộ nhớ đệm)' : '') + ' · ' + fmtNum(d.rows.total) + ' dòng</div>';
 
-  document.getElementById('app').innerHTML = kpis + flagsSection + sugSection + weekSection + monthSection + outSection + thrSection + footer;
+  const subnav = '<div class="vtabs"><button type="button" class="vtab' + (VIEW === 'tq' ? ' active' : '') + '" data-v="tq">Tổng quan</button><button type="button" class="vtab' + (VIEW === 'cs' ? ' active' : '') + '" data-v="cs">Chuyên sâu</button></div>';
+  document.getElementById('app').innerHTML = subnav +
+    '<div id="viewTq" class="view' + (VIEW === 'tq' ? '' : ' hide') + '">' + kpis + flagsSection + sugSection + weekSection + monthSection + outSection + thrSection + '</div>' +
+    '<div id="viewCs" class="view' + (VIEW === 'cs' ? '' : ' hide') + '">' + deepHtml(d) + '</div>' + footer;
   wireOutliers();
+  wireViews();
 }
 
 function mdTable(headers, rows) {
@@ -491,6 +646,24 @@ function buildMarkdown(d) {
   md += '## Tháng ' + m.label + '\n\n';
   md += mdTable(['Tháng', 'Đền bù', 'Số đơn'], m.trend.map(x => [x.label + (x.selected ? ' (đang xem)' : ''), fmtMoney(x.den), fmtNum(x.n)]));
   order.forEach(p => { md += '### ' + p[1] + '\n\n' + mdDim(p[1], m.dims[p[0]], monthCols); });
+  const dp = d.deep;
+  md += '## Chuyên sâu\n\n';
+  md += '### Seller tập trung\n\n' + mdTable(['Seller', 'Account', 'Số đơn', 'Đền bù', '% tổng tuần', 'Lũy kế %', 'So với TB 4 tuần', 'Cảnh báo'],
+    dp.sellers.rows.map(r => [r.name, r.acc, fmtNum(r.n), fmtMoney(r.cur), r.share.toFixed(2) + '%', r.cum.toFixed(2) + '%', r.pct === null ? 'Mới' : mdPct(r.pct), r.flag === 'surge' ? 'Tăng đột biến' : r.flag === 'new' ? 'Mới phát sinh' : '']));
+  const heatMd = (title, rows, withVung) => mdTable([title].concat(withVung ? ['Vùng'] : [], dp.labels, ['So với tuần trước']),
+    rows.map(r => [r.name + (r.streak >= 2 ? ' (tăng ' + r.streak + ' tuần liền)' : '')].concat(withVung ? [r.vung] : [], r.vals.map(v => mil(v)), [mdPct(r.pct)])));
+  md += '### Kho chịu trách nhiệm theo 6 tuần (triệu đồng)\n\n' + heatMd('Kho', dp.kho, true);
+  md += '### Vùng chịu trách nhiệm theo 6 tuần (triệu đồng)\n\n' + heatMd('Vùng', dp.vung, false);
+  md += '### Đơn bất thường theo tuần\n\n' + mdTable(['Tuần', 'Số đơn bất thường', 'Giá trị', 'Tỷ trọng giá trị', 'Tỷ trọng số đơn', 'Ngưỡng mỗi đơn'],
+    dp.outTrend.map(x => [x.label + (x.selected ? ' (đang xem)' : ''), fmtNum(x.count), fmtMoney(x.val), x.share.toFixed(2) + '%', x.countShare.toFixed(2) + '%', fmtMoney(x.thr)]));
+  const leadMd = r => [r.name, fmtNum(r.n), r.avg === null ? '—' : fmt1(r.avg), r.median === null ? '—' : fmt1(r.median), r.p90 === null ? '—' : fmt1(r.p90), r.n ? r.over.toFixed(1) + '%' : '—', r.delta === null ? '—' : (r.delta > 0 ? '+' : '') + fmt1(r.delta) + ' ngày'];
+  md += '### Thời gian xử lý đền bù (ngày hẹn lấy → ngày duyệt)\n\n' + mdTable(['Loại yêu cầu', 'Số đơn', 'TB (ngày)', 'Trung vị', 'P90', '% trên ' + d.thresholds.lead.overDays + ' ngày', 'So với tuần trước'],
+    [leadMd(dp.lead.total)].concat(dp.lead.rows.map(leadMd)));
+  md += '_' + fmtNum(dp.lead.valid) + '/' + fmtNum(dp.lead.valid + dp.lead.invalid) + ' đơn có ngày hẹn lấy hợp lệ._\n\n';
+  md += '### Seller xuất hiện nhiều tuần liên tiếp (triệu đồng)\n\n' + (dp.repeat.length
+    ? mdTable(['Seller'].concat(dp.labels, ['Số tuần trong top ' + d.thresholds.repeat[0], 'Trạng thái']),
+        dp.repeat.map(r => [r.name].concat(r.vals.map(v => mil(v)), [r.weeks + '/6', r.status === 'repeat' ? 'Lặp lại' : 'Theo dõi'])))
+    : '_Chưa có seller nào nằm trong top từ ' + d.thresholds.repeat[2] + '/6 tuần._\n\n');
   md += '## Đơn có giá trị bất thường — ' + w.label + '\n\n';
   md += d.outliers.list.length
     ? mdTable(['Mã đơn', 'Ngày duyệt', 'Account', 'Seller', 'Loại yêu cầu', 'Giá trị'], d.outliers.list.slice(0, 50).map(x => [x.ma, x.ngay, x.acc, x.seller, x.loai, fmtMoney(x.den)])) +
