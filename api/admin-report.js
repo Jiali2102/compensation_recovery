@@ -3,7 +3,7 @@ import { isConfigured, fetchMainCsv } from "../lib/bi.js";
 import { loadColumns, buildSummary } from "../lib/summary.js";
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
-let cache = { at: 0, data: null };
+let cache = { at: 0, cols: null, generatedAt: "" };
 let pending = null;
 
 function fmtNow() {
@@ -11,12 +11,21 @@ function fmtNow() {
   return d.toISOString().slice(0, 19).replace("T", " ");
 }
 
-async function compute() {
-  const upstream = await fetchMainCsv();
-  const cols = await loadColumns(upstream);
-  const data = buildSummary(cols);
-  data.generatedAt = fmtNow();
-  return data;
+async function getColumns(force) {
+  if (!force && cache.cols && Date.now() - cache.at < CACHE_TTL_MS) {
+    return { cols: cache.cols, generatedAt: cache.generatedAt, fromCache: true };
+  }
+  if (!pending) {
+    pending = (async () => {
+      const upstream = await fetchMainCsv();
+      return loadColumns(upstream);
+    })().finally(() => {
+      pending = null;
+    });
+  }
+  const cols = await pending;
+  cache = { at: Date.now(), cols, generatedAt: fmtNow() };
+  return { cols, generatedAt: cache.generatedAt, fromCache: false };
 }
 
 export default async function handler(req, res) {
@@ -44,17 +53,16 @@ export default async function handler(req, res) {
   }
 
   try {
-    const force = req.query.refresh === "1";
-    if (!force && cache.data && Date.now() - cache.at < CACHE_TTL_MS) {
-      res.status(200).json({ ...cache.data, fromCache: true });
-      return;
-    }
-    if (!pending) {
-      pending = compute().finally(() => { pending = null; });
-    }
-    const data = await pending;
-    cache = { at: Date.now(), data };
-    res.status(200).json({ ...data, fromCache: false });
+    const q = req.query || {};
+    const sel = {
+      week: /^\d{4}-\d{2}-\d{2}$/.test(String(q.week || "")) ? String(q.week) : null,
+      month: /^\d{4}-\d{2}$/.test(String(q.month || "")) ? String(q.month) : null,
+    };
+    const got = await getColumns(q.refresh === "1");
+    const data = buildSummary(got.cols, sel);
+    data.generatedAt = got.generatedAt;
+    data.fromCache = got.fromCache;
+    res.status(200).json(data);
   } catch (err) {
     console.error("admin-report.js error:", err.message);
     res.status(502).json({ error: "Lỗi khi tổng hợp dữ liệu" });
