@@ -88,7 +88,19 @@
   table.tbl-auto th:first-child,table.tbl-auto td:first-child{width:auto;white-space:nowrap;}
   table.tbl-auto td{overflow:visible;text-overflow:clip;}
 
-  .vtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px;}
+  .vtabs{position:sticky;top:0;z-index:60;display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 12px;padding:10px 0;background:var(--bg);box-shadow:0 8px 8px -8px rgba(0,0,0,.18);}
+  .vjump{display:none;gap:6px;flex-wrap:wrap;margin-left:12px;padding-left:14px;border-left:2px solid var(--border);}
+  .vjump.show{display:flex;}
+  .vjump button{font-family:inherit;font-weight:700;font-size:12.5px;border-radius:6px;padding:5px 10px;border:1px solid var(--border);background:#fff;color:var(--navy);cursor:pointer;}
+  .vjump button:hover{border-color:var(--orange);color:var(--orange-dark);}
+  section{scroll-margin-top:64px;}
+  .txtl{text-align:left;}
+  .warn-toggle{font-family:inherit;background:var(--bg);border:1px solid var(--border);border-radius:4px;width:20px;height:20px;line-height:1;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;margin-right:6px;padding:0;}
+  .warn-toggle:hover{background:#EAEDF3;}
+  tr.sub-row td{background:#FFF3EA;}
+  tr.sub-row td:first-child{border-left:4px solid var(--orange);padding-left:22px;}
+  tr.sub-head td{background:#FDE4CC;color:var(--orange-dark);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.3px;text-align:left;}
+  tr.sub-row td.cur{background:#FFE0B8;}
   .vtab{font-family:inherit;font-weight:700;font-size:13.5px;border-radius:999px;padding:7px 18px;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;}
   .vtab:hover{border-color:var(--orange);color:var(--orange-dark);}
   .vtab.active{background:var(--orange);border-color:var(--orange);color:#fff;}
@@ -103,8 +115,8 @@
   .h4c{background:rgba(254,95,0,.45);font-weight:700;}
   .mutedv{color:#9AA3B5;}
   .chip{display:inline-block;font-size:11px;font-weight:800;padding:1px 8px;border-radius:999px;background:#FDECEA;color:#C62828;margin-left:6px;white-space:nowrap;}
-  .flag{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;background:#FDECEA;color:#C62828;}
-  .flag.warn{background:#FFF8E1;color:#B98900;}
+  .badge{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;background:#FDECEA;color:#C62828;white-space:nowrap;}
+  .badge.warn{background:#FFF8E1;color:#B98900;}
   .sec-note{margin-top:12px;padding:10px 14px;border-left:4px solid var(--navy);background:#F3F6FB;border-radius:6px;font-size:13.5px;}
   @media print{
     body{background:#fff;}
@@ -399,7 +411,7 @@ function sellersSection(d) {
   const sl = d.deep.sellers, w = d.week, th = d.thresholds;
   if (!sl.rows.length) return '';
   const rows = sl.rows.map(r => {
-    const flag = r.flag === 'surge' ? '<span class="flag">Tăng đột biến</span>' : r.flag === 'new' ? '<span class="flag warn">Mới phát sinh</span>' : '';
+    const flag = r.flag === 'surge' ? '<span class="badge">Tăng đột biến</span>' : r.flag === 'new' ? '<span class="badge warn">Mới phát sinh</span>' : '';
     const cmp = r.pct === null ? '<span class="new-tag">Mới</span>' : momHtml(r.pct);
     return '<tr><td title="' + esc(r.name) + '">' + esc(r.name) + '</td><td>' + esc(r.acc) + '</td><td>' + fmtNum(r.n) + '</td><td>' + fmtMoney(r.cur) +
       '</td><td><span class="sharebar" style="width:' + Math.max(2, Math.min(60, r.share * 4)) + 'px"></span>' + r.share.toFixed(2) + '%</td><td>' + r.cum.toFixed(2) + '%</td><td>' + cmp + '</td><td>' + flag + '</td></tr>';
@@ -407,7 +419,7 @@ function sellersSection(d) {
   const hot = sl.rows.filter(r => r.flag === 'surge').map(r => r.name);
   const note = 'Top ' + sl.rows.length + ' seller chiếm ' + sl.topShare.toFixed(2) + '% tổng đền bù ' + w.label + ', các seller còn lại chiếm ' + (100 - sl.topShare).toFixed(2) + '%.' +
     (hot.length ? ' ' + hot.slice(0, 3).join(', ') + ' tăng mạnh so với nền 4 tuần trước, nên làm việc với seller này trước.' : '');
-  return '<section><h2>Seller tập trung và cảnh báo tăng đột biến</h2><div class="underline"></div>' +
+  return '<section id="sec-seller"><h2>Seller tập trung và cảnh báo tăng đột biến</h2><div class="underline"></div>' +
     '<p class="desc">Top ' + sl.rows.length + ' seller của ' + esc(w.label) + ': tỷ trọng, lũy kế và mức thay đổi so với trung bình 4 tuần trước. Seller tăng từ ' + th.sellerSurgePct + '% và đền bù từ ' + fmtMoney(th.sellerMinValue) + ' bị gắn cờ.</p>' +
     '<div class="table-wrap"><table class="tbl-heat"><thead><tr><th>Seller</th><th>Account</th><th>Số đơn</th><th>Đền bù</th><th>% tổng tuần</th><th>Lũy kế %</th><th>So với TB 4 tuần</th><th>Cảnh báo</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
     '<div class="sec-note">' + esc(note) + '</div></section>';
@@ -429,7 +441,7 @@ function heatTable(title, rows, labels, withVung) {
 
 function khoSection(d) {
   const dp = d.deep;
-  return '<section><h2>Kho và vùng chịu trách nhiệm theo 6 tuần</h2><div class="underline"></div>' +
+  return '<section id="sec-kho"><h2>Kho và vùng chịu trách nhiệm theo 6 tuần</h2><div class="underline"></div>' +
     '<p class="desc">Đơn vị: triệu đồng. Ô càng đậm là đền bù càng lớn trong bảng, cột vàng là tuần đang xem. Nhãn "Tăng N tuần liền" xuất hiện khi đền bù tăng từ 2 tuần liên tiếp.</p>' +
     '<h3>Kho chịu trách nhiệm</h3>' + heatTable('Kho', dp.kho, dp.labels, true) +
     '<h3>Vùng chịu trách nhiệm</h3>' + heatTable('Vùng', dp.vung, dp.labels, false) + '</section>';
@@ -452,7 +464,7 @@ function outTrendSection(d) {
   const note = streak >= 2
     ? 'Số đơn bất thường tăng ' + streak + ' tuần liền (từ ' + ot[ot.length - 1 - streak].count + ' lên ' + last.count + ').'
     : 'Số đơn bất thường chưa có xu hướng tăng liên tiếp từ 2 tuần.';
-  return '<section><h2>Đơn bất thường theo tuần</h2><div class="underline"></div>' +
+  return '<section id="sec-out"><h2>Đơn bất thường theo tuần</h2><div class="underline"></div>' +
     '<p class="desc">Mỗi tuần dùng ngưỡng riêng: trung bình + ' + d.thresholds.outlierSigma + ' độ lệch chuẩn của chính tuần đó. Danh sách và nút tải đủ các đơn của tuần đang xem nằm ở mục "Đơn có giá trị bất thường" trong Tổng quan.</p>' +
     kpis + '<h3>Số đơn bất thường 6 tuần</h3>' + bars +
     '<div class="table-wrap"><table class="tbl-heat"><thead><tr><th>Tuần</th><th>Số đơn bất thường</th><th>Giá trị</th><th>Tỷ trọng giá trị</th><th>Tỷ trọng số đơn</th><th>Ngưỡng mỗi đơn</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
@@ -468,31 +480,59 @@ function leadSection(d) {
   const note = all
     ? 'Tính từ ngày hẹn lấy đến ngày duyệt eform (theo ngày). ' + fmtNum(ld.valid) + '/' + fmtNum(all) + ' đơn có ngày hẹn lấy hợp lệ, ' + fmtNum(ld.invalid) + ' đơn thiếu hoặc lệch ngày không được tính.'
     : 'Không có đơn nào trong tuần.';
-  return '<section><h2>Thời gian xử lý đền bù</h2><div class="underline"></div>' +
+  return '<section id="sec-lead"><h2>Thời gian xử lý đền bù</h2><div class="underline"></div>' +
     '<p class="desc">Số ngày từ lúc hẹn lấy đến lúc duyệt đền bù của ' + esc(w.label) + ' theo loại yêu cầu. So sánh với tuần trước; số ngày tăng là đỏ, giảm là xanh.</p>' +
     '<div class="table-wrap"><table class="tbl-heat"><thead><tr><th>Loại yêu cầu</th><th>Số đơn</th><th>TB (ngày)</th><th>Trung vị</th><th>P90</th><th>% trên ' + th.lead.overDays + ' ngày</th><th>So với tuần trước</th></tr></thead><tbody>' +
     row(ld.total, true) + ld.rows.map(r => row(r, false)).join('') + '</tbody></table></div>' +
     '<div class="sec-note">' + esc(note) + '</div></section>';
 }
 
+let RP_SEQ = 0;
+
 function repeatSection(d) {
   const rp = d.deep.repeat, labels = d.deep.labels, th = d.thresholds;
-  const head = '<tr><th>Seller</th>' + labels.map((l, i) => '<th class="' + (i === labels.length - 1 ? 'cur' : '') + '">' + esc(l.replace('-20', '-')) + '</th>').join('') + '<th>Số tuần trong top ' + th.repeat[0] + '</th><th>Trạng thái</th></tr>';
+  const lblCells = (cls) => labels.map((l, i) => '<th class="' + (i === labels.length - 1 ? 'cur' : '') + '">' + esc(l.replace('-20', '-')) + '</th>').join('');
+  const head = '<tr><th>Seller</th>' + lblCells() + '<th>Số tuần trong top ' + th.repeat[0] + '</th><th class="txtl">Lý do lớn nhất (6 tuần)</th><th>Trạng thái</th></tr>';
   let max = 0;
   rp.forEach(r => r.vals.forEach(v => { if (v > max) max = v; }));
-  const body = rp.map(r =>
-    '<tr><td title="' + esc(r.name) + '">' + esc(r.name) + '</td>' +
-    r.vals.map((v, i) => '<td class="' + (r.inTop[i] ? heatClass(v, max) : 'mutedv') + (i === r.vals.length - 1 ? ' cur' : '') + '">' + mil(v) + '</td>').join('') +
-    '<td>' + r.weeks + '/6</td><td>' + (r.status === 'repeat' ? '<span class="flag">Lặp lại</span>' : '<span class="flag warn">Theo dõi</span>') + '</td></tr>').join('');
-  return '<section><h2>Seller xuất hiện nhiều tuần liên tiếp</h2><div class="underline"></div>' +
-    '<p class="desc">Seller nằm trong top ' + th.repeat[0] + ' đền bù từ ' + th.repeat[1] + '/6 tuần trở lên bị gắn "Lặp lại", từ ' + th.repeat[2] + '/6 tuần là "Theo dõi". Đây là nhóm nên làm việc trực tiếp vì xử lý một lần mà tuần sau vẫn quay lại. Đơn vị: triệu đồng; ô xám là tuần seller không nằm trong top.</p>' +
+  const subRows = (title, rows, id) => rows.length
+    ? '<tr class="sub-row sub-head" data-p="' + id + '" style="display:none;"><td colspan="10">' + esc(title) + '</td></tr>' +
+      rows.map(x => '<tr class="sub-row" data-p="' + id + '" style="display:none;"><td title="' + esc(x.name) + '">' + esc(x.name) + '</td>' +
+        x.vals.map((v, i) => '<td class="' + (i === x.vals.length - 1 ? 'cur' : '') + '">' + mil(v) + '</td>').join('') +
+        '<td colspan="3" class="txtl">Tổng 6 tuần ' + mil(x.tot) + ' triệu · ' + x.share.toFixed(1) + '% của seller</td></tr>').join('')
+    : '';
+  const body = rp.map(r => {
+    const id = 'rp' + (RP_SEQ++);
+    const main = r.main ? esc(r.main.name) + ' <span class="mom-flat">(' + r.main.share.toFixed(0) + '%)</span>' : '—';
+    return '<tr><td title="' + esc(r.name) + '"><button class="warn-toggle" type="button" data-target="' + id + '">+</button>' + esc(r.name) + '</td>' +
+      r.vals.map((v, i) => '<td class="' + (r.inTop[i] ? heatClass(v, max) : 'mutedv') + (i === r.vals.length - 1 ? ' cur' : '') + '">' + mil(v) + '</td>').join('') +
+      '<td>' + r.weeks + '/6</td><td class="txtl">' + main + '</td><td>' + (r.status === 'repeat' ? '<span class="badge">Lặp lại</span>' : '<span class="badge warn">Theo dõi</span>') + '</td></tr>' +
+      subRows('Theo loại yêu cầu', r.byLo, id) + subRows('Theo sản phẩm (san_pham_vn)', r.byRt, id);
+  }).join('');
+  return '<section id="sec-repeat"><h2>Seller xuất hiện nhiều tuần liên tiếp</h2><div class="underline"></div>' +
+    '<p class="desc">Seller nằm trong top ' + th.repeat[0] + ' đền bù từ ' + th.repeat[1] + '/6 tuần trở lên bị gắn "Lặp lại", từ ' + th.repeat[2] + '/6 tuần là "Theo dõi". Bấm (+) để xem seller đó bị đền theo loại yêu cầu và theo sản phẩm. Đơn vị: triệu đồng; ô xám là tuần seller không nằm trong top.</p>' +
     (rp.length
       ? '<div class="table-wrap"><table class="tbl-heat"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>'
       : '<p class="desc">Chưa có seller nào nằm trong top ' + th.repeat[0] + ' từ ' + th.repeat[2] + '/6 tuần.</p>') + '</section>';
 }
 
+function matrixSection(d) {
+  const mx = d.deep.matrix, w = d.week;
+  if (!mx.rows.length) return '';
+  let max = 0;
+  mx.rows.forEach(r => r.cells.concat([r.other]).forEach(v => { if (v > max) max = v; }));
+  const head = '<tr><th>Seller</th>' + mx.cols.map(c => '<th>' + esc(c) + '</th>').join('') + '<th>Khác</th><th>Tổng</th><th class="txtl">Lý do lớn nhất</th></tr>';
+  const body = mx.rows.map(r =>
+    '<tr><td title="' + esc(r.name) + '">' + esc(r.name) + '</td>' +
+    r.cells.concat([r.other]).map(v => '<td class="' + heatClass(v, max) + '">' + mil(v) + '</td>').join('') +
+    '<td>' + mil(r.total) + '</td><td class="txtl">' + (r.main ? esc(r.main.name) + ' <span class="mom-flat">(' + r.main.share.toFixed(0) + '%)</span>' : '—') + '</td></tr>').join('');
+  return '<section id="sec-matrix"><h2>Seller × loại yêu cầu</h2><div class="underline"></div>' +
+    '<p class="desc">Top ' + mx.rows.length + ' seller của ' + esc(w.label) + ' và đền bù theo từng loại yêu cầu (triệu đồng). Ô càng đậm là đền bù càng lớn, giúp thấy seller bị đền chủ yếu vì lý do nào để chọn hướng xử lý phù hợp.</p>' +
+    '<div class="table-wrap"><table class="tbl-heat"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div></section>';
+}
+
 function deepHtml(d) {
-  return sellersSection(d) + khoSection(d) + outTrendSection(d) + leadSection(d) + repeatSection(d);
+  return sellersSection(d) + matrixSection(d) + khoSection(d) + outTrendSection(d) + leadSection(d) + repeatSection(d);
 }
 
 function wireViews() {
@@ -501,9 +541,22 @@ function wireViews() {
     document.querySelectorAll('.vtab').forEach(x => x.classList.toggle('active', x === b));
     document.getElementById('viewTq').classList.toggle('hide', VIEW !== 'tq');
     document.getElementById('viewCs').classList.toggle('hide', VIEW !== 'cs');
+    document.getElementById('vjump').classList.toggle('show', VIEW === 'cs');
     window.scrollTo(0, 0);
   }));
+  document.querySelectorAll('#vjump button').forEach(b => b.addEventListener('click', () => {
+    const el = document.getElementById(b.dataset.j);
+    if (el) el.scrollIntoView({behavior: 'smooth', block: 'start'});
+  }));
 }
+
+document.getElementById('app').addEventListener('click', e => {
+  const b = e.target.closest('.warn-toggle');
+  if (!b) return;
+  const open = b.textContent === '+';
+  document.querySelectorAll('tr[data-p="' + b.dataset.target + '"]').forEach(r => { r.style.display = open ? 'table-row' : 'none'; });
+  b.textContent = open ? '−' : '+';
+});
 
 function render(d) {
   if (d.empty) {
@@ -601,7 +654,9 @@ function render(d) {
 
   const footer = '<div class="foot">Dữ liệu đến ' + esc(d.dataThrough) + ' · tổng hợp lúc ' + esc(d.generatedAt) + (d.fromCache ? ' (bộ nhớ đệm)' : '') + ' · ' + fmtNum(d.rows.total) + ' dòng</div>';
 
-  const subnav = '<div class="vtabs"><button type="button" class="vtab' + (VIEW === 'tq' ? ' active' : '') + '" data-v="tq">Tổng quan</button><button type="button" class="vtab' + (VIEW === 'cs' ? ' active' : '') + '" data-v="cs">Chuyên sâu</button></div>';
+  const jumps = [['sec-seller', 'Seller'], ['sec-matrix', 'Seller × loại yêu cầu'], ['sec-kho', 'Kho / vùng'], ['sec-out', 'Đơn bất thường'], ['sec-lead', 'Thời gian xử lý'], ['sec-repeat', 'Seller lặp lại']];
+  const subnav = '<div class="vtabs"><button type="button" class="vtab' + (VIEW === 'tq' ? ' active' : '') + '" data-v="tq">Tổng quan</button><button type="button" class="vtab' + (VIEW === 'cs' ? ' active' : '') + '" data-v="cs">Chuyên sâu</button>' +
+    '<div class="vjump' + (VIEW === 'cs' ? ' show' : '') + '" id="vjump">' + jumps.map(j => '<button type="button" data-j="' + j[0] + '">' + esc(j[1]) + '</button>').join('') + '</div></div>';
   document.getElementById('app').innerHTML = subnav +
     '<div id="viewTq" class="view' + (VIEW === 'tq' ? '' : ' hide') + '">' + kpis + flagsSection + sugSection + weekSection + monthSection + outSection + thrSection + '</div>' +
     '<div id="viewCs" class="view' + (VIEW === 'cs' ? '' : ' hide') + '">' + deepHtml(d) + '</div>' + footer;
@@ -660,9 +715,12 @@ function buildMarkdown(d) {
   md += '### Thời gian xử lý đền bù (ngày hẹn lấy → ngày duyệt)\n\n' + mdTable(['Loại yêu cầu', 'Số đơn', 'TB (ngày)', 'Trung vị', 'P90', '% trên ' + d.thresholds.lead.overDays + ' ngày', 'So với tuần trước'],
     [leadMd(dp.lead.total)].concat(dp.lead.rows.map(leadMd)));
   md += '_' + fmtNum(dp.lead.valid) + '/' + fmtNum(dp.lead.valid + dp.lead.invalid) + ' đơn có ngày hẹn lấy hợp lệ._\n\n';
+  md += '### Seller × loại yêu cầu (triệu đồng)\n\n' + mdTable(['Seller'].concat(dp.matrix.cols, ['Khác', 'Tổng', 'Lý do lớn nhất']),
+    dp.matrix.rows.map(r => [r.name].concat(r.cells.map(v => mil(v)), [mil(r.other), mil(r.total), r.main ? r.main.name + ' (' + r.main.share.toFixed(0) + '%)' : '—'])));
   md += '### Seller xuất hiện nhiều tuần liên tiếp (triệu đồng)\n\n' + (dp.repeat.length
-    ? mdTable(['Seller'].concat(dp.labels, ['Số tuần trong top ' + d.thresholds.repeat[0], 'Trạng thái']),
-        dp.repeat.map(r => [r.name].concat(r.vals.map(v => mil(v)), [r.weeks + '/6', r.status === 'repeat' ? 'Lặp lại' : 'Theo dõi'])))
+    ? mdTable(['Seller'].concat(dp.labels, ['Số tuần trong top ' + d.thresholds.repeat[0], 'Lý do lớn nhất (6 tuần)', 'Trạng thái']),
+        dp.repeat.map(r => [r.name].concat(r.vals.map(v => mil(v)), [r.weeks + '/6', r.main ? r.main.name + ' (' + r.main.share.toFixed(0) + '%)' : '—', r.status === 'repeat' ? 'Lặp lại' : 'Theo dõi']))) +
+      dp.repeat.map(r => '- **' + r.name + '**: loại yêu cầu ' + r.byLo.slice(0, 3).map(x => x.name + ' ' + x.share.toFixed(0) + '%').join(', ') + '; sản phẩm ' + r.byRt.slice(0, 3).map(x => x.name + ' ' + x.share.toFixed(0) + '%').join(', ')).join('\n') + '\n\n'
     : '_Chưa có seller nào nằm trong top từ ' + d.thresholds.repeat[2] + '/6 tuần._\n\n');
   md += '## Đơn có giá trị bất thường — ' + w.label + '\n\n';
   md += d.outliers.list.length
