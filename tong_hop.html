@@ -146,7 +146,7 @@ const isEmbedded = (function () {
 const CTL_CSS = `
 .th-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 .th-lbl{font-size:12px;color:#FFF6EF;}
-.th-pick{font-family:"Cambria","Times New Roman",Georgia,serif;font-size:13px;font-weight:700;color:#E04F00;background:#fff;border:none;border-radius:6px;padding:6px 8px;cursor:pointer;max-width:340px;}
+.th-pick{font-family:"Cambria","Times New Roman",Georgia,serif;font-size:13px;font-weight:700;color:#E04F00;background:#fff;border:none;border-radius:6px;padding:6px 8px;cursor:pointer;max-width:420px;}
 .th-ghost{font-family:inherit;background:transparent;border:1px solid rgba(255,255,255,0.4);color:#fff;font-size:12px;padding:5px 12px;border-radius:14px;cursor:pointer;}
 .th-ghost:hover{background:rgba(255,255,255,0.15);}
 .th-export-wrap{position:relative;display:inline-block;}
@@ -281,7 +281,7 @@ function fillSelects(d) {
     sel.appendChild(o);
   };
   c.selW.innerHTML = '';
-  d.periods.weeks.forEach((w, i) => addOpt(c.selW, w.key, w.label + ' · ' + w.start + ' → ' + w.end + (i === 0 ? ' (mới nhất)' : '')));
+  d.periods.weeks.forEach((w, i) => addOpt(c.selW, w.key, w.label + ' · ' + w.start + ' → ' + w.end + ' · duyệt ' + w.approveFrom + (i === 0 ? ' (mới nhất)' : '')));
   c.selW.value = d.selected.week;
   c.selM.innerHTML = '';
   d.periods.months.forEach((m, i) => addOpt(c.selM, m.key, m.label + (i === 0 ? ' (mới nhất)' : '')));
@@ -609,9 +609,9 @@ function render(d) {
 
   const weekSection =
     '<section><h2>Tuần ' + esc(w.label) + '</h2><div class="underline"></div>' +
-    '<p class="desc">' + esc(w.start) + ' → ' + esc(w.end) + ' (thứ 4 → thứ 3) · tính cả tuần, so với ' + esc(w.total.prevLabel) +
-    (w.isLatest ? ' · dữ liệu mới nhất đến ' + esc(d.dataThrough) : '') + ' · phạm vi SPE + SPB</p>' +
-    '<h3>Xu hướng 8 tuần</h3>' + trendBars(w.trend, 'Cột cam: tuần đang xem. Mỗi tuần tính từ thứ 4 đến hết thứ 3.') +
+    '<p class="desc">' + esc(w.start) + ' → ' + esc(w.end) + ' (thứ 4 → thứ 3) · đền bù duyệt eform từ ' + esc(w.approveFrom) + ' · tính cả tuần, so với ' + esc(w.total.prevLabel) +
+    (w.isLatest ? ' · dữ liệu duyệt mới nhất đến ' + esc(d.dataThrough) : '') + ' · phạm vi SPE + SPB</p>' +
+    '<h3>Xu hướng 8 tuần</h3>' + trendBars(w.trend, 'Cột cam: tuần đang xem. Mỗi tuần tính từ thứ 4 đến hết thứ 3, đền bù của tuần được duyệt eform vào thứ 4 ngay sau đó.') +
     dimGrid(w.dims, weekCols, gridRows) + '</section>';
 
   const monthSection =
@@ -684,7 +684,7 @@ function buildMarkdown(d) {
   const weekCols = [w.label, w.total.prevLabel];
   const monthCols = m.mode === 'mtd' ? ['Lũy kế ' + m.label, 'Cùng kỳ ' + m.prevLabel] : [m.label, m.prevLabel];
   let md = '# TỔNG HỢP ĐỀN BÙ — TUẦN ' + w.label + ' & THÁNG ' + m.label + '\n\n';
-  md += '_Tuần ' + w.start + ' → ' + w.end + ' (thứ 4 → thứ 3) · dữ liệu đến ' + d.dataThrough + ' · tổng hợp lúc ' + d.generatedAt + ' · phạm vi SPE + SPB_\n\n';
+  md += '_Tuần ' + w.start + ' → ' + w.end + ' (thứ 4 → thứ 3), đền bù duyệt eform từ ' + w.approveFrom + ' · dữ liệu duyệt đến ' + d.dataThrough + ' · tổng hợp lúc ' + d.generatedAt + ' · phạm vi SPE + SPB_\n\n';
   md += '## Chỉ số chính\n\n';
   md += '- **Đền bù ' + w.label + ':** ' + fmtMoney(w.total.cur) + ' (' + mdPct(w.total.pct) + ' so với ' + w.total.prevLabel + ': ' + fmtMoney(w.total.prev) + ')\n';
   md += '- **Số đơn ' + w.label + ':** ' + fmtNum(w.total.n) + '\n';
@@ -696,7 +696,7 @@ function buildMarkdown(d) {
   md += '## Đề xuất\n\n' + d.suggestions.map(s => '- **[' + levelName(s.level) + ']** ' + s.text).join('\n') + '\n\n';
   const order = [['acc', 'Account'], ['ch', 'Kênh'], ['lo', 'Loại yêu cầu'], ['ng', 'Nhóm ngành'], ['rt', 'Sản phẩm'], ['tu', 'Tuyến'], ['vu', 'Vùng'], ['kh', 'Kho'], ['se', 'Seller']];
   md += '## Tuần ' + w.label + '\n\n';
-  md += mdTable(['Tuần', 'Khoảng ngày', 'Đền bù', 'Số đơn'], w.trend.map(x => [x.label + (x.selected ? ' (đang xem)' : ''), x.start + ' → ' + x.end, fmtMoney(x.den), fmtNum(x.n)]));
+  md += mdTable(['Tuần', 'Khoảng ngày', 'Đền bù', 'Số đơn'], w.trend.map(x => [x.label + (x.selected ? ' (đang xem)' : ''), x.start + ' → ' + x.end + ' (duyệt ' + x.approveFrom + ')', fmtMoney(x.den), fmtNum(x.n)]));
   order.forEach(p => { md += '### ' + p[1] + '\n\n' + mdDim(p[1], w.dims[p[0]], weekCols); });
   md += '## Tháng ' + m.label + '\n\n';
   md += mdTable(['Tháng', 'Đền bù', 'Số đơn'], m.trend.map(x => [x.label + (x.selected ? ' (đang xem)' : ''), fmtMoney(x.den), fmtNum(x.n)]));
