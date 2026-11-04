@@ -126,6 +126,7 @@
     .vtabs{display:none;}
   }
 </style>
+<script src="data-client.js"></script>
 </head>
 <body>
 
@@ -350,7 +351,8 @@ async function loadReport(refresh) {
   if (SEL.week) qs.push('week=' + encodeURIComponent(SEL.week));
   if (SEL.month) qs.push('month=' + encodeURIComponent(SEL.month));
   try {
-    const r = await fetch('/api/admin-report' + (qs.length ? '?' + qs.join('&') : ''), {credentials: 'include', cache: 'no-store'});
+    const crf = (window.CRData && window.CRData.fetch) || ((window.top && window.top.CRData && window.top.CRData.fetch)) || fetch;
+    const r = await crf('/api/admin-report' + (qs.length ? '?' + qs.join('&') : ''), {credentials: 'include', cache: 'no-store'});
     if (r.status === 401) return showMessage('Phiên đăng nhập đã hết hạn', 'Vui lòng tải lại trang và đăng nhập lại.', true);
     if (r.status === 403) return showForm('');
     if (!r.ok) return showMessage('Không tổng hợp được dữ liệu', 'Nguồn dữ liệu đang bận hoặc chưa sẵn sàng. Bấm tải lại để thử lại.', true);
