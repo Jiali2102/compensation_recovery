@@ -12,6 +12,8 @@ import {
   createCsvRecordParser,
 } from "../lib/bi.js";
 import { legacyConfigured, loadLegacy } from "../lib/legacy.js";
+import { useRelaySession } from "../lib/bi.js";
+import { relayConfigured, makeTicket, openBlob, RELAY_URL } from "../lib/relay.js";
 
 async function compareNganh() {
   const legacy = await loadLegacy();
@@ -124,6 +126,18 @@ export default async function handler(req, res) {
     return;
   }
 
+  if (req.query.ticket === "1") {
+    res.status(200).json({ ok: true, t: relayConfigured() ? makeTicket(session.email) : null, relayUrl: RELAY_URL });
+    return;
+  }
+  const relayBlob = req.headers["x-bi-relay"];
+  const relaySess = relayBlob ? openBlob(relayBlob) : null;
+  useRelaySession(relaySess);
+  if (relayConfigured() && !relaySess && req.query.debug !== "nganh") {
+    res.status(428).json({ error: "NEED_RELAY" });
+    return;
+  }
+
   if (!isConfigured()) {
     console.error("data.js: thiếu cấu hình Environment Variables (BI_BASE / BI_CARD_MAIN / BI_KEY hoặc BI_AUTH_URL + BI_AUTH_KEY)");
     res.status(500).json({ error: "Lỗi cấu hình máy chủ" });
@@ -181,7 +195,9 @@ export default async function handler(req, res) {
     await streamTransformed(upstream, res, mode);
   } catch (err) {
     console.error("data.js error:", err.message);
-    if (!res.headersSent) {
+    if (!res.headersSent && err.message === "RELAY_SESSION_EXPIRED") {
+      res.status(428).json({ error: "NEED_RELAY" });
+    } else if (!res.headersSent) {
       res.status(502).json({ error: "Lỗi khi lấy dữ liệu" });
     } else {
       res.end();
