@@ -1,5 +1,6 @@
 import { adminConfigured, getAccess } from "../lib/admin.js";
-import { isConfigured, fetchMainCsv } from "../lib/bi.js";
+import { isConfigured, fetchMainCsv, useRelaySession } from "../lib/bi.js";
+import { relayConfigured, openBlob } from "../lib/relay.js";
 import { loadColumns, buildSummary } from "../lib/summary.js";
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
@@ -52,6 +53,16 @@ export default async function handler(req, res) {
     return;
   }
 
+  const relayBlob = req.headers["x-bi-relay"];
+  const relaySess = relayBlob ? openBlob(relayBlob) : null;
+  useRelaySession(relaySess);
+  const q0 = req.query || {};
+  const hasCache = cache.cols && Date.now() - cache.at < CACHE_TTL_MS && q0.refresh !== "1";
+  if (relayConfigured() && !relaySess && !hasCache) {
+    res.status(428).json({ error: "NEED_RELAY" });
+    return;
+  }
+
   try {
     const q = req.query || {};
     const sel = {
@@ -65,6 +76,7 @@ export default async function handler(req, res) {
     res.status(200).json(data);
   } catch (err) {
     console.error("admin-report.js error:", err.message);
-    res.status(502).json({ error: "Lỗi khi tổng hợp dữ liệu" });
+    if (err.message === "RELAY_SESSION_EXPIRED") res.status(428).json({ error: "NEED_RELAY" });
+    else res.status(502).json({ error: "Lỗi khi tổng hợp dữ liệu" });
   }
 }
