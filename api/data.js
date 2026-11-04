@@ -91,6 +91,32 @@ function fmtNow() {
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
 
+  if (req.query.ping === "1") {
+    const probe = async (url, headers) => {
+      if (!url) return { configured: false };
+      const t0 = Date.now();
+      try {
+        const r = await fetch(url, { headers: headers || {} });
+        const raw = await r.text().catch(() => "");
+        return { host: new URL(url).host, status: r.status, ms: Date.now() - t0, server: r.headers.get("server") || "", cfMitigated: r.headers.get("cf-mitigated") || "", cfRay: r.headers.get("cf-ray") || "", cloudflareChallenge: r.headers.get("cf-mitigated") === "challenge" || /just a moment|cf-chl/i.test(raw) };
+      } catch (e) {
+        return { error: String((e && e.message) || e) };
+      }
+    };
+    const base = (process.env.BI_BASE || "").replace(/\/+$/, "");
+    const out = {
+      build: "cr-ping-2026-11-04",
+      at: new Date().toISOString(),
+      auth_source: await probe(process.env.BI_AUTH_URL, process.env.BI_AUTH_KEY ? { "x-api-key": "khong-dung-ma-that" } : {}),
+      bi: await probe(base ? `${base}/api/health` : "")
+    };
+    out.verdict = out.auth_source.cloudflareChallenge || out.bi.cloudflareChallenge
+      ? `Cloudflare đang chặn: ${[out.auth_source.cloudflareChallenge ? "nguồn phiên BI (BI_AUTH_URL)" : "", out.bi.cloudflareChallenge ? "BI (BI_BASE)" : ""].filter(Boolean).join(" + ")}`
+      : "Không thấy Cloudflare chặn";
+    res.status(200).json(out);
+    return;
+  }
+
   const SESSION_SECRET = process.env.SESSION_SECRET;
   const session = SESSION_SECRET ? verifySession(req.headers.cookie, SESSION_SECRET) : null;
   if (!session) {
