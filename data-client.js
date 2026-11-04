@@ -88,12 +88,22 @@
     return parsed.data.filter(r => r.ma_dh).map(normRow);
   }
 
+  const RELAY_KEY = "cr_relay_v1";
+  const RELAY_REUSE_MS = 55 * 60000;
   const relay = { blob: null, at: 0 };
   async function getRelay(force) {
     const h = hostWin();
-    const shared = h.__crRelay;
-    if (!force && shared && shared.blob && Date.now() - shared.at < 4 * 60000) return shared.blob;
-    if (!force && relay.blob && Date.now() - relay.at < 4 * 60000) return relay.blob;
+    if (!force) {
+      const shared = h.__crRelay;
+      if (shared && shared.blob && Date.now() - shared.at < RELAY_REUSE_MS) return shared.blob;
+      if (relay.blob && Date.now() - relay.at < RELAY_REUSE_MS) return relay.blob;
+      try {
+        const saved = JSON.parse(localStorage.getItem(RELAY_KEY) || "null");
+        if (saved && saved.blob && Date.now() - saved.at < RELAY_REUSE_MS) { relay.blob = saved.blob; relay.at = saved.at; return saved.blob; }
+      } catch (e) {}
+    } else {
+      try { localStorage.removeItem(RELAY_KEY); } catch (e) {}
+    }
     const t = await fetch("/api/data?ticket=1", { credentials: "include", cache: "no-store" });
     if (t.status === 401) throw new Error("__UNAUTHORIZED__");
     const tj = await t.json().catch(() => ({}));
@@ -104,6 +114,7 @@
     relay.blob = j.blob;
     relay.at = Date.now();
     try { h.__crRelay = { blob: j.blob, at: relay.at }; } catch (e) {}
+    try { localStorage.setItem(RELAY_KEY, JSON.stringify({ blob: j.blob, at: relay.at })); } catch (e) {}
     return j.blob;
   }
 
