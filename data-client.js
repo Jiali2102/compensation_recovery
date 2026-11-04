@@ -88,8 +88,37 @@
     return parsed.data.filter(r => r.ma_dh).map(normRow);
   }
 
+  const relay = { blob: null, at: 0 };
+  async function getRelay(force) {
+    const h = hostWin();
+    const shared = h.__crRelay;
+    if (!force && shared && shared.blob && Date.now() - shared.at < 4 * 60000) return shared.blob;
+    if (!force && relay.blob && Date.now() - relay.at < 4 * 60000) return relay.blob;
+    const t = await fetch("/api/data?ticket=1", { credentials: "include", cache: "no-store" });
+    if (t.status === 401) throw new Error("__UNAUTHORIZED__");
+    const tj = await t.json().catch(() => ({}));
+    if (!tj.t) return null;
+    const r = await fetch(tj.relayUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ t: tj.t }) });
+    const j = await r.json().catch(() => null);
+    if (!j || !j.ok || !j.blob) throw new Error("Không lấy được phiên BI từ Hệ thống" + (j && j.message ? ": " + j.message : " (HTTP " + r.status + ")"));
+    relay.blob = j.blob;
+    relay.at = Date.now();
+    try { h.__crRelay = { blob: j.blob, at: relay.at }; } catch (e) {}
+    return j.blob;
+  }
+
+  async function crFetch(url, opts) {
+    const o = opts || {};
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const blob = await getRelay(attempt > 0);
+      const res = await fetch(url, { ...o, headers: { ...(o.headers || {}), ...(blob ? { "x-bi-relay": blob } : {}) } });
+      if (res.status === 428 && attempt === 0) continue;
+      return res;
+    }
+  }
+
   async function doLoad() {
-    const metaRes = await fetch("/api/data?meta=1", { credentials: "include", cache: "no-store" });
+    const metaRes = await crFetch("/api/data?meta=1", { credentials: "include", cache: "no-store" });
     if (metaRes.status === 401) throw new Error("__UNAUTHORIZED__");
     if (!metaRes.ok) throw new Error("Không kiểm tra được phiên bản dữ liệu (HTTP " + metaRes.status + ")");
     const meta = await metaRes.json();
@@ -106,7 +135,7 @@
       }
     }
 
-    const r = await fetch("/api/data", { credentials: "include", cache: "no-store" });
+    const r = await crFetch("/api/data", { credentials: "include", cache: "no-store" });
     if (r.status === 401) throw new Error("__UNAUTHORIZED__");
     if (!r.ok) throw new Error("Không tải được dữ liệu (HTTP " + r.status + ")");
     const fetchedAt = r.headers.get("X-Data-Fetched-At") || "";
@@ -160,5 +189,5 @@
     return b;
   }
 
-  window.CRData = { load, clear, refresh, statusLabel, makeRefreshButton };
+  window.CRData = { load, clear, refresh, statusLabel, makeRefreshButton, fetch: crFetch };
 })();
