@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   try {
     let data = await callViaQueue("cr_session", { t: "cr_session" });
     let tries = 0;
-    while (data && data.pending === true && tries < 20) {
+    while (data && data.pending === true && tries < 27) {
       await new Promise(r => setTimeout(r, 2500));
       data = await callViaQueue("cr_session", { t: "cr_session" }, data.pj);
       tries++;
@@ -28,4 +28,4 @@ export default async function handler(req, res) {
   }
 }
 
-export const config = { maxDuration: 60 };
+export const config = { maxDuration: 90 };
