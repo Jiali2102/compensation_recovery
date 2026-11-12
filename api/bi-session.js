@@ -14,7 +14,11 @@ export default async function handler(req, res) {
       data = await callViaQueue("cr_session", { t: "cr_session" }, data.pj);
       tries++;
     }
-    if (!data || data.ok === false) {
+    if (!data || data.pending === true) {
+      res.status(502).json({ ok: false, message: "Hệ thống xử lý quá lâu, thử lại." });
+      return;
+    }
+    if (data.ok === false || !data.mbSession) {
       res.status(502).json({ ok: false, message: (data && data.message) || "Không lấy được phiên BI." });
       return;
     }
