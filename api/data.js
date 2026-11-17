@@ -93,6 +93,13 @@ function fmtNow() {
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
 
+  const SESSION_SECRET = process.env.SESSION_SECRET;
+  const session = SESSION_SECRET ? verifySession(req.headers.cookie, SESSION_SECRET) : null;
+  if (!session) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+
   if (req.query.ping === "1") {
     const probe = async (url, headers) => {
       if (!url) return { configured: false };
@@ -116,13 +123,6 @@ export default async function handler(req, res) {
       ? `Cloudflare đang chặn: ${[out.auth_source.cloudflareChallenge ? "nguồn phiên BI (BI_AUTH_URL)" : "", out.bi.cloudflareChallenge ? "BI (BI_BASE)" : ""].filter(Boolean).join(" + ")}`
       : "Không thấy Cloudflare chặn";
     res.status(200).json(out);
-    return;
-  }
-
-  const SESSION_SECRET = process.env.SESSION_SECRET;
-  const session = SESSION_SECRET ? verifySession(req.headers.cookie, SESSION_SECRET) : null;
-  if (!session) {
-    res.status(401).json({ error: "Unauthorized" });
     return;
   }
 
