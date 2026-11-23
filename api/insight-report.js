@@ -89,11 +89,22 @@ export default async function handler(req, res) {
     const sanPhams = parseList(q.sanPhams);
     const sellers = parseList(q.sellers);
     const khachHangs = parseList(q.khachHangs);
+    const loaiYeuCau = parseList(q.loaiYeuCau);
     const from = DATE_RE.test(String(q.from || "")) ? String(q.from) : null;
     const to = DATE_RE.test(String(q.to || "")) ? String(q.to) : null;
     const dateField = ["tao", "hen_lay", "eform"].includes(q.dateField) ? q.dateField : "tao";
 
-    const buffer = await buildInsightWorkbook(rows, { groups, items, sanPhams, sellers, khachHangs, from, to, dateField });
+    const buffer = await buildInsightWorkbook(rows, {
+      groups,
+      items,
+      sanPhams,
+      sellers,
+      khachHangs,
+      loaiYeuCau,
+      from,
+      to,
+      dateField,
+    });
     const nameParts = groups.concat(items).slice(0, 2).map(fileSafe).filter(Boolean);
     const fname = "Insight_" + (nameParts.length ? nameParts.join("_") : "TuyChinh") + ".xlsx";
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
