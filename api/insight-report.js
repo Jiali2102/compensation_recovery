@@ -1,7 +1,7 @@
 import { adminConfigured, getAccess } from "../lib/admin.js";
 import { isConfigured, fetchMainCsv, useRelaySession } from "../lib/bi.js";
 import { relayConfigured, openBlob } from "../lib/relay.js";
-import { loadInsightRows, buildCategoryTree, buildInsightWorkbook } from "../lib/insight.js";
+import { loadInsightRows, buildFacets, buildInsightWorkbook } from "../lib/insight.js";
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
 let cache = { at: 0, rows: null };
@@ -73,12 +73,6 @@ export default async function handler(req, res) {
   try {
     const rows = await getRows(q.refresh === "1");
 
-    if (q.action === "meta") {
-      const tree = buildCategoryTree(rows);
-      res.status(200).json(tree);
-      return;
-    }
-
     const parseList = v => {
       if (v === undefined || v === null || v === "") return [];
       const arr = Array.isArray(v) ? v : String(v).split("\u0001");
@@ -93,18 +87,15 @@ export default async function handler(req, res) {
     const from = DATE_RE.test(String(q.from || "")) ? String(q.from) : null;
     const to = DATE_RE.test(String(q.to || "")) ? String(q.to) : null;
     const dateField = ["tao", "hen_lay", "eform"].includes(q.dateField) ? q.dateField : "tao";
+    const sel = { groups, items, sanPhams, sellers, khachHangs, loaiYeuCau, from, to, dateField };
 
-    const buffer = await buildInsightWorkbook(rows, {
-      groups,
-      items,
-      sanPhams,
-      sellers,
-      khachHangs,
-      loaiYeuCau,
-      from,
-      to,
-      dateField,
-    });
+    if (q.action === "meta" || q.action === "facets") {
+      const facets = buildFacets(rows, sel);
+      res.status(200).json(facets);
+      return;
+    }
+
+    const buffer = await buildInsightWorkbook(rows, sel);
     const nameParts = groups.concat(items).slice(0, 2).map(fileSafe).filter(Boolean);
     const fname = "Insight_" + (nameParts.length ? nameParts.join("_") : "TuyChinh") + ".xlsx";
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
