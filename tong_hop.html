@@ -598,8 +598,8 @@ function matrixSection(d, sfx) {
     '<div class="table-wrap"><table class="tbl-heat"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div></section>';
 }
 
-let INSIGHT_TREE = null;
-let insightMetaLoading = false;
+let INSIGHT_FACETS = null;
+let insightFacetsLoading = false;
 let insightGlobalWired = false;
 let insightOpenKey = null;
 const INSIGHT_TIP = 'Chọn bộ lọc (bấm vào từng ô, có thể chọn nhiều giá trị mỗi loại), tuỳ chỉnh khoảng thời gian và mốc thời gian, rồi tải báo cáo Excel đầy đủ: Tổng quan, theo tháng, theo loại yêu cầu, theo kênh WH/MP, theo mức hư hỏng, theo nhóm hàng/mặt hàng, theo seller, theo nguồn — tất cả bằng công thức tham chiếu sheet Data, kèm biểu đồ.';
@@ -635,24 +635,35 @@ function fmtVnd(n) {
   return Math.round(n).toLocaleString('vi-VN') + ' đ';
 }
 
+const INSIGHT_FACET_KEY = {
+  khach_hang: 'khachHangs', loai_yeu_cau: 'loaiYeuCau', seller: 'sellers',
+  nhom_hang: 'groups', san_pham_vn: 'items', san_pham_en: 'sanPhams',
+};
+
 function insightOptionsFor(key) {
-  if (!INSIGHT_TREE) return [];
-  if (key === 'khach_hang') return INSIGHT_TREE.khachHangs;
-  if (key === 'loai_yeu_cau') return INSIGHT_TREE.loaiYeuCau;
-  if (key === 'seller') return INSIGHT_TREE.sellers;
-  if (key === 'nhom_hang') return INSIGHT_TREE.groups;
-  const selectedGroups = insightSelected.nhom_hang;
-  const groupsInScope = selectedGroups.size ? INSIGHT_TREE.groups.filter(g => selectedGroups.has(g.name)) : INSIGHT_TREE.groups;
-  const sub = key === 'san_pham_vn' ? 'items' : 'sanPhams';
-  const map = new Map();
-  groupsInScope.forEach(g => {
-    g[sub].forEach(it => {
-      const e = map.get(it.name) || {name: it.name, count: 0, value: 0};
-      e.count += it.count; e.value += it.value;
-      map.set(it.name, e);
-    });
+  if (!INSIGHT_FACETS) return [];
+  return INSIGHT_FACETS[INSIGHT_FACET_KEY[key]] || [];
+}
+
+function insightSelParams() {
+  const qs = [];
+  INSIGHT_FILTERS.forEach(f => {
+    const vals = [...insightSelected[f.key]];
+    if (vals.length) qs.push(f.param + '=' + encodeURIComponent(vals.join('\u0001')));
   });
-  return [...map.values()].sort((a, b) => b.value - a.value);
+  const from = document.getElementById('inFrom').value;
+  const to = document.getElementById('inTo').value;
+  if (from) qs.push('from=' + encodeURIComponent(from));
+  if (to) qs.push('to=' + encodeURIComponent(to));
+  qs.push('dateField=' + encodeURIComponent(document.getElementById('inDateField').value));
+  return qs;
+}
+
+function fetchInsightFacets() {
+  const crf = (window.CRData && window.CRData.fetch) || (window.top && window.top.CRData && window.top.CRData.fetch) || fetch;
+  const qs = insightSelParams();
+  return crf('/api/insight-report?action=facets&' + qs.join('&'), {credentials: 'include', cache: 'no-store'})
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
 }
 
 function insightLabelHtml(key) {
@@ -699,9 +710,20 @@ function toggleInsightPanel(key, btn) {
   insightDraft[key] = new Set(insightSelected[key]);
   const panel = document.getElementById('inPanel-' + key);
   panel.classList.add('show');
-  renderInsightPanel(key, '');
-  const input = panel.querySelector('input[type=search]');
-  if (input) setTimeout(() => input.focus(), 0);
+  panel.innerHTML = '<div class="in-empty">Đang tải...</div>';
+  insightFacetsLoading = true;
+  fetchInsightFacets()
+    .then(facets => {
+      INSIGHT_FACETS = facets;
+      if (insightOpenKey !== key) return;
+      renderInsightPanel(key, '');
+      const input = panel.querySelector('input[type=search]');
+      if (input) setTimeout(() => input.focus(), 0);
+    })
+    .catch(() => {
+      if (insightOpenKey === key) panel.innerHTML = '<div class="in-empty">Không tải được danh sách, thử lại.</div>';
+    })
+    .finally(() => { insightFacetsLoading = false; });
 }
 
 function renderInsightPanel(key, query) {
@@ -739,29 +761,6 @@ function renderInsightPanel(key, query) {
   });
 }
 
-function loadInsightMeta() {
-  if (INSIGHT_TREE || insightMetaLoading) {
-    if (INSIGHT_TREE) renderInsightBar();
-    return;
-  }
-  insightMetaLoading = true;
-  const st = document.getElementById('inStatus');
-  if (st) st.textContent = 'Đang tải danh sách bộ lọc...';
-  const crf = (window.CRData && window.CRData.fetch) || (window.top && window.top.CRData && window.top.CRData.fetch) || fetch;
-  crf('/api/insight-report?action=meta', {credentials: 'include', cache: 'no-store'})
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(tree => {
-      INSIGHT_TREE = tree;
-      insightMetaLoading = false;
-      renderInsightBar();
-      if (!tree.groups.length) { const s = document.getElementById('inStatus'); if (s) s.textContent = 'Không có dữ liệu nào trong phạm vi SPE + SPB.'; }
-    })
-    .catch(() => {
-      insightMetaLoading = false;
-      if (st) st.textContent = 'Không tải được danh sách bộ lọc. Thử bấm lại tab Insight.';
-    });
-}
-
 function wireInsight() {
   const btn = document.getElementById('inDownload');
   const st = document.getElementById('inStatus');
@@ -772,16 +771,7 @@ function wireInsight() {
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAllInsightPanels(); });
   }
   btn.addEventListener('click', () => {
-    const qs = [];
-    INSIGHT_FILTERS.forEach(f => {
-      const vals = [...insightSelected[f.key]];
-      if (vals.length) qs.push(f.param + '=' + encodeURIComponent(vals.join('\u0001')));
-    });
-    const from = document.getElementById('inFrom').value;
-    const to = document.getElementById('inTo').value;
-    if (from) qs.push('from=' + encodeURIComponent(from));
-    if (to) qs.push('to=' + encodeURIComponent(to));
-    qs.push('dateField=' + encodeURIComponent(document.getElementById('inDateField').value));
+    const qs = insightSelParams();
     btn.disabled = true;
     const prevText = btn.textContent;
     btn.textContent = 'Đang tạo file...';
@@ -806,7 +796,7 @@ function wireInsight() {
         btn.textContent = prevText;
       });
   });
-  loadInsightMeta();
+  renderInsightBar();
 }
 
 function deepHtml(d, sfx) {
@@ -823,7 +813,7 @@ function wireViews() {
     document.getElementById('viewIn').classList.toggle('hide', VIEW !== 'in');
     document.getElementById('vjump').classList.toggle('show', VIEW === 'cs');
     window.scrollTo(0, 0);
-    if (VIEW === 'in') loadInsightMeta();
+
   }));
   document.querySelectorAll('#vjump button').forEach(b => b.addEventListener('click', () => {
     const el = document.getElementById(b.dataset.j);
