@@ -137,8 +137,14 @@
 let REPORT = null;
 let OUT = {list: [], count: 0, label: '', expanded: false, q: ''};
 let VIEW = 'tq';
+let BASIS = null;
 let SEL = {week: null, month: null};
 let ctl = null;
+
+function pickData(basis) {
+  if (!REPORT) return null;
+  return basis === 'hen_lay' ? REPORT.henLay : REPORT;
+}
 
 const isEmbedded = (function () {
   try { return !!(window.parent && window.parent !== window && window.parent.document); } catch (e) { return false; }
@@ -282,7 +288,8 @@ function fillSelects(d) {
     sel.appendChild(o);
   };
   c.selW.innerHTML = '';
-  d.periods.weeks.forEach((w, i) => addOpt(c.selW, w.key, w.label + ' · ' + w.start + ' → ' + w.end + ' · duyệt ' + w.approveFrom + (i === 0 ? ' (mới nhất)' : '')));
+  const isHLSel = BASIS === 'hen_lay';
+  d.periods.weeks.forEach((w, i) => addOpt(c.selW, w.key, w.label + ' · ' + w.start + ' → ' + w.end + (isHLSel ? '' : ' · duyệt ' + w.approveFrom) + (i === 0 ? ' (mới nhất)' : '')));
   c.selW.value = d.selected.week;
   c.selM.innerHTML = '';
   d.periods.months.forEach((m, i) => addOpt(c.selM, m.key, m.label + (i === 0 ? ' (mới nhất)' : '')));
@@ -319,7 +326,7 @@ function showForm(errText) {
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({password: input.value})
       });
-      if (r.ok) { loadReport(false); return; }
+      if (r.ok) { showBasisChooser(); return; }
       if (r.status === 401) { showMessage('Phiên đăng nhập đã hết hạn', 'Vui lòng tải lại trang và đăng nhập lại.', true); return; }
       showForm(r.status === 403 ? 'Mật khẩu không đúng.' : 'Không thể xác thực lúc này, vui lòng thử lại.');
     } catch (e) {
@@ -338,9 +345,30 @@ async function init() {
     const g = await r.json();
     if (!g.allowed) return showMessage('Chưa được cấp quyền', 'Tài khoản của bạn chưa nằm trong danh sách được xem trang này. Vui lòng liên hệ quản trị để được cấp quyền.', false);
     if (!g.unlocked) return showForm('');
-    loadReport(false);
+    showBasisChooser();
   } catch (e) {
     showMessage('Không truy cập được', 'Không kết nối được máy chủ, vui lòng thử lại.', true);
+  }
+}
+
+function showBasisChooser() {
+  setControlsVisible(false);
+  document.getElementById('app').innerHTML =
+    '<div class="gate" style="max-width:560px;"><div class="bar"></div><h2>Xem tổng hợp đền bù theo mốc thời gian nào?</h2>' +
+    '<p>Chọn mốc thời gian dùng để tính tuần và tháng cho báo cáo. Có thể đổi lại bất cứ lúc nào.</p>' +
+    '<button class="btn primary" type="button" id="bcEform" style="width:100%;margin-bottom:10px;padding:12px;">Theo ngày duyệt eform<br><span style="font-weight:400;font-size:12px;">Tuần tính thứ 4 → thứ 3, như hiện tại</span></button>' +
+    '<button class="btn" type="button" id="bcHenLay" style="width:100%;padding:12px;">Theo ngày hẹn lấy<br><span style="font-weight:400;font-size:12px;">Tuần tính thứ 2 → Chủ nhật, theo cột thoi_gian_hen_lay</span></button></div>';
+  document.getElementById('bcEform').addEventListener('click', () => chooseBasis('eform'));
+  document.getElementById('bcHenLay').addEventListener('click', () => chooseBasis('hen_lay'));
+}
+
+function chooseBasis(basis) {
+  BASIS = basis;
+  SEL = {week: null, month: null};
+  if (REPORT) {
+    render(pickData(basis), basis);
+  } else {
+    loadReport(false);
   }
 }
 
@@ -348,8 +376,13 @@ async function loadReport(refresh) {
   document.getElementById('app').innerHTML = '<div class="loading">Đang tổng hợp dữ liệu (có thể mất vài giây)...</div>';
   const qs = [];
   if (refresh) qs.push('refresh=1');
-  if (SEL.week) qs.push('week=' + encodeURIComponent(SEL.week));
-  if (SEL.month) qs.push('month=' + encodeURIComponent(SEL.month));
+  if (BASIS === 'hen_lay') {
+    if (SEL.week) qs.push('hlWeek=' + encodeURIComponent(SEL.week));
+    if (SEL.month) qs.push('hlMonth=' + encodeURIComponent(SEL.month));
+  } else {
+    if (SEL.week) qs.push('week=' + encodeURIComponent(SEL.week));
+    if (SEL.month) qs.push('month=' + encodeURIComponent(SEL.month));
+  }
   try {
     const crf = (window.CRData && window.CRData.fetch) || ((window.top && window.top.CRData && window.top.CRData.fetch)) || fetch;
     const r = await crf('/api/admin-report' + (qs.length ? '?' + qs.join('&') : ''), {credentials: 'include', cache: 'no-store'});
@@ -357,7 +390,7 @@ async function loadReport(refresh) {
     if (r.status === 403) return showForm('');
     if (!r.ok) return showMessage('Không tổng hợp được dữ liệu', 'Nguồn dữ liệu đang bận hoặc chưa sẵn sàng. Bấm tải lại để thử lại.', true);
     REPORT = await r.json();
-    render(REPORT);
+    render(pickData(BASIS), BASIS);
   } catch (e) {
     showMessage('Không tổng hợp được dữ liệu', 'Không kết nối được máy chủ, vui lòng thử lại.', true);
   }
@@ -409,7 +442,8 @@ function deltaDays(p) {
   return '<span class="mom-flat">0,0 ngày</span>';
 }
 
-function sellersSection(d) {
+function sellersSection(d, sfx) {
+  sfx = sfx || '';
   const sl = d.deep.sellers, w = d.week, th = d.thresholds;
   if (!sl.rows.length) return '';
   const rows = sl.rows.map(r => {
@@ -421,7 +455,7 @@ function sellersSection(d) {
   const hot = sl.rows.filter(r => r.flag === 'surge').map(r => r.name);
   const note = 'Top ' + sl.rows.length + ' seller chiếm ' + sl.topShare.toFixed(2) + '% tổng đền bù ' + w.label + ', các seller còn lại chiếm ' + (100 - sl.topShare).toFixed(2) + '%.' +
     (hot.length ? ' ' + hot.slice(0, 3).join(', ') + ' tăng mạnh so với nền 4 tuần trước, nên làm việc với seller này trước.' : '');
-  return '<section id="sec-seller"><h2>Seller tập trung và cảnh báo tăng đột biến</h2><div class="underline"></div>' +
+  return '<section id="sec-seller' + sfx + '"><h2>Seller tập trung và cảnh báo tăng đột biến</h2><div class="underline"></div>' +
     '<p class="desc">Top ' + sl.rows.length + ' seller của ' + esc(w.label) + ': tỷ trọng, lũy kế và mức thay đổi so với trung bình 4 tuần trước. Seller tăng từ ' + th.sellerSurgePct + '% và đền bù từ ' + fmtMoney(th.sellerMinValue) + ' bị gắn cờ.</p>' +
     '<div class="table-wrap"><table class="tbl-heat"><thead><tr><th>Seller</th><th>Account</th><th>Số đơn</th><th>Đền bù</th><th>% tổng tuần</th><th>Lũy kế %</th><th>So với TB 4 tuần</th><th>Cảnh báo</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
     '<div class="sec-note">' + esc(note) + '</div></section>';
@@ -441,15 +475,17 @@ function heatTable(title, rows, labels, withVung) {
   return '<div class="table-wrap"><table class="tbl-heat"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>';
 }
 
-function khoSection(d) {
+function khoSection(d, sfx) {
+  sfx = sfx || '';
   const dp = d.deep;
-  return '<section id="sec-kho"><h2>Kho và vùng chịu trách nhiệm theo 6 tuần</h2><div class="underline"></div>' +
+  return '<section id="sec-kho' + sfx + '"><h2>Kho và vùng chịu trách nhiệm theo 6 tuần</h2><div class="underline"></div>' +
     '<p class="desc">Đơn vị: triệu đồng. Ô càng đậm là đền bù càng lớn trong bảng, cột vàng là tuần đang xem. Nhãn "Tăng N tuần liền" xuất hiện khi đền bù tăng từ 2 tuần liên tiếp.</p>' +
     '<h3>Kho chịu trách nhiệm</h3>' + heatTable('Kho', dp.kho, dp.labels, true) +
     '<h3>Vùng chịu trách nhiệm</h3>' + heatTable('Vùng', dp.vung, dp.labels, false) + '</section>';
 }
 
-function outTrendSection(d) {
+function outTrendSection(d, sfx) {
+  sfx = sfx || '';
   const ot = d.deep.outTrend, w = d.week, acc = d.deep.outAcc, last = ot[ot.length - 1];
   let streak = 0;
   for (let k = ot.length - 1; k > 0; k--) {
@@ -466,14 +502,15 @@ function outTrendSection(d) {
   const note = streak >= 2
     ? 'Số đơn bất thường tăng ' + streak + ' tuần liền (từ ' + ot[ot.length - 1 - streak].count + ' lên ' + last.count + ').'
     : 'Số đơn bất thường chưa có xu hướng tăng liên tiếp từ 2 tuần.';
-  return '<section id="sec-out"><h2>Đơn bất thường theo tuần</h2><div class="underline"></div>' +
+  return '<section id="sec-out' + sfx + '"><h2>Đơn bất thường theo tuần</h2><div class="underline"></div>' +
     '<p class="desc">Mỗi tuần dùng ngưỡng riêng: trung bình + ' + d.thresholds.outlierSigma + ' độ lệch chuẩn của chính tuần đó. Danh sách và nút tải đủ các đơn của tuần đang xem nằm ở mục "Đơn có giá trị bất thường" trong Tổng quan.</p>' +
     kpis + '<h3>Số đơn bất thường 6 tuần</h3>' + bars +
     '<div class="table-wrap"><table class="tbl-heat"><thead><tr><th>Tuần</th><th>Số đơn bất thường</th><th>Giá trị</th><th>Tỷ trọng giá trị</th><th>Tỷ trọng số đơn</th><th>Ngưỡng mỗi đơn</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
     '<div class="sec-note">' + esc(note) + '</div></section>';
 }
 
-function leadSection(d) {
+function leadSection(d, sfx) {
+  sfx = sfx || '';
   const ld = d.deep.lead, th = d.thresholds, w = d.week;
   const row = (r, bold) =>
     '<tr' + (bold ? ' style="font-weight:700;"' : '') + '><td>' + esc(r.name) + '</td><td>' + fmtNum(r.n) + '</td><td>' + (r.avg === null ? '—' : fmt1(r.avg)) + '</td><td>' +
@@ -482,7 +519,7 @@ function leadSection(d) {
   const note = all
     ? 'Tính từ ngày hẹn lấy đến ngày duyệt eform (theo ngày). ' + fmtNum(ld.valid) + '/' + fmtNum(all) + ' đơn có ngày hẹn lấy hợp lệ, ' + fmtNum(ld.invalid) + ' đơn thiếu hoặc lệch ngày không được tính.'
     : 'Không có đơn nào trong tuần.';
-  return '<section id="sec-lead"><h2>Thời gian xử lý đền bù</h2><div class="underline"></div>' +
+  return '<section id="sec-lead' + sfx + '"><h2>Thời gian xử lý đền bù</h2><div class="underline"></div>' +
     '<p class="desc">Số ngày từ lúc hẹn lấy đến lúc duyệt đền bù của ' + esc(w.label) + ' theo loại yêu cầu. So sánh với tuần trước; số ngày tăng là đỏ, giảm là xanh.</p>' +
     '<div class="table-wrap"><table class="tbl-heat"><thead><tr><th>Loại yêu cầu</th><th>Số đơn</th><th>TB (ngày)</th><th>Trung vị</th><th>P90</th><th>% trên ' + th.lead.overDays + ' ngày</th><th>So với tuần trước</th></tr></thead><tbody>' +
     row(ld.total, true) + ld.rows.map(r => row(r, false)).join('') + '</tbody></table></div>' +
@@ -491,7 +528,8 @@ function leadSection(d) {
 
 let RP_SEQ = 0;
 
-function repeatSection(d) {
+function repeatSection(d, sfx) {
+  sfx = sfx || '';
   const rp = d.deep.repeat, labels = d.deep.labels, th = d.thresholds;
   const lblCells = (cls) => labels.map((l, i) => '<th class="' + (i === labels.length - 1 ? 'cur' : '') + '">' + esc(l.replace('-20', '-')) + '</th>').join('');
   const head = '<tr><th>Seller</th>' + lblCells() + '<th>Số tuần trong top ' + th.repeat[0] + '</th><th class="txtl">Lý do lớn nhất (6 tuần)</th><th>Trạng thái</th></tr>';
@@ -511,14 +549,15 @@ function repeatSection(d) {
       '<td>' + r.weeks + '/6</td><td class="txtl">' + main + '</td><td>' + (r.status === 'repeat' ? '<span class="badge">Lặp lại</span>' : '<span class="badge warn">Theo dõi</span>') + '</td></tr>' +
       subRows('Theo loại yêu cầu', r.byLo, id) + subRows('Theo sản phẩm (san_pham_vn)', r.byRt, id);
   }).join('');
-  return '<section id="sec-repeat"><h2>Seller xuất hiện nhiều tuần liên tiếp</h2><div class="underline"></div>' +
+  return '<section id="sec-repeat' + sfx + '"><h2>Seller xuất hiện nhiều tuần liên tiếp</h2><div class="underline"></div>' +
     '<p class="desc">Seller nằm trong top ' + th.repeat[0] + ' đền bù từ ' + th.repeat[1] + '/6 tuần trở lên bị gắn "Lặp lại", từ ' + th.repeat[2] + '/6 tuần là "Theo dõi". Bấm (+) để xem seller đó bị đền theo loại yêu cầu và theo sản phẩm. Đơn vị: triệu đồng; ô xám là tuần seller không nằm trong top.</p>' +
     (rp.length
       ? '<div class="table-wrap"><table class="tbl-heat"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div>'
       : '<p class="desc">Chưa có seller nào nằm trong top ' + th.repeat[0] + ' từ ' + th.repeat[2] + '/6 tuần.</p>') + '</section>';
 }
 
-function matrixSection(d) {
+function matrixSection(d, sfx) {
+  sfx = sfx || '';
   const mx = d.deep.matrix, w = d.week;
   if (!mx.rows.length) return '';
   let max = 0;
@@ -528,13 +567,14 @@ function matrixSection(d) {
     '<tr><td title="' + esc(r.name) + '">' + esc(r.name) + '</td>' +
     r.cells.concat([r.other]).map(v => '<td class="' + heatClass(v, max) + '">' + mil(v) + '</td>').join('') +
     '<td>' + mil(r.total) + '</td><td class="txtl">' + (r.main ? esc(r.main.name) + ' <span class="mom-flat">(' + r.main.share.toFixed(0) + '%)</span>' : '—') + '</td></tr>').join('');
-  return '<section id="sec-matrix"><h2>Seller × loại yêu cầu</h2><div class="underline"></div>' +
+  return '<section id="sec-matrix' + sfx + '"><h2>Seller × loại yêu cầu</h2><div class="underline"></div>' +
     '<p class="desc">Top ' + mx.rows.length + ' seller của ' + esc(w.label) + ' và đền bù theo từng loại yêu cầu (triệu đồng). Ô càng đậm là đền bù càng lớn, giúp thấy seller bị đền chủ yếu vì lý do nào để chọn hướng xử lý phù hợp.</p>' +
     '<div class="table-wrap"><table class="tbl-heat"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div></section>';
 }
 
-function deepHtml(d) {
-  return sellersSection(d) + matrixSection(d) + khoSection(d) + outTrendSection(d) + leadSection(d) + repeatSection(d);
+function deepHtml(d, sfx) {
+  sfx = sfx || '';
+  return sellersSection(d, sfx) + matrixSection(d, sfx) + khoSection(d, sfx) + outTrendSection(d, sfx) + leadSection(d, sfx) + repeatSection(d, sfx);
 }
 
 function wireViews() {
@@ -560,10 +600,16 @@ document.getElementById('app').addEventListener('click', e => {
   b.textContent = open ? '−' : '+';
 });
 
-function render(d) {
+function render(d, basis) {
+  basis = basis || 'eform';
+  BASIS = basis;
+  const isHL = basis === 'hen_lay';
   if (d.empty) {
     setControlsVisible(false);
-    document.getElementById('app').innerHTML = '<div class="loading">Nguồn dữ liệu chưa có dòng nào để tổng hợp.</div>';
+    document.getElementById('app').innerHTML = '<div class="loading">Nguồn dữ liệu chưa có dòng nào để tổng hợp' + (isHL ? ' theo hẹn lấy' : '') + '.</div>' +
+      '<div style="text-align:center;"><button class="btn" type="button" id="btnSwitchBasis0">⇄ Đổi mốc thời gian</button></div>';
+    const b0 = document.getElementById('btnSwitchBasis0');
+    if (b0) b0.addEventListener('click', showBasisChooser);
     return;
   }
   fillSelects(d);
@@ -609,11 +655,18 @@ function render(d) {
     [['se', 'Seller'], null]
   ];
 
+  const weekDesc = isHL
+    ? esc(w.start) + ' → ' + esc(w.end) + ' (thứ 2 → Chủ nhật, theo ngày hẹn lấy) · tính cả tuần, so với ' + esc(w.total.prevLabel) +
+      (w.isLatest ? ' · dữ liệu hẹn lấy mới nhất đến ' + esc(d.dataThrough) : '') + ' · phạm vi SPE + SPB'
+    : esc(w.start) + ' → ' + esc(w.end) + ' (thứ 4 → thứ 3) · đền bù duyệt eform từ ' + esc(w.approveFrom) + ' · tính cả tuần, so với ' + esc(w.total.prevLabel) +
+      (w.isLatest ? ' · dữ liệu duyệt mới nhất đến ' + esc(d.dataThrough) : '') + ' · phạm vi SPE + SPB';
+  const weekTrendNote = isHL
+    ? 'Cột cam: tuần đang xem. Mỗi tuần tính từ thứ 2 đến hết Chủ nhật theo ngày hẹn lấy.'
+    : 'Cột cam: tuần đang xem. Mỗi tuần tính từ thứ 4 đến hết thứ 3, đền bù của tuần được duyệt eform vào thứ 4 ngay sau đó.';
   const weekSection =
-    '<section><h2>Tuần ' + esc(w.label) + '</h2><div class="underline"></div>' +
-    '<p class="desc">' + esc(w.start) + ' → ' + esc(w.end) + ' (thứ 4 → thứ 3) · đền bù duyệt eform từ ' + esc(w.approveFrom) + ' · tính cả tuần, so với ' + esc(w.total.prevLabel) +
-    (w.isLatest ? ' · dữ liệu duyệt mới nhất đến ' + esc(d.dataThrough) : '') + ' · phạm vi SPE + SPB</p>' +
-    '<h3>Xu hướng 8 tuần</h3>' + trendBars(w.trend, 'Cột cam: tuần đang xem. Mỗi tuần tính từ thứ 4 đến hết thứ 3, đền bù của tuần được duyệt eform vào thứ 4 ngay sau đó.') +
+    '<section><h2>Tuần ' + esc(w.label) + (isHL ? ' (theo hẹn lấy)' : '') + '</h2><div class="underline"></div>' +
+    '<p class="desc">' + weekDesc + '</p>' +
+    '<h3>Xu hướng 8 tuần</h3>' + trendBars(w.trend, weekTrendNote) +
     dimGrid(w.dims, weekCols, gridRows) + '</section>';
 
   const monthSection =
@@ -625,7 +678,8 @@ function render(d) {
     dimGrid(m.dims, monthCols, gridRows) + '</section>';
 
   const o = d.outliers;
-  OUT = {list: o.list, count: o.count, label: w.label, expanded: false, q: ''};
+  const dateColLabel = isHL ? 'Ngày hẹn lấy' : 'Ngày duyệt';
+  OUT = {list: o.list, count: o.count, label: (isHL ? 'HenLay_' : '') + w.label, expanded: false, q: ''};
   const outSection =
     '<section id="outSection"><h2>Đơn có giá trị bất thường — ' + esc(w.label) + '</h2><div class="underline"></div>' +
     '<p class="desc">' + o.count + ' đơn vượt ngưỡng ' + fmtMoney(o.threshold) + ' (trung bình + ' + th.outlierSigma + ' độ lệch chuẩn), tổng ' + fmtMoney(o.sum) +
@@ -636,8 +690,8 @@ function render(d) {
         '<button class="btn" id="outToggle" type="button"></button>' +
         '<button class="btn primary" id="outXlsx" type="button"></button>' +
         '<button class="btn" id="outCsv" type="button"></button></div>' +
-        '<div class="table-wrap"><table class="tbl-auto"><thead><tr><th>Mã đơn</th><th>Ngày duyệt</th><th>Account</th><th>Seller</th><th>Loại yêu cầu</th><th>Giá trị đền bù</th></tr></thead><tbody id="outBody"></tbody></table></div>' +
-        '<p class="foot" style="text-align:left;">File tải về gồm đủ cột: mã đơn, ngày duyệt, account, seller, kênh, loại yêu cầu, nhóm ngành, sản phẩm, tuyến, kho chịu trách nhiệm, vùng và giá trị đền bù (số thật, cộng được trực tiếp trong Excel). Nếu đang lọc thì file chỉ gồm các đơn đang lọc.</p>'
+        '<div class="table-wrap"><table class="tbl-auto"><thead><tr><th>Mã đơn</th><th>' + esc(dateColLabel) + '</th><th>Account</th><th>Seller</th><th>Loại yêu cầu</th><th>Giá trị đền bù</th></tr></thead><tbody id="outBody"></tbody></table></div>' +
+        '<p class="foot" style="text-align:left;">File tải về gồm đủ cột: mã đơn, ' + esc(dateColLabel.toLowerCase()) + ', account, seller, kênh, loại yêu cầu, nhóm ngành, sản phẩm, tuyến, kho chịu trách nhiệm, vùng và giá trị đền bù (số thật, cộng được trực tiếp trong Excel). Nếu đang lọc thì file chỉ gồm các đơn đang lọc.</p>'
       : '<p class="desc">Không có đơn nào vượt ngưỡng.</p>') + '</section>';
 
   const thrSection =
@@ -654,16 +708,19 @@ function render(d) {
     '<li>Thời gian xử lý: từ ' + th.lead.slowShare + '% đơn quá ' + th.lead.overDays + ' ngày, hoặc chậm thêm từ ' + th.lead.deltaDays + ' ngày so với tuần trước (tối thiểu ' + th.lead.minN + ' đơn)</li>' +
     '<li>Seller tăng đột biến: từ ' + th.sellerSurgePct + '% so với trung bình 4 tuần và đền bù từ ' + fmtMoney(th.sellerMinValue) + '</li></ul></section>';
 
-  const footer = '<div class="foot">Dữ liệu đến ' + esc(d.dataThrough) + ' · tổng hợp lúc ' + esc(d.generatedAt) + (d.fromCache ? ' (bộ nhớ đệm)' : '') + ' · ' + fmtNum(d.rows.total) + ' dòng</div>';
+  const footer = '<div class="foot">Mốc thời gian: ' + (isHL ? 'ngày hẹn lấy' : 'ngày duyệt eform') + ' · Dữ liệu đến ' + esc(d.dataThrough) + ' · tổng hợp lúc ' + esc(d.generatedAt) + (d.fromCache ? ' (bộ nhớ đệm)' : '') + ' · ' + fmtNum(d.rows.total) + ' dòng</div>';
 
   const jumps = [['sec-seller', 'Seller'], ['sec-matrix', 'Seller × loại yêu cầu'], ['sec-kho', 'Kho / vùng'], ['sec-out', 'Đơn bất thường'], ['sec-lead', 'Thời gian xử lý'], ['sec-repeat', 'Seller lặp lại']];
   const subnav = '<div class="vtabs"><button type="button" class="vtab' + (VIEW === 'tq' ? ' active' : '') + '" data-v="tq">Tổng quan</button><button type="button" class="vtab' + (VIEW === 'cs' ? ' active' : '') + '" data-v="cs">Chuyên sâu</button>' +
-    '<div class="vjump' + (VIEW === 'cs' ? ' show' : '') + '" id="vjump">' + jumps.map(j => '<button type="button" data-j="' + j[0] + '">' + esc(j[1]) + '</button>').join('') + '</div></div>';
+    '<div class="vjump' + (VIEW === 'cs' ? ' show' : '') + '" id="vjump">' + jumps.map(j => '<button type="button" data-j="' + j[0] + '">' + esc(j[1]) + '</button>').join('') + '</div>' +
+    '<button type="button" class="vtab" id="btnSwitchBasis" style="margin-left:auto;">⇄ Đang xem: ' + (isHL ? 'Hẹn lấy' : 'Duyệt eform') + '</button></div>';
   document.getElementById('app').innerHTML = subnav +
     '<div id="viewTq" class="view' + (VIEW === 'tq' ? '' : ' hide') + '">' + kpis + flagsSection + sugSection + weekSection + monthSection + outSection + thrSection + '</div>' +
     '<div id="viewCs" class="view' + (VIEW === 'cs' ? '' : ' hide') + '">' + deepHtml(d) + '</div>' + footer;
   wireOutliers();
   wireViews();
+  const bs = document.getElementById('btnSwitchBasis');
+  if (bs) bs.addEventListener('click', showBasisChooser);
 }
 
 function mdTable(headers, rows) {
@@ -681,12 +738,15 @@ function mdDim(title, items, cols) {
     (items || []).map(it => [it.name, fmtMoney(it.cur), fmtMoney(it.prev), mdPct(it.pct, it), it.share.toFixed(1) + '%']));
 }
 
-function buildMarkdown(d) {
+function buildMarkdown(d, basis) {
+  const isHL = basis === 'hen_lay';
   const w = d.week, m = d.month;
   const weekCols = [w.label, w.total.prevLabel];
   const monthCols = m.mode === 'mtd' ? ['Lũy kế ' + m.label, 'Cùng kỳ ' + m.prevLabel] : [m.label, m.prevLabel];
-  let md = '# TỔNG HỢP ĐỀN BÙ — TUẦN ' + w.label + ' & THÁNG ' + m.label + '\n\n';
-  md += '_Tuần ' + w.start + ' → ' + w.end + ' (thứ 4 → thứ 3), đền bù duyệt eform từ ' + w.approveFrom + ' · dữ liệu duyệt đến ' + d.dataThrough + ' · tổng hợp lúc ' + d.generatedAt + ' · phạm vi SPE + SPB_\n\n';
+  let md = '# TỔNG HỢP ĐỀN BÙ (' + (isHL ? 'THEO HẸN LẤY' : 'THEO DUYỆT EFORM') + ') — TUẦN ' + w.label + ' & THÁNG ' + m.label + '\n\n';
+  md += isHL
+    ? '_Tuần ' + w.start + ' → ' + w.end + ' (thứ 2 → Chủ nhật, theo ngày hẹn lấy) · dữ liệu hẹn lấy đến ' + d.dataThrough + ' · tổng hợp lúc ' + d.generatedAt + ' · phạm vi SPE + SPB_\n\n'
+    : '_Tuần ' + w.start + ' → ' + w.end + ' (thứ 4 → thứ 3), đền bù duyệt eform từ ' + w.approveFrom + ' · dữ liệu duyệt đến ' + d.dataThrough + ' · tổng hợp lúc ' + d.generatedAt + ' · phạm vi SPE + SPB_\n\n';
   md += '## Chỉ số chính\n\n';
   md += '- **Đền bù ' + w.label + ':** ' + fmtMoney(w.total.cur) + ' (' + mdPct(w.total.pct) + ' so với ' + w.total.prevLabel + ': ' + fmtMoney(w.total.prev) + ')\n';
   md += '- **Số đơn ' + w.label + ':** ' + fmtNum(w.total.n) + '\n';
@@ -698,7 +758,7 @@ function buildMarkdown(d) {
   md += '## Đề xuất\n\n' + d.suggestions.map(s => '- **[' + levelName(s.level) + ']** ' + s.text).join('\n') + '\n\n';
   const order = [['acc', 'Account'], ['ch', 'Kênh'], ['lo', 'Loại yêu cầu'], ['ng', 'Nhóm ngành'], ['rt', 'Sản phẩm'], ['tu', 'Tuyến'], ['vu', 'Vùng'], ['kh', 'Kho'], ['se', 'Seller']];
   md += '## Tuần ' + w.label + '\n\n';
-  md += mdTable(['Tuần', 'Khoảng ngày', 'Đền bù', 'Số đơn'], w.trend.map(x => [x.label + (x.selected ? ' (đang xem)' : ''), x.start + ' → ' + x.end + ' (duyệt ' + x.approveFrom + ')', fmtMoney(x.den), fmtNum(x.n)]));
+  md += mdTable(['Tuần', 'Khoảng ngày', 'Đền bù', 'Số đơn'], w.trend.map(x => [x.label + (x.selected ? ' (đang xem)' : ''), x.start + ' → ' + x.end + (isHL ? '' : ' (duyệt ' + x.approveFrom + ')'), fmtMoney(x.den), fmtNum(x.n)]));
   order.forEach(p => { md += '### ' + p[1] + '\n\n' + mdDim(p[1], w.dims[p[0]], weekCols); });
   md += '## Tháng ' + m.label + '\n\n';
   md += mdTable(['Tháng', 'Đền bù', 'Số đơn'], m.trend.map(x => [x.label + (x.selected ? ' (đang xem)' : ''), fmtMoney(x.den), fmtNum(x.n)]));
@@ -726,54 +786,63 @@ function buildMarkdown(d) {
     : '_Chưa có seller nào nằm trong top từ ' + d.thresholds.repeat[2] + '/6 tuần._\n\n');
   md += '## Đơn có giá trị bất thường — ' + w.label + '\n\n';
   md += d.outliers.list.length
-    ? mdTable(['Mã đơn', 'Ngày duyệt', 'Account', 'Seller', 'Loại yêu cầu', 'Giá trị'], d.outliers.list.slice(0, 50).map(x => [x.ma, x.ngay, x.acc, x.seller, x.loai, fmtMoney(x.den)])) +
+    ? mdTable(['Mã đơn', isHL ? 'Ngày hẹn lấy' : 'Ngày duyệt', 'Account', 'Seller', 'Loại yêu cầu', 'Giá trị'], d.outliers.list.slice(0, 50).map(x => [x.ma, x.ngay, x.acc, x.seller, x.loai, fmtMoney(x.den)])) +
       (d.outliers.list.length > 50 ? '_Hiển thị 50 trên ' + d.outliers.list.length + ' đơn; xem đủ trong file Excel hoặc CSV tải từ trang._\n\n' : '')
     : '_Không có đơn vượt ngưỡng._\n\n';
   return md;
 }
 
-const OUT_COLS = [
-  ['Mã đơn', 'ma', 14], ['Ngày duyệt eform', 'ngay', 17], ['Account', 'acc', 10], ['Seller', 'seller', 30], ['Kênh', 'kenh', 8],
-  ['Loại yêu cầu', 'loai', 24], ['Nhóm ngành', 'ng', 28], ['Sản phẩm', 'rt', 32], ['Tuyến', 'tu', 18],
-  ['Kho chịu trách nhiệm', 'kh', 30], ['Vùng', 'vu', 12], ['Giá trị đền bù (đ)', 'den', 18]
-];
+function outCols(dateLabel) {
+  return [
+    ['Mã đơn', 'ma', 14], [dateLabel, 'ngay', 17], ['Account', 'acc', 10], ['Seller', 'seller', 30], ['Kênh', 'kenh', 8],
+    ['Loại yêu cầu', 'loai', 24], ['Nhóm ngành', 'ng', 28], ['Sản phẩm', 'rt', 32], ['Tuyến', 'tu', 18],
+    ['Kho chịu trách nhiệm', 'kh', 30], ['Vùng', 'vu', 12], ['Giá trị đền bù (đ)', 'den', 18]
+  ];
+}
+const OUT_COLS = outCols('Ngày duyệt eform');
+const OUT_COLS_HL = outCols('Ngày hẹn lấy');
 
-function outFiltered() {
-  const q = OUT.q.trim().toLowerCase();
-  if (!q) return OUT.list;
-  return OUT.list.filter(x => [x.ma, x.seller, x.loai, x.acc, x.kh, x.ng, x.rt, x.tu, x.vu, x.kenh].join(' ').toLowerCase().indexOf(q) >= 0);
+function outFiltered(state) {
+  state = state || OUT;
+  const q = state.q.trim().toLowerCase();
+  if (!q) return state.list;
+  return state.list.filter(x => [x.ma, x.seller, x.loai, x.acc, x.kh, x.ng, x.rt, x.tu, x.vu, x.kenh].join(' ').toLowerCase().indexOf(q) >= 0);
 }
 
-function renderOutlierRows() {
-  const body = document.getElementById('outBody');
+function renderOutlierRows(state, sfx) {
+  state = state || OUT;
+  sfx = sfx || '';
+  const body = document.getElementById('outBody' + sfx);
   if (!body) return;
-  const list = outFiltered();
-  const filtering = OUT.q.trim() !== '';
-  const shown = OUT.expanded || filtering ? list : list.slice(0, 10);
+  const list = outFiltered(state);
+  const filtering = state.q.trim() !== '';
+  const shown = state.expanded || filtering ? list : list.slice(0, 10);
   body.innerHTML = shown.length
     ? shown.map(x => '<tr><td>' + esc(x.ma) + '</td><td>' + esc(x.ngay) + '</td><td>' + esc(x.acc) + '</td><td>' + esc(x.seller) + '</td><td>' + esc(x.loai) + '</td><td>' + fmtMoney(x.den) + '</td></tr>').join('')
     : '<tr><td colspan="6" class="mom-flat" style="text-align:center;">Không có đơn nào khớp</td></tr>';
-  const total = OUT.list.length;
-  document.getElementById('outCount').textContent = filtering
+  const total = state.list.length;
+  document.getElementById('outCount' + sfx).textContent = filtering
     ? 'Khớp ' + list.length + '/' + total + ' đơn'
     : 'Đang hiển thị ' + shown.length + '/' + total + ' đơn' + (shown.length < total ? ' lớn nhất' : '');
-  const tg = document.getElementById('outToggle');
+  const tg = document.getElementById('outToggle' + sfx);
   tg.style.display = filtering || total <= 10 ? 'none' : '';
-  tg.textContent = OUT.expanded ? 'Thu gọn còn 10 đơn' : 'Xem tất cả ' + total + ' đơn';
-  document.getElementById('outXlsx').textContent = '⬇ Tải Excel (' + list.length + ' đơn)';
-  document.getElementById('outCsv').textContent = '⬇ Tải CSV (' + list.length + ' đơn)';
-  document.getElementById('outXlsx').disabled = !list.length;
-  document.getElementById('outCsv').disabled = !list.length;
+  tg.textContent = state.expanded ? 'Thu gọn còn 10 đơn' : 'Xem tất cả ' + total + ' đơn';
+  document.getElementById('outXlsx' + sfx).textContent = '⬇ Tải Excel (' + list.length + ' đơn)';
+  document.getElementById('outCsv' + sfx).textContent = '⬇ Tải CSV (' + list.length + ' đơn)';
+  document.getElementById('outXlsx' + sfx).disabled = !list.length;
+  document.getElementById('outCsv' + sfx).disabled = !list.length;
 }
 
-function wireOutliers() {
-  const body = document.getElementById('outBody');
+function wireOutliers(state, sfx) {
+  state = state || OUT;
+  sfx = sfx || '';
+  const body = document.getElementById('outBody' + sfx);
   if (!body) return;
-  document.getElementById('outSearch').addEventListener('input', e => { OUT.q = e.target.value; renderOutlierRows(); });
-  document.getElementById('outToggle').addEventListener('click', () => { OUT.expanded = !OUT.expanded; renderOutlierRows(); });
-  document.getElementById('outCsv').addEventListener('click', downloadOutliersCsv);
-  document.getElementById('outXlsx').addEventListener('click', downloadOutliersXlsx);
-  renderOutlierRows();
+  document.getElementById('outSearch' + sfx).addEventListener('input', e => { state.q = e.target.value; renderOutlierRows(state, sfx); });
+  document.getElementById('outToggle' + sfx).addEventListener('click', () => { state.expanded = !state.expanded; renderOutlierRows(state, sfx); });
+  document.getElementById('outCsv' + sfx).addEventListener('click', () => downloadOutliersCsv(state));
+  document.getElementById('outXlsx' + sfx).addEventListener('click', () => downloadOutliersXlsx(state));
+  renderOutlierRows(state, sfx);
 }
 
 function saveBlob(blob, filename) {
@@ -787,20 +856,23 @@ function saveBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-function outFileName(ext) {
-  return 'DonBatThuong_' + OUT.label + '_' + outFiltered().length + 'don.' + ext;
+function outFileName(state, ext) {
+  state = state || OUT;
+  return 'DonBatThuong_' + state.label + '_' + outFiltered(state).length + 'don.' + ext;
 }
 
-function downloadOutliersCsv() {
-  const list = outFiltered();
+function downloadOutliersCsv(state) {
+  state = state || OUT;
+  const cols = BASIS === 'hen_lay' ? OUT_COLS_HL : OUT_COLS;
+  const list = outFiltered(state);
   if (!list.length) return;
   const cell = v => {
     const t = String(v === null || v === undefined ? '' : v);
     return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
   };
-  const lines = [OUT_COLS.map(c => cell(c[0])).join(',')];
-  list.forEach(x => lines.push(OUT_COLS.map(c => cell(x[c[1]])).join(',')));
-  saveBlob(new Blob(['\uFEFF' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}), outFileName('csv'));
+  const lines = [cols.map(c => cell(c[0])).join(',')];
+  list.forEach(x => lines.push(cols.map(c => cell(x[c[1]])).join(',')));
+  saveBlob(new Blob(['\uFEFF' + lines.join('\r\n')], {type: 'text/csv;charset=utf-8'}), outFileName(state, 'csv'));
 }
 
 const CRC_TABLE = (function () {
@@ -887,21 +959,22 @@ function colLetter(i) {
   return s;
 }
 
-function buildXlsx(list) {
+function buildXlsx(list, cols) {
+  cols = cols || OUT_COLS;
   const head = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
   const ns = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
-  const lastCol = colLetter(OUT_COLS.length - 1);
-  let rows = '<row r="1">' + OUT_COLS.map((c, i) => '<c r="' + colLetter(i) + '1" s="1" t="inlineStr"><is><t>' + xmlText(c[0]) + '</t></is></c>').join('') + '</row>';
+  const lastCol = colLetter(cols.length - 1);
+  let rows = '<row r="1">' + cols.map((c, i) => '<c r="' + colLetter(i) + '1" s="1" t="inlineStr"><is><t>' + xmlText(c[0]) + '</t></is></c>').join('') + '</row>';
   list.forEach((x, r) => {
     const rn = r + 2;
-    rows += '<row r="' + rn + '">' + OUT_COLS.map((c, i) => {
+    rows += '<row r="' + rn + '">' + cols.map((c, i) => {
       const ref = colLetter(i) + rn;
       if (c[1] === 'den') return '<c r="' + ref + '" s="2"><v>' + (Number(x.den) || 0) + '</v></c>';
       return '<c r="' + ref + '" t="inlineStr"><is><t>' + xmlText(x[c[1]]) + '</t></is></c>';
     }).join('') + '</row>';
   });
   const sheet = head + '<worksheet xmlns="' + ns + '"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>' +
-    '<cols>' + OUT_COLS.map((c, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + c[2] + '" customWidth="1"/>').join('') + '</cols>' +
+    '<cols>' + cols.map((c, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + c[2] + '" customWidth="1"/>').join('') + '</cols>' +
     '<sheetData>' + rows + '</sheetData><autoFilter ref="A1:' + lastCol + (list.length + 1) + '"/></worksheet>';
   const styles = head + '<styleSheet xmlns="' + ns + '"><fonts count="2"><font><sz val="11"/><name val="Cambria"/></font><font><b/><sz val="11"/><name val="Cambria"/></font></fonts>' +
     '<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>' +
@@ -920,19 +993,22 @@ function buildXlsx(list) {
   ]);
 }
 
-function downloadOutliersXlsx() {
-  const list = outFiltered();
+function downloadOutliersXlsx(state) {
+  state = state || OUT;
+  const cols = BASIS === 'hen_lay' ? OUT_COLS_HL : OUT_COLS;
+  const list = outFiltered(state);
   if (!list.length) return;
-  saveBlob(buildXlsx(list), outFileName('xlsx'));
+  saveBlob(buildXlsx(list, cols), outFileName(state, 'xlsx'));
 }
 
 function downloadMd() {
-  if (!REPORT || REPORT.empty) return;
-  const blob = new Blob([buildMarkdown(REPORT)], {type: 'text/markdown;charset=utf-8'});
+  const d = pickData(BASIS);
+  if (!d || d.empty) return;
+  const blob = new Blob([buildMarkdown(d, BASIS)], {type: 'text/markdown;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'TongHop_DenBu_' + REPORT.week.label + '_' + REPORT.month.label.replace('/', '-') + '.md';
+  a.download = 'TongHop_DenBu_' + (BASIS === 'hen_lay' ? 'HenLay_' : '') + d.week.label + '_' + d.month.label.replace('/', '-') + '.md';
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -948,6 +1024,7 @@ async function lockAgain() {
     });
   } catch (e) {}
   REPORT = null;
+  BASIS = null;
   SEL = {week: null, month: null};
   showForm('');
 }
