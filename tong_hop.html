@@ -674,6 +674,7 @@ function renderInsightBar() {
     e.stopPropagation();
     toggleInsightPanel(b.dataset.k, b);
   }));
+  bar.querySelectorAll('.in-panel').forEach(p => p.addEventListener('click', e => e.stopPropagation()));
   updateInsightSummary();
 }
 
