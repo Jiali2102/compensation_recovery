@@ -104,6 +104,8 @@
   .vtab{font-family:inherit;font-weight:700;font-size:13.5px;border-radius:999px;padding:7px 18px;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;}
   .vtab:hover{border-color:var(--orange);color:var(--orange-dark);}
   .vtab.active{background:var(--orange);border-color:var(--orange);color:#fff;}
+  .vtab-ghost{font-family:inherit;font-weight:700;font-size:13.5px;border-radius:999px;padding:7px 18px;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;}
+  .vtab-ghost:hover{border-color:var(--orange);color:var(--orange-dark);}
   .view.hide{display:none;}
   table.tbl-heat{table-layout:auto;}
   table.tbl-heat th:first-child,table.tbl-heat td:first-child{width:auto;min-width:190px;max-width:300px;white-space:normal;}
@@ -572,6 +574,120 @@ function matrixSection(d, sfx) {
     '<div class="table-wrap"><table class="tbl-heat"><thead>' + head + '</thead><tbody>' + body + '</tbody></table></div></section>';
 }
 
+let INSIGHT_TREE = null;
+let insightMetaLoading = false;
+
+function insightSection() {
+  return '<section><h2>Insight đền bù theo mặt hàng</h2><div class="underline"></div>' +
+    '<p class="desc">Chọn nhóm hàng (có thể thu hẹp theo mặt hàng cụ thể), tuỳ chỉnh khoảng thời gian rồi tải báo cáo Excel đầy đủ: Tổng quan, theo tháng, theo loại yêu cầu, theo kênh WH/MP, theo mức hư hỏng, theo nhóm hàng/mặt hàng, theo seller, theo nguồn — tất cả bằng công thức tham chiếu sheet Data, kèm biểu đồ.</p>' +
+    '<div class="out-toolbar" style="flex-wrap:wrap;row-gap:10px;">' +
+    '<span style="color:var(--muted);font-size:12px;">Nhóm hàng</span>' +
+    '<select id="inGroup" style="min-width:240px;color:var(--navy);background:#fff;border:1px solid var(--border);border-radius:6px;padding:6px 8px;"><option value="">Đang tải danh sách...</option></select>' +
+    '<span style="color:var(--muted);font-size:12px;">Mặt hàng</span>' +
+    '<select id="inItem" disabled style="min-width:200px;color:var(--navy);background:#fff;border:1px solid var(--border);border-radius:6px;padding:6px 8px;"><option value="">Tất cả mặt hàng trong nhóm</option></select>' +
+    '<span style="color:var(--muted);font-size:12px;">Từ ngày</span>' +
+    '<input type="date" id="inFrom" style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;">' +
+    '<span style="color:var(--muted);font-size:12px;">Đến ngày</span>' +
+    '<input type="date" id="inTo" style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;">' +
+    '<button class="btn primary" type="button" id="inDownload" disabled>⬇ Tải Excel</button>' +
+    '</div><p class="foot" id="inStatus" style="text-align:left;"></p></section>';
+}
+
+function fmtVnd(n) {
+  return Math.round(n).toLocaleString('vi-VN') + ' đ';
+}
+
+function populateInsightGroups() {
+  const sel = document.getElementById('inGroup');
+  if (!sel || !INSIGHT_TREE) return;
+  sel.innerHTML = '<option value="">— Chọn nhóm hàng —</option>' +
+    INSIGHT_TREE.groups.map(g => '<option value="' + esc(g.name) + '">' + esc(g.name) + ' (' + fmtNum(g.count) + ' đơn, ' + fmtVnd(g.value) + ')</option>').join('');
+}
+
+function populateInsightItems(groupName) {
+  const sel = document.getElementById('inItem');
+  if (!sel) return;
+  const g = INSIGHT_TREE && INSIGHT_TREE.groups.find(x => x.name === groupName);
+  if (!g) {
+    sel.innerHTML = '<option value="">Tất cả mặt hàng trong nhóm</option>';
+    sel.disabled = true;
+    return;
+  }
+  sel.innerHTML = '<option value="">Tất cả mặt hàng trong nhóm (' + g.items.length + ')</option>' +
+    g.items.map(it => '<option value="' + esc(it.name) + '">' + esc(it.name) + ' (' + fmtNum(it.count) + ' đơn, ' + fmtVnd(it.value) + ')</option>').join('');
+  sel.disabled = false;
+}
+
+function loadInsightMeta() {
+  if (INSIGHT_TREE || insightMetaLoading) {
+    if (INSIGHT_TREE) populateInsightGroups();
+    return;
+  }
+  insightMetaLoading = true;
+  const st = document.getElementById('inStatus');
+  if (st) st.textContent = 'Đang tải danh sách nhóm hàng...';
+  const crf = (window.CRData && window.CRData.fetch) || (window.top && window.top.CRData && window.top.CRData.fetch) || fetch;
+  crf('/api/insight-report?action=meta', {credentials: 'include', cache: 'no-store'})
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(tree => {
+      INSIGHT_TREE = tree;
+      insightMetaLoading = false;
+      populateInsightGroups();
+      if (st) st.textContent = tree.groups.length ? '' : 'Không có dữ liệu nhóm hàng nào trong phạm vi SPE + SPB.';
+    })
+    .catch(() => {
+      insightMetaLoading = false;
+      if (st) st.textContent = 'Không tải được danh sách nhóm hàng. Thử bấm lại tab Insight.';
+    });
+}
+
+function wireInsight() {
+  const grp = document.getElementById('inGroup');
+  const item = document.getElementById('inItem');
+  const btn = document.getElementById('inDownload');
+  const st = document.getElementById('inStatus');
+  if (!grp) return;
+  grp.addEventListener('change', () => {
+    populateInsightItems(grp.value);
+    if (btn) btn.disabled = !grp.value;
+  });
+  if (btn) {
+    btn.addEventListener('click', () => {
+      if (!grp.value) return;
+      const qs = ['group=' + encodeURIComponent(grp.value)];
+      if (item && item.value) qs.push('item=' + encodeURIComponent(item.value));
+      const from = document.getElementById('inFrom').value;
+      const to = document.getElementById('inTo').value;
+      if (from) qs.push('from=' + encodeURIComponent(from));
+      if (to) qs.push('to=' + encodeURIComponent(to));
+      btn.disabled = true;
+      const prevText = btn.textContent;
+      btn.textContent = 'Đang tạo file...';
+      if (st) st.textContent = 'Đang tổng hợp và tạo file Excel (có thể mất vài giây)...';
+      const crf = (window.CRData && window.CRData.fetch) || (window.top && window.top.CRData && window.top.CRData.fetch) || fetch;
+      crf('/api/insight-report?' + qs.join('&'), {credentials: 'include', cache: 'no-store'})
+        .then(r => {
+          if (!r.ok) return r.json().catch(() => ({})).then(j => { throw new Error(j.error || ('HTTP ' + r.status)); });
+          const cd = r.headers.get('Content-Disposition') || '';
+          const m = /filename="([^"]+)"/.exec(cd);
+          return r.blob().then(b => ({ blob: b, filename: m ? m[1] : 'Insight.xlsx' }));
+        })
+        .then(({blob, filename}) => {
+          saveBlob(blob, filename);
+          if (st) st.textContent = '';
+        })
+        .catch(e => {
+          if (st) st.textContent = 'Không tạo được file: ' + (e.message || 'lỗi không xác định') + '. Thử lại.';
+        })
+        .finally(() => {
+          btn.disabled = !grp.value;
+          btn.textContent = prevText;
+        });
+    });
+  }
+  loadInsightMeta();
+}
+
 function deepHtml(d, sfx) {
   sfx = sfx || '';
   return sellersSection(d, sfx) + matrixSection(d, sfx) + khoSection(d, sfx) + outTrendSection(d, sfx) + leadSection(d, sfx) + repeatSection(d, sfx);
@@ -583,8 +699,10 @@ function wireViews() {
     document.querySelectorAll('.vtab').forEach(x => x.classList.toggle('active', x === b));
     document.getElementById('viewTq').classList.toggle('hide', VIEW !== 'tq');
     document.getElementById('viewCs').classList.toggle('hide', VIEW !== 'cs');
+    document.getElementById('viewIn').classList.toggle('hide', VIEW !== 'in');
     document.getElementById('vjump').classList.toggle('show', VIEW === 'cs');
     window.scrollTo(0, 0);
+    if (VIEW === 'in') loadInsightMeta();
   }));
   document.querySelectorAll('#vjump button').forEach(b => b.addEventListener('click', () => {
     const el = document.getElementById(b.dataset.j);
@@ -711,14 +829,16 @@ function render(d, basis) {
   const footer = '<div class="foot">Mốc thời gian: ' + (isHL ? 'ngày hẹn lấy' : 'ngày duyệt eform') + ' · Dữ liệu đến ' + esc(d.dataThrough) + ' · tổng hợp lúc ' + esc(d.generatedAt) + (d.fromCache ? ' (bộ nhớ đệm)' : '') + ' · ' + fmtNum(d.rows.total) + ' dòng</div>';
 
   const jumps = [['sec-seller', 'Seller'], ['sec-matrix', 'Seller × loại yêu cầu'], ['sec-kho', 'Kho / vùng'], ['sec-out', 'Đơn bất thường'], ['sec-lead', 'Thời gian xử lý'], ['sec-repeat', 'Seller lặp lại']];
-  const subnav = '<div class="vtabs"><button type="button" class="vtab' + (VIEW === 'tq' ? ' active' : '') + '" data-v="tq">Tổng quan</button><button type="button" class="vtab' + (VIEW === 'cs' ? ' active' : '') + '" data-v="cs">Chuyên sâu</button>' +
+  const subnav = '<div class="vtabs"><button type="button" class="vtab' + (VIEW === 'tq' ? ' active' : '') + '" data-v="tq">Tổng quan</button><button type="button" class="vtab' + (VIEW === 'cs' ? ' active' : '') + '" data-v="cs">Chuyên sâu</button><button type="button" class="vtab' + (VIEW === 'in' ? ' active' : '') + '" data-v="in">Insight</button>' +
     '<div class="vjump' + (VIEW === 'cs' ? ' show' : '') + '" id="vjump">' + jumps.map(j => '<button type="button" data-j="' + j[0] + '">' + esc(j[1]) + '</button>').join('') + '</div>' +
-    '<button type="button" class="vtab" id="btnSwitchBasis" style="margin-left:auto;">⇄ Đang xem: ' + (isHL ? 'Hẹn lấy' : 'Duyệt eform') + '</button></div>';
+    '<button type="button" class="vtab-ghost" id="btnSwitchBasis" style="margin-left:auto;">⇄ Đang xem: ' + (isHL ? 'Hẹn lấy' : 'Duyệt eform') + '</button></div>';
   document.getElementById('app').innerHTML = subnav +
     '<div id="viewTq" class="view' + (VIEW === 'tq' ? '' : ' hide') + '">' + kpis + flagsSection + sugSection + weekSection + monthSection + outSection + thrSection + '</div>' +
-    '<div id="viewCs" class="view' + (VIEW === 'cs' ? '' : ' hide') + '">' + deepHtml(d) + '</div>' + footer;
+    '<div id="viewCs" class="view' + (VIEW === 'cs' ? '' : ' hide') + '">' + deepHtml(d) + '</div>' +
+    '<div id="viewIn" class="view' + (VIEW === 'in' ? '' : ' hide') + '">' + insightSection() + '</div>' + footer;
   wireOutliers();
   wireViews();
+  wireInsight();
   const bs = document.getElementById('btnSwitchBasis');
   if (bs) bs.addEventListener('click', showBasisChooser);
 }
