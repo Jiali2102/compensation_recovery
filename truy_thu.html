@@ -341,6 +341,10 @@
   <button class="year-btn" data-year="2025">2025</button>
   <button class="year-btn active" data-year="2026">2026</button>
   <span class="yearbar-sep"></span>
+  <span>Mốc thời gian:</span>
+  <button class="year-btn basis-btn active" data-basis="ngay_duyet_eform">Duyệt eform</button>
+  <button class="year-btn basis-btn" data-basis="thoi_gian_hen_lay">Hẹn lấy</button>
+  <span class="yearbar-sep"></span>
   <span>Kỳ xem:</span>
   <select id="monthSelect"><option value="all">Tất cả</option></select>
   <div id="shopeeSubWrap">
@@ -541,6 +545,7 @@ Chart.register(outsideLabelsPlugin);
 const AVAILABLE_YEARS = [2025, 2026];
 
 let ALL_ROWS = [];
+let DATE_FIELD = 'ngay_duyet_eform';
 let currentYear = 2026;
 let currentTab = 'all';
 let currentMonth = 'all';
@@ -574,7 +579,7 @@ function applyLoadedRows(rows){
 function loadYear(year){
   if(isLoadingYear) return;
   currentYear = year;
-  document.querySelectorAll('.year-btn').forEach(b=>b.classList.toggle('active', b.dataset.year == year));
+  document.querySelectorAll('.year-btn[data-year]').forEach(b=>b.classList.toggle('active', b.dataset.year == year));
 
   if(yearDataCache[year]){
     hideLoginOverlay();
@@ -591,7 +596,7 @@ function loadYear(year){
       hideLoginOverlay();
       const statusLabel = CRData.statusLabel(res);
       setStatusText(statusLabel);
-      const rows = res.rows.filter(r => String(r.ngay_duyet_eform||'').slice(0,4) === String(year));
+      const rows = res.rows.filter(r => String(r[DATE_FIELD]||'').slice(0,4) === String(year));
       yearDataCache[year] = { rows, statusLabel };
       applyLoadedRows(rows);
     })
@@ -658,7 +663,7 @@ function handleLogout(){
 }
 
 function populateFilterDropdowns(){
-  const months = [...new Set(ALL_ROWS.map(r=>String(r.ngay_duyet_eform||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const months = [...new Set(ALL_ROWS.map(r=>String(r[DATE_FIELD]||'').slice(0,7)).filter(Boolean))].sort().reverse();
   const sel = document.getElementById('monthSelect');
   sel.innerHTML = '<option value="all">Tất cả</option>' + months.map(m=>`<option value="${m}">${m}</option>`).join('');
 
@@ -667,8 +672,20 @@ function populateFilterDropdowns(){
   regionSel.innerHTML = '<option value="all">Tất cả vùng</option>' + regions.map(rg=>`<option value="${rg}">${rg}</option>`).join('');
 }
 
+function setBasis(basis){
+  if(basis === DATE_FIELD) return;
+  DATE_FIELD = basis;
+  document.querySelectorAll('.basis-btn').forEach(b=>b.classList.toggle('active', b.dataset.basis === basis));
+  Object.keys(yearDataCache).forEach(k=>delete yearDataCache[k]);
+  loadYear(currentYear);
+}
+
 document.getElementById('yearbar').addEventListener('click', e=>{
-  if(!e.target.classList.contains('year-btn')) return;
+  if(e.target.classList.contains('basis-btn')){
+    setBasis(e.target.dataset.basis);
+    return;
+  }
+  if(!e.target.classList.contains('year-btn') || !e.target.dataset.year) return;
   const year = +e.target.dataset.year;
   if(year === currentYear) return;
   loadYear(year);
@@ -816,7 +833,7 @@ function getFilteredRows(){
     }
   }
   if(currentMonth !== 'all'){
-    rows = rows.filter(r => String(r.ngay_duyet_eform||'').slice(0,7) === currentMonth);
+    rows = rows.filter(r => String(r[DATE_FIELD]||'').slice(0,7) === currentMonth);
   }
   return rows;
 }
@@ -917,7 +934,7 @@ function render(){
 
   const byPeriod = {};
   ALL_ROWS.forEach(r=>{
-    const k = periodKey(r.ngay_duyet_eform, currentGranularity);
+    const k = periodKey(r[DATE_FIELD], currentGranularity);
     if(!k) return;
     if(!byPeriod[k]) byPeriod[k] = {den_bu:0, truy_thu:0};
     byPeriod[k].den_bu += (+r.gia_tri_den_bu||0);
@@ -1100,7 +1117,7 @@ function render(){
   });
 
   const prodRows = getTabFilteredRows();
-  const allMonthsProd = [...new Set(prodRows.map(r=>String(r.ngay_duyet_eform||'').slice(0,7)).filter(Boolean))].sort();
+  const allMonthsProd = [...new Set(prodRows.map(r=>String(r[DATE_FIELD]||'').slice(0,7)).filter(Boolean))].sort();
   const last7 = allMonthsProd.slice(-7);
   const last6 = last7.slice(-6);
   const monthsDesc = [...last6].reverse();
@@ -1109,7 +1126,7 @@ function render(){
   const bySanPhamMonth = {};
   prodRows.forEach(r=>{
     const sp = r.san_pham_vn_group || '(Không rõ nhóm)';
-    const m = String(r.ngay_duyet_eform||'').slice(0,7);
+    const m = String(r[DATE_FIELD]||'').slice(0,7);
     if(!last7.includes(m)) return;
     if(!bySanPhamMonth[sp]) bySanPhamMonth[sp] = {};
     if(!bySanPhamMonth[sp][m]) bySanPhamMonth[sp][m] = { den_bu:0, truy_thu:0 };
@@ -1143,7 +1160,7 @@ function render(){
   prodRows.forEach(r=>{
     const sp = r.san_pham_vn_group || '(Không rõ nhóm)';
     const kho = r.kho_chiu_trach_nhiem;
-    const m = String(r.ngay_duyet_eform||'').slice(0,7);
+    const m = String(r[DATE_FIELD]||'').slice(0,7);
     if(!kho) return;
     if(!hubBySanPham[sp]) hubBySanPham[sp] = {};
     if(!hubBySanPham[sp][kho]) hubBySanPham[sp][kho] = { den_bu:0, truy_thu:0, byMonth:{} };
