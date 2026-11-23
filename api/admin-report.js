@@ -69,10 +69,17 @@ export default async function handler(req, res) {
       week: /^\d{4}-\d{2}-\d{2}$/.test(String(q.week || "")) ? String(q.week) : null,
       month: /^\d{4}-\d{2}$/.test(String(q.month || "")) ? String(q.month) : null,
     };
+    const selHL = {
+      week: /^\d{4}-\d{2}-\d{2}$/.test(String(q.hlWeek || "")) ? String(q.hlWeek) : null,
+      month: /^\d{4}-\d{2}$/.test(String(q.hlMonth || "")) ? String(q.hlMonth) : null,
+    };
     const got = await getColumns(q.refresh === "1");
     const data = buildSummary(got.cols, sel);
     data.generatedAt = got.generatedAt;
     data.fromCache = got.fromCache;
+    data.henLay = buildSummary(got.cols, selHL, "hen_lay");
+    data.henLay.generatedAt = got.generatedAt;
+    data.henLay.fromCache = got.fromCache;
     res.status(200).json(data);
   } catch (err) {
     console.error("admin-report.js error:", err.message);
