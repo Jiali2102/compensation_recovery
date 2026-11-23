@@ -79,17 +79,23 @@ export default async function handler(req, res) {
       return;
     }
 
-    const group = String(q.group || "").trim();
-    if (!group) {
-      res.status(400).json({ error: "Thiếu tham số group (nhóm hàng)" });
-      return;
-    }
-    const item = String(q.item || "").trim() || null;
+    const parseList = v => {
+      if (v === undefined || v === null || v === "") return [];
+      const arr = Array.isArray(v) ? v : String(v).split("\u0001");
+      return arr.map(s => String(s).trim()).filter(Boolean);
+    };
+    const groups = parseList(q.groups);
+    const items = parseList(q.items);
+    const sanPhams = parseList(q.sanPhams);
+    const sellers = parseList(q.sellers);
+    const khachHangs = parseList(q.khachHangs);
     const from = DATE_RE.test(String(q.from || "")) ? String(q.from) : null;
     const to = DATE_RE.test(String(q.to || "")) ? String(q.to) : null;
+    const dateField = ["tao", "hen_lay", "eform"].includes(q.dateField) ? q.dateField : "tao";
 
-    const buffer = await buildInsightWorkbook(rows, { group, item, from, to });
-    const fname = "Insight_" + fileSafe(group) + (item ? "_" + fileSafe(item) : "") + ".xlsx";
+    const buffer = await buildInsightWorkbook(rows, { groups, items, sanPhams, sellers, khachHangs, from, to, dateField });
+    const nameParts = groups.concat(items).slice(0, 2).map(fileSafe).filter(Boolean);
+    const fname = "Insight_" + (nameParts.length ? nameParts.join("_") : "TuyChinh") + ".xlsx";
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename="${fname}"`);
     res.status(200).send(Buffer.from(buffer));
