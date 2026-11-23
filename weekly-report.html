@@ -157,7 +157,7 @@
       background: var(--navy-deep);
     }
 
-    #yearSwitcher {
+    #yearSwitcher, #basisSwitcher {
       display: inline-flex;
       gap: 2px;
       background: rgba(255, 255, 255, .2);
@@ -681,6 +681,7 @@
           <h1>BÁO CÁO TUẦN - ĐỀN BÙ (SPB / SPE)</h1>
           <div style="display:flex;align-items:center;gap:10px;">
             <span id="statusText"></span>
+            <span id="basisSwitcher"></span>
             <span id="yearSwitcher"></span>
             <span id="periodPickerSlot"></span>
             <span id="wrRefreshSlot"></span>
@@ -725,7 +726,7 @@
         styleEl.id = 'shell-wr-styles';
         styleEl.textContent = `
       #statusText{font-size:13px;color:#FFF6EF;font-style:italic;}
-      #yearSwitcher{display:inline-flex;gap:2px;background:rgba(255,255,255,.2);border-radius:6px;padding:2px;}
+      #yearSwitcher, #basisSwitcher{display:inline-flex;gap:2px;background:rgba(255,255,255,.2);border-radius:6px;padding:2px;}
       .year-btn{font-family:inherit;background:transparent;border:none;color:#fff;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;border-radius:5px;}
       .year-btn.active{background:#fff;color:#E04F00;}
       .export-wrap{position:relative;display:inline-block;}
@@ -741,6 +742,7 @@
       }
       slot.innerHTML = `
     <span id="statusText"></span>
+    <span id="basisSwitcher"></span>
     <span id="yearSwitcher"></span>
     <span id="periodPickerSlot"></span>
     <span id="shell-wr-refresh"></span>
@@ -863,6 +865,8 @@
     const CLIENT_ACC = {'18692': 'SPE', '3892833': 'SPB'};
     const ACC_COLOR = {SPB: 'var(--spb)', SPE: 'var(--spe)'};
 
+    let DATE_FIELD = 'ngay_duyet_eform';
+    let ALL_ROWS_RAW = [];
     let RAW_FULL = [];
     let RAW_ALL = [];
     let VIEW_CUTOFF = null;
@@ -897,7 +901,7 @@
     }
 
     function rebuildView() {
-      RAW_ALL = VIEW_CUTOFF ? RAW_FULL.filter(r => String(r.ngay_duyet_eform || '').slice(0, 10) <= VIEW_CUTOFF) : RAW_FULL;
+      RAW_ALL = VIEW_CUTOFF ? RAW_FULL.filter(r => String(r[DATE_FIELD] || '').slice(0, 10) <= VIEW_CUTOFF) : RAW_FULL;
       const monthSet = {};
       RAW_ALL.forEach(r => {monthSet[r._month] = true;});
       MONTHS = Object.keys(monthSet).sort().map(k => {
@@ -963,6 +967,43 @@
       });
     }
 
+    function applyBasis() {
+      ALL_ROWS_RAW.forEach(r => {
+        const wi = isoWeekInfo(r[DATE_FIELD]);
+        r._weekKey = wi ? wi.key : null;
+        r._weekLabel = wi ? wi.label : null;
+        r._month = wi ? wi.month : null;
+        r._day = wi ? wi.day : null;
+      });
+      RAW_FULL = ALL_ROWS_RAW.filter(r => r._weekKey);
+      const yearSet = {};
+      RAW_FULL.forEach(r => {yearSet[r._month.slice(0, 4)] = true;});
+      YEARS_AVAILABLE = Object.keys(yearSet).sort();
+      if (!selectedYear || !YEARS_AVAILABLE.includes(String(selectedYear))) selectedYear = YEARS_AVAILABLE[YEARS_AVAILABLE.length - 1];
+      VIEW_CUTOFF = null;
+      VIEW_LABEL = '';
+      rebuildView();
+    }
+
+    function renderBasisSwitcher() {
+      const el = shellEl('basisSwitcher');
+      if (!el) return;
+      el.innerHTML = `<button type="button" class="year-btn ${DATE_FIELD === 'ngay_duyet_eform' ? 'active' : ''}" data-basis="ngay_duyet_eform">Duyệt eform</button>` +
+        `<button type="button" class="year-btn ${DATE_FIELD === 'thoi_gian_hen_lay' ? 'active' : ''}" data-basis="thoi_gian_hen_lay">Hẹn lấy</button>`;
+      el.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (DATE_FIELD === btn.dataset.basis) return;
+          DATE_FIELD = btn.dataset.basis;
+          applyBasis();
+          updateStatus();
+          renderBasisSwitcher();
+          renderYearSwitcher();
+          renderPeriodPicker();
+          render();
+        });
+      });
+    }
+
     function loadAll() {
       const st = shellEl('statusText');
       if (st) st.textContent = 'Đang tải dữ liệu...';
@@ -970,23 +1011,11 @@
         hideLoginOverlay();
         LOADED_LABEL = res.fetchedAt ? 'Dữ liệu lấy lúc ' + res.fetchedAt : 'Dữ liệu cập nhật';
         const all = res.rows.filter(r => r.ma_dh && CLIENT_ACC[String(r.nhom_kh)]);
-        all.forEach(r => {
-          const wi = isoWeekInfo(r.ngay_duyet_eform);
-          r._acc = CLIENT_ACC[String(r.nhom_kh)];
-          r._weekKey = wi ? wi.key : null;
-          r._weekLabel = wi ? wi.label : null;
-          r._month = wi ? wi.month : null;
-          r._day = wi ? wi.day : null;
-        });
-        RAW_FULL = all.filter(r => r._weekKey);
-        const yearSet = {};
-        RAW_FULL.forEach(r => {yearSet[r._month.slice(0, 4)] = true;});
-        YEARS_AVAILABLE = Object.keys(yearSet).sort();
-        selectedYear = YEARS_AVAILABLE[YEARS_AVAILABLE.length - 1];
-        VIEW_CUTOFF = null;
-        VIEW_LABEL = '';
-        rebuildView();
+        all.forEach(r => {r._acc = CLIENT_ACC[String(r.nhom_kh)];});
+        ALL_ROWS_RAW = all;
+        applyBasis();
         updateStatus();
+        renderBasisSwitcher();
         renderYearSwitcher();
         renderPeriodPicker();
         render();
@@ -1039,7 +1068,7 @@
 
     function computeMTDMoM(rows, groupFn) {
       let latestDate = null;
-      rows.forEach(r => {const d = r.ngay_duyet_eform; if (d && (!latestDate || String(d) > latestDate)) latestDate = String(d);});
+      rows.forEach(r => {const d = r[DATE_FIELD]; if (d && (!latestDate || String(d) > latestDate)) latestDate = String(d);});
       if (!latestDate) return {byGroup: {}, currentMonth: null, prevMonth: null, cutoffDay: null};
       const wi = isoWeekInfo(latestDate);
       const currentMonth = wi.month;
@@ -1556,7 +1585,7 @@
     function buildMarkdown() {
       const tq = REPORT.tongquan;
       let md = `# BÁO CÁO TUẦN ĐỀN BÙ — ${tq.curWeek.label} (Năm ${selectedYear})\n\n`;
-      md += `_Phạm vi: Shopee Express (SPE) và Shopee Bulky (SPB) · Mốc thời gian: ngay_duyet_eform · Số liệu THẬT, không ước tính._\n\n`;
+      md += `_Phạm vi: Shopee Express (SPE) và Shopee Bulky (SPB) · Mốc thời gian: ${DATE_FIELD} · Số liệu THẬT, không ước tính._\n\n`;
       md += `## Tổng quan\n\n`;
       md += `- **Tổng đền bù ${tq.curWeek.label}:** ${fmtMoney(tq.totalDenBuTuan)}\n`;
       md += `- **Loại yêu cầu lớn nhất:** ${tq.topLoaiYC ? tq.topLoaiYC[0] : '—'} (${fmtMoney(tq.topLoaiYC ? tq.topLoaiYC[1] : 0)})\n`;
@@ -1667,7 +1696,7 @@ ${openScript}${innerScript}${closeScript}
     function doExport(format) {
       if (!RAW_ALL.length) {alert('Dữ liệu chưa tải xong, vui lòng đợi rồi thử lại.'); return;}
       const {captured, order} = captureAllTabsHtml();
-      const weekLabel = REPORT.tongquan.curWeek.label;
+      const weekLabel = (DATE_FIELD === 'thoi_gian_hen_lay' ? 'HenLay_' : '') + REPORT.tongquan.curWeek.label;
 
       if (format === 'md') {
         const md = buildMarkdown();
