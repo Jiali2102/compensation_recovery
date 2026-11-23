@@ -106,6 +106,30 @@
   .vtab.active{background:var(--orange);border-color:var(--orange);color:#fff;}
   .vtab-ghost{font-family:inherit;font-weight:700;font-size:13.5px;border-radius:999px;padding:7px 18px;border:1.5px solid var(--border);background:#fff;color:var(--muted);cursor:pointer;}
   .vtab-ghost:hover{border-color:var(--orange);color:var(--orange-dark);}
+  .in-fbtn{position:relative;font-family:inherit;font-size:12.5px;text-align:left;border:1px solid var(--border);background:#fff;color:var(--navy);border-radius:8px;padding:7px 28px 7px 11px;cursor:pointer;max-width:220px;}
+  .in-fbtn .in-k{color:var(--muted);font-weight:700;margin-right:4px;}
+  .in-fbtn .v{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:140px;vertical-align:bottom;}
+  .in-fbtn .v.all{color:var(--muted);font-weight:400;}
+  .in-fbtn .in-count{background:var(--orange);color:#fff;font-size:10px;font-weight:800;border-radius:999px;padding:1px 6px;margin-left:5px;}
+  .in-fbtn .in-car{position:absolute;right:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:10px;}
+  .in-fbtn.open,.in-fbtn:hover{border-color:var(--orange);}
+  .in-panel{position:absolute;top:calc(100% + 6px);left:0;width:280px;z-index:40;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 28px rgba(0,0,0,.18);padding:10px;display:none;}
+  .in-panel.show{display:block;}
+  .in-panel input[type=search]{width:100%;font-family:inherit;font-size:12.5px;padding:7px 9px;border:1px solid var(--border);border-radius:7px;color:var(--navy);background:#fafafa;margin-bottom:8px;box-sizing:border-box;}
+  .in-quick{display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:6px;}
+  .in-quick a{color:var(--orange-dark);cursor:pointer;font-weight:700;text-decoration:none;}
+  .in-quick a:hover{text-decoration:underline;}
+  .in-list{max-height:220px;overflow-y:auto;border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin-bottom:8px;}
+  .in-row{display:flex;align-items:flex-start;gap:7px;padding:5px 3px;font-size:12.5px;cursor:pointer;border-radius:5px;}
+  .in-row:hover{background:#f7f7f7;}
+  .in-row input{margin-top:2px;}
+  .in-name{flex:1;line-height:1.3;}
+  .in-meta{color:var(--muted);font-size:10.5px;display:block;}
+  .in-empty{color:var(--muted);font-size:12px;padding:10px 4px;text-align:center;}
+  .in-foot{display:flex;justify-content:flex-end;gap:6px;}
+  .in-foot button{font-family:inherit;font-size:12px;font-weight:700;border-radius:6px;padding:6px 12px;cursor:pointer;}
+  .in-ok{background:var(--orange);border:1px solid var(--orange);color:#fff;}
+  .in-cancel{background:#fff;border:1px solid var(--border);color:var(--navy);}
   .view.hide{display:none;}
   table.tbl-heat{table-layout:auto;}
   table.tbl-heat th:first-child,table.tbl-heat td:first-child{width:auto;min-width:190px;max-width:300px;white-space:normal;}
@@ -576,12 +600,20 @@ function matrixSection(d, sfx) {
 
 let INSIGHT_TREE = null;
 let insightMetaLoading = false;
-const INSIGHT_TIP = 'Chọn bộ lọc (có thể chọn nhiều giá trị mỗi loại bằng Ctrl/Cmd + click), tuỳ chỉnh khoảng thời gian và mốc thời gian, rồi tải báo cáo Excel đầy đủ: Tổng quan, theo tháng, theo loại yêu cầu, theo kênh WH/MP, theo mức hư hỏng, theo nhóm hàng/mặt hàng, theo seller, theo nguồn — tất cả bằng công thức tham chiếu sheet Data, kèm biểu đồ.';
-
-function inMultiSelect(id, labelId) {
-  return '<div><label for="' + id + '" style="display:block;color:var(--muted);font-size:12px;margin-bottom:4px;">' + labelId + '</label>' +
-    '<select id="' + id + '" multiple size="6" style="width:100%;color:var(--navy);background:#fff;border:1px solid var(--border);border-radius:6px;padding:6px 8px;"><option value="">Đang tải...</option></select></div>';
-}
+let insightGlobalWired = false;
+let insightOpenKey = null;
+const INSIGHT_TIP = 'Chọn bộ lọc (bấm vào từng ô, có thể chọn nhiều giá trị mỗi loại), tuỳ chỉnh khoảng thời gian và mốc thời gian, rồi tải báo cáo Excel đầy đủ: Tổng quan, theo tháng, theo loại yêu cầu, theo kênh WH/MP, theo mức hư hỏng, theo nhóm hàng/mặt hàng, theo seller, theo nguồn — tất cả bằng công thức tham chiếu sheet Data, kèm biểu đồ.';
+const INSIGHT_FILTERS = [
+  {key: 'khach_hang', label: 'Khách hàng', param: 'khachHangs'},
+  {key: 'loai_yeu_cau', label: 'Loại yêu cầu', param: 'loaiYeuCau'},
+  {key: 'seller', label: 'Seller', param: 'sellers'},
+  {key: 'nhom_hang', label: 'Nhóm hàng', param: 'groups'},
+  {key: 'san_pham_vn', label: 'Sản phẩm (VN)', param: 'items'},
+  {key: 'san_pham_en', label: 'Sản phẩm (EN)', param: 'sanPhams'},
+];
+const insightSelected = {};
+const insightDraft = {};
+INSIGHT_FILTERS.forEach(f => { insightSelected[f.key] = new Set(); insightDraft[f.key] = new Set(); });
 
 function insightSection() {
   return '<section><h2 title="' + esc(INSIGHT_TIP) + '" style="cursor:help;">Insight đền bù theo mặt hàng ⓘ</h2><div class="underline"></div>' +
@@ -595,13 +627,7 @@ function insightSection() {
     '<input type="date" id="inTo" style="border:1px solid var(--border);border-radius:6px;padding:6px 8px;"></div>' +
     '<button class="btn primary" type="button" id="inDownload">⬇ Tải Excel</button>' +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;">' +
-    inMultiSelect('inGroups', 'Nhóm hàng') +
-    inMultiSelect('inItems', 'Mặt hàng (san_pham_vn)') +
-    inMultiSelect('inSanPhams', 'San_pham') +
-    inMultiSelect('inSellers', 'Seller') +
-    inMultiSelect('inKhachHangs', 'Khách hàng') +
-    '</div>' +
+    '<div id="inFilterBar" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>' +
     '<p class="foot" id="inStatus" style="text-align:left;"></p></section>';
 }
 
@@ -609,52 +635,112 @@ function fmtVnd(n) {
   return Math.round(n).toLocaleString('vi-VN') + ' đ';
 }
 
-function selValues(id) {
-  const el = document.getElementById(id);
-  if (!el) return [];
-  return [...el.selectedOptions].map(o => o.value).filter(Boolean);
-}
-
-function fillMultiOptions(id, entries, allLabel) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const prevSelected = new Set(selValues(id));
-  el.innerHTML = '<option value="" disabled>' + esc(allLabel) + '</option>' +
-    entries.map(e => '<option value="' + esc(e.name) + '"' + (prevSelected.has(e.name) ? ' selected' : '') + '>' + esc(e.name) + ' (' + fmtNum(e.count) + ' đơn, ' + fmtVnd(e.value) + ')</option>').join('');
-}
-
-function refreshInsightCascade() {
-  if (!INSIGHT_TREE) return;
-  const selectedGroups = selValues('inGroups');
-  const groupsInScope = selectedGroups.length ? INSIGHT_TREE.groups.filter(g => selectedGroups.includes(g.name)) : INSIGHT_TREE.groups;
-  const itemMap = new Map();
-  const spMap = new Map();
+function insightOptionsFor(key) {
+  if (!INSIGHT_TREE) return [];
+  if (key === 'khach_hang') return INSIGHT_TREE.khachHangs;
+  if (key === 'loai_yeu_cau') return INSIGHT_TREE.loaiYeuCau;
+  if (key === 'seller') return INSIGHT_TREE.sellers;
+  if (key === 'nhom_hang') return INSIGHT_TREE.groups;
+  const selectedGroups = insightSelected.nhom_hang;
+  const groupsInScope = selectedGroups.size ? INSIGHT_TREE.groups.filter(g => selectedGroups.has(g.name)) : INSIGHT_TREE.groups;
+  const sub = key === 'san_pham_vn' ? 'items' : 'sanPhams';
+  const map = new Map();
   groupsInScope.forEach(g => {
-    g.items.forEach(it => {
-      const e = itemMap.get(it.name) || {name: it.name, count: 0, value: 0};
+    g[sub].forEach(it => {
+      const e = map.get(it.name) || {name: it.name, count: 0, value: 0};
       e.count += it.count; e.value += it.value;
-      itemMap.set(it.name, e);
-    });
-    g.sanPhams.forEach(sp => {
-      const e = spMap.get(sp.name) || {name: sp.name, count: 0, value: 0};
-      e.count += sp.count; e.value += sp.value;
-      spMap.set(sp.name, e);
+      map.set(it.name, e);
     });
   });
-  fillMultiOptions('inItems', [...itemMap.values()].sort((a, b) => b.value - a.value), '— Tất cả mặt hàng (bỏ chọn) —');
-  fillMultiOptions('inSanPhams', [...spMap.values()].sort((a, b) => b.value - a.value), '— Tất cả san_pham (bỏ chọn) —');
+  return [...map.values()].sort((a, b) => b.value - a.value);
 }
 
-function populateInsightAll() {
-  fillMultiOptions('inGroups', INSIGHT_TREE.groups, '— Tất cả nhóm hàng (bỏ chọn) —');
-  fillMultiOptions('inSellers', INSIGHT_TREE.sellers, '— Tất cả seller (bỏ chọn) —');
-  fillMultiOptions('inKhachHangs', INSIGHT_TREE.khachHangs, '— Tất cả khách hàng (bỏ chọn) —');
-  refreshInsightCascade();
+function insightLabelHtml(key) {
+  const names = [...insightSelected[key]];
+  if (!names.length) return '<span class="v all">Tất cả</span>';
+  const extra = names.length - 1;
+  return '<span class="v">' + esc(names[0]) + '</span>' + (extra > 0 ? '<span class="in-count">+' + extra + '</span>' : '');
+}
+
+function renderInsightBar() {
+  const bar = document.getElementById('inFilterBar');
+  if (!bar) return;
+  bar.innerHTML = INSIGHT_FILTERS.map(f =>
+    '<div style="position:relative;display:inline-block;">' +
+    '<button type="button" class="in-fbtn" data-k="' + f.key + '"><span class="in-k">' + esc(f.label) + ':</span>' + insightLabelHtml(f.key) + '<span class="in-car">▾</span></button>' +
+    '<div class="in-panel" id="inPanel-' + f.key + '"></div></div>'
+  ).join('');
+  bar.querySelectorAll('.in-fbtn').forEach(b => b.addEventListener('click', e => {
+    e.stopPropagation();
+    toggleInsightPanel(b.dataset.k, b);
+  }));
+  updateInsightSummary();
+}
+
+function updateInsightSummary() {
+  const st = document.getElementById('inStatus');
+  if (!st) return;
+  const parts = INSIGHT_FILTERS.filter(f => insightSelected[f.key].size).map(f => f.label + ' (' + insightSelected[f.key].size + ')');
+  st.textContent = parts.length ? 'Đang lọc theo: ' + parts.join(' · ') : 'Chưa áp dụng bộ lọc nào — báo cáo sẽ gồm toàn bộ phạm vi SPE + SPB.';
+}
+
+function closeAllInsightPanels() {
+  document.querySelectorAll('.in-panel').forEach(p => p.classList.remove('show'));
+  document.querySelectorAll('.in-fbtn').forEach(b => b.classList.remove('open'));
+  insightOpenKey = null;
+}
+
+function toggleInsightPanel(key, btn) {
+  if (insightOpenKey === key) { closeAllInsightPanels(); return; }
+  closeAllInsightPanels();
+  insightOpenKey = key;
+  btn.classList.add('open');
+  insightDraft[key] = new Set(insightSelected[key]);
+  const panel = document.getElementById('inPanel-' + key);
+  panel.classList.add('show');
+  renderInsightPanel(key, '');
+  const input = panel.querySelector('input[type=search]');
+  if (input) setTimeout(() => input.focus(), 0);
+}
+
+function renderInsightPanel(key, query) {
+  const panel = document.getElementById('inPanel-' + key);
+  if (!panel) return;
+  const q = query.trim().toLowerCase();
+  const items = insightOptionsFor(key).filter(it => !q || it.name.toLowerCase().includes(q));
+  panel.innerHTML =
+    '<input type="search" placeholder="Tìm kiếm..." value="' + esc(query) + '">' +
+    '<div class="in-quick"><a data-act="all">Chọn tất cả (' + items.length + ')</a><a data-act="none">Bỏ chọn tất cả</a></div>' +
+    '<div class="in-list">' + (items.length
+      ? items.map(it =>
+          '<label class="in-row"><input type="checkbox" data-name="' + esc(it.name) + '"' + (insightDraft[key].has(it.name) ? ' checked' : '') + '>' +
+          '<span class="in-name">' + esc(it.name) + '<span class="in-meta">' + fmtNum(it.count) + ' đơn, ' + fmtVnd(it.value) + '</span></span></label>'
+        ).join('')
+      : '<div class="in-empty">Không tìm thấy</div>') + '</div>' +
+    '<div class="in-foot"><button type="button" class="in-cancel" data-act="cancel">Huỷ</button><button type="button" class="in-ok" data-act="ok">OK</button></div>';
+  panel.querySelector('input[type=search]').addEventListener('input', e => {
+    const caret = e.target.selectionStart;
+    renderInsightPanel(key, e.target.value);
+    const ni = panel.querySelector('input[type=search]');
+    ni.focus(); ni.setSelectionRange(caret, caret);
+  });
+  panel.querySelectorAll('input[type=checkbox]').forEach(cb => cb.addEventListener('change', () => {
+    if (cb.checked) insightDraft[key].add(cb.dataset.name); else insightDraft[key].delete(cb.dataset.name);
+  }));
+  panel.querySelector('[data-act="all"]').addEventListener('click', () => { items.forEach(it => insightDraft[key].add(it.name)); renderInsightPanel(key, query); });
+  panel.querySelector('[data-act="none"]').addEventListener('click', () => { items.forEach(it => insightDraft[key].delete(it.name)); renderInsightPanel(key, query); });
+  panel.querySelector('[data-act="cancel"]').addEventListener('click', () => closeAllInsightPanels());
+  panel.querySelector('[data-act="ok"]').addEventListener('click', () => {
+    insightSelected[key] = new Set(insightDraft[key]);
+    if (key === 'nhom_hang') { insightSelected.san_pham_vn = new Set(); insightSelected.san_pham_en = new Set(); }
+    closeAllInsightPanels();
+    renderInsightBar();
+  });
 }
 
 function loadInsightMeta() {
   if (INSIGHT_TREE || insightMetaLoading) {
-    if (INSIGHT_TREE) populateInsightAll();
+    if (INSIGHT_TREE) renderInsightBar();
     return;
   }
   insightMetaLoading = true;
@@ -666,8 +752,8 @@ function loadInsightMeta() {
     .then(tree => {
       INSIGHT_TREE = tree;
       insightMetaLoading = false;
-      populateInsightAll();
-      if (st) st.textContent = tree.groups.length ? '' : 'Không có dữ liệu nào trong phạm vi SPE + SPB.';
+      renderInsightBar();
+      if (!tree.groups.length) { const s = document.getElementById('inStatus'); if (s) s.textContent = 'Không có dữ liệu nào trong phạm vi SPE + SPB.'; }
     })
     .catch(() => {
       insightMetaLoading = false;
@@ -676,50 +762,49 @@ function loadInsightMeta() {
 }
 
 function wireInsight() {
-  const grp = document.getElementById('inGroups');
   const btn = document.getElementById('inDownload');
   const st = document.getElementById('inStatus');
-  if (!grp) return;
-  grp.addEventListener('change', refreshInsightCascade);
-  if (btn) {
-    btn.addEventListener('click', () => {
-      const qs = [];
-      const addList = (key, vals) => { if (vals.length) qs.push(key + '=' + encodeURIComponent(vals.join('\u0001'))); };
-      addList('groups', selValues('inGroups'));
-      addList('items', selValues('inItems'));
-      addList('sanPhams', selValues('inSanPhams'));
-      addList('sellers', selValues('inSellers'));
-      addList('khachHangs', selValues('inKhachHangs'));
-      const from = document.getElementById('inFrom').value;
-      const to = document.getElementById('inTo').value;
-      if (from) qs.push('from=' + encodeURIComponent(from));
-      if (to) qs.push('to=' + encodeURIComponent(to));
-      qs.push('dateField=' + encodeURIComponent(document.getElementById('inDateField').value));
-      btn.disabled = true;
-      const prevText = btn.textContent;
-      btn.textContent = 'Đang tạo file...';
-      if (st) st.textContent = 'Đang tổng hợp và tạo file Excel (có thể mất vài giây)...';
-      const crf = (window.CRData && window.CRData.fetch) || (window.top && window.top.CRData && window.top.CRData.fetch) || fetch;
-      crf('/api/insight-report?' + qs.join('&'), {credentials: 'include', cache: 'no-store'})
-        .then(r => {
-          if (!r.ok) return r.json().catch(() => ({})).then(j => { throw new Error(j.error || ('HTTP ' + r.status)); });
-          const cd = r.headers.get('Content-Disposition') || '';
-          const m = /filename="([^"]+)"/.exec(cd);
-          return r.blob().then(b => ({ blob: b, filename: m ? m[1] : 'Insight.xlsx' }));
-        })
-        .then(({blob, filename}) => {
-          saveBlob(blob, filename);
-          if (st) st.textContent = '';
-        })
-        .catch(e => {
-          if (st) st.textContent = 'Không tạo được file: ' + (e.message || 'lỗi không xác định') + '. Thử lại.';
-        })
-        .finally(() => {
-          btn.disabled = false;
-          btn.textContent = prevText;
-        });
-    });
+  if (!btn) return;
+  if (!insightGlobalWired) {
+    insightGlobalWired = true;
+    document.addEventListener('click', () => closeAllInsightPanels());
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAllInsightPanels(); });
   }
+  btn.addEventListener('click', () => {
+    const qs = [];
+    INSIGHT_FILTERS.forEach(f => {
+      const vals = [...insightSelected[f.key]];
+      if (vals.length) qs.push(f.param + '=' + encodeURIComponent(vals.join('\u0001')));
+    });
+    const from = document.getElementById('inFrom').value;
+    const to = document.getElementById('inTo').value;
+    if (from) qs.push('from=' + encodeURIComponent(from));
+    if (to) qs.push('to=' + encodeURIComponent(to));
+    qs.push('dateField=' + encodeURIComponent(document.getElementById('inDateField').value));
+    btn.disabled = true;
+    const prevText = btn.textContent;
+    btn.textContent = 'Đang tạo file...';
+    if (st) st.textContent = 'Đang tổng hợp và tạo file Excel (có thể mất vài giây)...';
+    const crf = (window.CRData && window.CRData.fetch) || (window.top && window.top.CRData && window.top.CRData.fetch) || fetch;
+    crf('/api/insight-report?' + qs.join('&'), {credentials: 'include', cache: 'no-store'})
+      .then(r => {
+        if (!r.ok) return r.json().catch(() => ({})).then(j => { throw new Error(j.error || ('HTTP ' + r.status)); });
+        const cd = r.headers.get('Content-Disposition') || '';
+        const m = /filename="([^"]+)"/.exec(cd);
+        return r.blob().then(b => ({ blob: b, filename: m ? m[1] : 'Insight.xlsx' }));
+      })
+      .then(({blob, filename}) => {
+        saveBlob(blob, filename);
+        updateInsightSummary();
+      })
+      .catch(e => {
+        if (st) st.textContent = 'Không tạo được file: ' + (e.message || 'lỗi không xác định') + '. Thử lại.';
+      })
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = prevText;
+      });
+  });
   loadInsightMeta();
 }
 
