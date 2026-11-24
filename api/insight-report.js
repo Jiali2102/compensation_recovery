@@ -36,6 +36,8 @@ function fileSafe(s) {
     .slice(0, 40);
 }
 
+export const config = { maxDuration: 60 };
+
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "private, no-store");
 
