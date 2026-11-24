@@ -812,9 +812,20 @@ function renderInsightPreview(data) {
   const trend = '<div class="in-trend">' + data.trend.map(t =>
     '<div class="col"><div class="val">' + fmtCompact(t.value) + '</div><div class="bar" style="height:' + Math.max(4, Math.round(t.value / max * 90)) + 'px"></div><div class="lab">' + esc(t.month) + '</div></div>'
   ).join('') + '</div>';
-  const rankKeys = ['groups', 'sellers', 'loaiYeuCau', 'items', 'sanPhams', 'channels', 'contentGroups'];
-  const ranks = '<div class="in-ranklist">' + rankKeys.map(k => insightRankColHtml(INSIGHT_RANK_LABELS[k], data.rankings[k])).join('') + '</div>';
-  el.innerHTML = kpis + trend + ranks;
+  const row1Keys = ['loaiYeuCau', 'channels', 'sellers'];
+  const row2Keys = ['groups', 'items', 'sanPhams', 'contentGroups'];
+  const ranksRow1 = '<div class="in-ranklist" style="grid-template-columns:repeat(3,1fr);">' + row1Keys.map(k => insightRankColHtml(INSIGHT_RANK_LABELS[k], data.rankings[k])).join('') + '</div>';
+  const ranksRow2 = '<div class="in-ranklist" style="grid-template-columns:repeat(4,1fr);">' + row2Keys.map(k => insightRankColHtml(INSIGHT_RANK_LABELS[k], data.rankings[k])).join('') + '</div>';
+  const contentTable = '<div class="ph-label" style="font-size:11px;font-weight:700;color:var(--orange-dark);text-transform:uppercase;letter-spacing:.04em;margin:22px 0 10px;">Thử nghiệm — nhóm thông minh từ cột content</div>' +
+    '<p style="font-size:12px;color:var(--muted);margin:0 0 10px;">Ưu tiên hiện các content chưa nhận diện được — anh xem rồi gợi ý từ khóa mới cho em bổ sung.</p>' +
+    '<table class="tbl-auto" style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr style="background:var(--navy);color:#fff;"><th style="text-align:left;padding:6px 10px;">Content (gốc)</th><th style="text-align:left;padding:6px 10px;">Nhóm suy ra</th><th style="text-align:right;padding:6px 10px;">Giá trị</th></tr></thead><tbody>' +
+    (data.contentSamples.length ? data.contentSamples.map(s =>
+      '<tr><td style="padding:5px 10px;border-bottom:1px solid var(--border);max-width:460px;">' + esc(s.content) + '</td>' +
+      '<td style="padding:5px 10px;border-bottom:1px solid var(--border);' + (s.group === '(Chưa nhận diện)' ? 'color:var(--muted);' : 'font-weight:700;') + '">' + esc(s.group) + '</td>' +
+      '<td style="padding:5px 10px;border-bottom:1px solid var(--border);text-align:right;color:var(--muted);">' + fmtVnd(s.value) + '</td></tr>'
+    ).join('') : '<tr><td colspan="3" style="padding:10px;text-align:center;color:var(--muted);">Không có dữ liệu content trong phạm vi đang lọc.</td></tr>') +
+    '</tbody></table>';
+  el.innerHTML = kpis + trend + ranksRow1 + ranksRow2 + contentTable;
 }
 
 function refreshInsightPreview() {
