@@ -130,6 +130,23 @@
   .in-foot button{font-family:inherit;font-size:12px;font-weight:700;border-radius:6px;padding:6px 12px;cursor:pointer;}
   .in-ok{background:var(--orange);border:1px solid var(--orange);color:#fff;}
   .in-cancel{background:#fff;border:1px solid var(--border);color:var(--navy);}
+  .in-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px;}
+  .in-kpi{border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+  .in-kpi .l{font-size:11.5px;color:var(--muted);margin-bottom:4px;}
+  .in-kpi .v{font-size:19px;font-weight:800;color:var(--navy);}
+  .in-kpi .v.orange{color:var(--orange-dark);}
+  .in-trend{display:flex;align-items:flex-end;gap:10px;height:120px;padding:0 4px;margin-bottom:6px;overflow-x:auto;}
+  .in-trend .col{flex:1;min-width:34px;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .in-trend .bar{width:100%;max-width:34px;background:var(--orange);border-radius:4px 4px 0 0;}
+  .in-trend .val{font-size:10px;color:var(--muted);white-space:nowrap;}
+  .in-trend .lab{font-size:10.5px;color:var(--navy);font-weight:700;white-space:nowrap;}
+  .in-ranklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:20px;margin-top:20px;}
+  .in-rankcol .t{font-size:11.5px;font-weight:700;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.03em;}
+  .in-rankrow{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:7px;}
+  .in-rankrow .nm{width:120px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .in-rankrow .bar{flex:1;background:#FFF3EC;border-radius:4px;height:14px;position:relative;}
+  .in-rankrow .bar i{display:block;height:100%;background:var(--orange);border-radius:4px;}
+  .in-rankrow .vv{width:80px;text-align:right;color:var(--muted);font-size:10.5px;flex-shrink:0;}
   .view.hide{display:none;}
   table.tbl-heat{table-layout:auto;}
   table.tbl-heat th:first-child,table.tbl-heat td:first-child{width:auto;min-width:190px;max-width:300px;white-space:normal;}
@@ -628,7 +645,8 @@ function insightSection() {
     '<button class="btn primary" type="button" id="inDownload">⬇ Tải Excel</button>' +
     '</div>' +
     '<div id="inFilterBar" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;"></div>' +
-    '<p class="foot" id="inStatus" style="text-align:left;"></p></section>';
+    '<p class="foot" id="inStatus" style="text-align:left;"></p>' +
+    '<div id="inPreview" style="border-top:1px dashed var(--border);padding-top:16px;margin-top:4px;"></div></section>';
 }
 
 function fmtVnd(n) {
@@ -758,7 +776,58 @@ function renderInsightPanel(key, query) {
     if (key === 'nhom_hang') { insightSelected.san_pham_vn = new Set(); insightSelected.san_pham_en = new Set(); }
     closeAllInsightPanels();
     renderInsightBar();
+    refreshInsightPreview();
   });
+}
+
+const INSIGHT_RANK_LABELS = {
+  groups: 'Nhóm hàng', sellers: 'Seller', loaiYeuCau: 'Loại yêu cầu',
+  items: 'Sản phẩm (VN)', sanPhams: 'Sản phẩm (EN)', channels: 'Channel (WH / MP)', contentGroups: 'Nhóm suy ra từ content',
+};
+let insightPreviewSeq = 0;
+
+function insightRankColHtml(title, items) {
+  const max = Math.max.apply(null, items.map(i => i.value).concat([1]));
+  return '<div class="in-rankcol"><div class="t">' + esc(title) + '</div>' + (items.length
+    ? items.map(it =>
+        '<div class="in-rankrow"><div class="nm">' + esc(it.name) + '</div><div class="bar"><i style="width:' + Math.max(2, Math.round(it.value / max * 100)) + '%"></i></div><div class="vv">' + fmtCompact(it.value) + '</div></div>'
+      ).join('')
+    : '<div style="color:var(--muted);font-size:11.5px;">Không có dữ liệu</div>') + '</div>';
+}
+
+function renderInsightPreview(data) {
+  const el = document.getElementById('inPreview');
+  if (!el) return;
+  if (!data.kpi.count) {
+    el.innerHTML = '<p class="foot" style="text-align:left;">Không có đơn nào khớp với bộ lọc hiện tại.</p>';
+    return;
+  }
+  const max = Math.max.apply(null, data.trend.map(t => t.value).concat([1]));
+  const kpis = '<div class="in-kpis">' +
+    '<div class="in-kpi"><div class="l">Tổng số đơn</div><div class="v">' + fmtNum(data.kpi.count) + '</div></div>' +
+    '<div class="in-kpi"><div class="l">Tổng giá trị đền bù</div><div class="v orange">' + fmtVnd(data.kpi.value) + '</div></div>' +
+    '<div class="in-kpi"><div class="l">TB / đơn</div><div class="v">' + fmtVnd(data.kpi.avg) + '</div></div>' +
+    '<div class="in-kpi"><div class="l">Số seller</div><div class="v">' + fmtNum(data.kpi.sellers) + '</div></div>' +
+    '</div>';
+  const trend = '<div class="in-trend">' + data.trend.map(t =>
+    '<div class="col"><div class="val">' + fmtCompact(t.value) + '</div><div class="bar" style="height:' + Math.max(4, Math.round(t.value / max * 90)) + 'px"></div><div class="lab">' + esc(t.month) + '</div></div>'
+  ).join('') + '</div>';
+  const rankKeys = ['groups', 'sellers', 'loaiYeuCau', 'items', 'sanPhams', 'channels', 'contentGroups'];
+  const ranks = '<div class="in-ranklist">' + rankKeys.map(k => insightRankColHtml(INSIGHT_RANK_LABELS[k], data.rankings[k])).join('') + '</div>';
+  el.innerHTML = kpis + trend + ranks;
+}
+
+function refreshInsightPreview() {
+  const el = document.getElementById('inPreview');
+  if (!el) return;
+  const seq = ++insightPreviewSeq;
+  el.innerHTML = '<p class="foot" style="text-align:left;">Đang tính số liệu xem trước...</p>';
+  const crf = (window.CRData && window.CRData.fetch) || (window.top && window.top.CRData && window.top.CRData.fetch) || fetch;
+  const qs = insightSelParams();
+  crf('/api/insight-report?action=preview&' + qs.join('&'), {credentials: 'include', cache: 'no-store'})
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(data => { if (seq === insightPreviewSeq) renderInsightPreview(data); })
+    .catch(() => { if (seq === insightPreviewSeq) el.innerHTML = '<p class="foot" style="text-align:left;">Không tải được số liệu xem trước.</p>'; });
 }
 
 function wireInsight() {
@@ -770,6 +839,9 @@ function wireInsight() {
     document.addEventListener('click', () => closeAllInsightPanels());
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAllInsightPanels(); });
   }
+  document.getElementById('inFrom').addEventListener('change', refreshInsightPreview);
+  document.getElementById('inTo').addEventListener('change', refreshInsightPreview);
+  document.getElementById('inDateField').addEventListener('change', refreshInsightPreview);
   btn.addEventListener('click', () => {
     const qs = insightSelParams();
     btn.disabled = true;
@@ -797,6 +869,7 @@ function wireInsight() {
       });
   });
   renderInsightBar();
+  if (VIEW === 'in') refreshInsightPreview();
 }
 
 function deepHtml(d, sfx) {
@@ -813,7 +886,7 @@ function wireViews() {
     document.getElementById('viewIn').classList.toggle('hide', VIEW !== 'in');
     document.getElementById('vjump').classList.toggle('show', VIEW === 'cs');
     window.scrollTo(0, 0);
-
+    if (VIEW === 'in' && !document.getElementById('inPreview').childElementCount) refreshInsightPreview();
   }));
   document.querySelectorAll('#vjump button').forEach(b => b.addEventListener('click', () => {
     const el = document.getElementById(b.dataset.j);
