@@ -1,7 +1,7 @@
 import { adminConfigured, getAccess } from "../lib/admin.js";
 import { isConfigured, fetchMainCsv, useRelaySession } from "../lib/bi.js";
 import { relayConfigured, openBlob } from "../lib/relay.js";
-import { loadInsightRows, buildFacets, buildInsightWorkbook } from "../lib/insight.js";
+import { loadInsightRows, buildFacets, buildPreview, buildInsightWorkbook } from "../lib/insight.js";
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
 let cache = { at: 0, rows: null };
@@ -92,6 +92,12 @@ export default async function handler(req, res) {
     if (q.action === "meta" || q.action === "facets") {
       const facets = buildFacets(rows, sel);
       res.status(200).json(facets);
+      return;
+    }
+
+    if (q.action === "preview") {
+      const preview = buildPreview(rows, sel);
+      res.status(200).json(preview);
       return;
     }
 
